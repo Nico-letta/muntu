@@ -1,0 +1,4 @@
+# RULE: PERFORMANCE-FIRST-MOBILE
+En contexte de connectivité contrainte et de processeurs mobiles de milieu de gamme, chaque octet compte.
+L'utilisation abusive des couches de composition GPU via la propriété CSS 'will-change' ou des animations matricielles lourdes sur des éléments décoratifs au scroll détruit l'autonomie de la batterie et provoque du thermal throttling (surchauffe et ralentissement du processeur).
+Principe immuable : Préférer les transitions d'opacité ou de transformation simples nativisées par le navigateur. Ne forcer l'accélération matérielle que sur des éléments interactifs hautement dynamiques.
