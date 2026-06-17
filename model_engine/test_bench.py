@@ -2,12 +2,11 @@ import os
 import torch
 from tokenizers import ByteLevelBPETokenizer
 
-# Importations de tes modules de src
-from src.embedding import MuntuEmbedding
-from src.transformer_block import MuntuTransformerBlock
+# Importation du modèle complet
+from src.model import MuntuLM
 
 def run_test_bench():
-    # --- STAGE 1 : INIT ---
+    # --- STAGE 1 : CONFIG ---
     base_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.abspath(os.path.join(base_dir, ".."))
     tokenizer_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
@@ -25,28 +24,32 @@ def run_test_bench():
     input_tensor = torch.tensor([encoded.ids], dtype=torch.long)
     print(f"Shape entrée : {input_tensor.shape}")
 
-    # --- STAGE 3 : EMBEDDING ---
-    print("\n=== STAGE 2 : EMBEDDING ===")
-    d_model = 256
-    embedding_layer = MuntuEmbedding(vocab_size=1500, d_model=d_model, max_seq_len=512)
+    # --- STAGE 3 : DU BLOC UNIQUE AU LLM COMPLET ---
+    print("\n=== STAGE 2 : INITIALISATION DE MUNTU LM ===")
+    model = MuntuLM(
+        vocab_size=1495, # Notre vocabulaire exact basé sur l'entraînement BPE précédent
+        d_model=256,
+        max_seq_len=512,
+        n_layers=4       # On empile 4 blocs consécutifs
+    )
     
-    with torch.no_grad():
-        embeddings = embedding_layer(input_tensor)
-    print(f"Shape après Embedding : {embeddings.shape}")
+    # Calcul des paramètres
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"[+] Modèle global initialisé avec succès !")
+    print(f"[+] Nombre total de paramètres entraînables : {total_params:,}")
 
-    # --- STAGE 4 : TRANSFORMER BLOCK ---
-    print("\n=== STAGE 3 : BLOC TRANSFORMER ENTIER ===")
-    transformer_block = MuntuTransformerBlock(d_model=d_model)
-    
+    # --- STAGE 4 : INFERENCE ---
+    print("\n=== STAGE 3 : TEST D'INFERENCE BRUTE ===")
     with torch.no_grad():
-        block_output = transformer_block(embeddings)
-    print(f"Shape après Transformer Block : {block_output.shape}")
+        logits, _ = model(input_tensor)
+        
+    print(f"Shape des Logits de sortie : {logits.shape} -> (Batch_size, Seq_len, Vocab_size)")
     
-    if block_output.shape == embeddings.shape:
-        print(" Succès critique : Le bloc Transformer complet a traité les données avec succès.")
-        print("Toutes les connexions résiduelles et normalisations fonctionnent sans erreur de dimension.")
+    if logits.shape == (1, 32, 1495):
+        print("L'architecture complète de MUNTU est opérationnelle de bout en bout.")
+        print("Chacun des 32 tokens d'entrée dispose d'un vecteur de prédiction de taille 1495 pour le mot suivant.")
     else:
-        print(" Erreur : Problème de dimensions dans le bloc Transformer.")
+        print("Erreur : Anomalie détectée dans la dimension finale des logits.")
 
 if __name__ == "__main__":
     run_test_bench()
