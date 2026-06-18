@@ -22,7 +22,7 @@ def train_muntu_tokenizer():
     print(f"[*] Entraînement en cours sur : {corpus_path}")
     tokenizer.train(
         files=[corpus_path],
-        vocab_size=1500,
+        vocab_size=1495,
         min_frequency=2,
         special_tokens=["<s>", "</s>", "<pad>", "<unk>"]
     )

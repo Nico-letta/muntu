@@ -4,9 +4,9 @@ from src.embedding import MuntuEmbedding
 from src.transformer_block import MuntuTransformerBlock
 
 class MuntuLM(nn.Module):
-    def __init__(self, vocab_size: int = 1500, d_model: int = 256, max_seq_len: int = 512, n_layers: int = 4):
+    def __init__(self, vocab_size: int, d_model: int = 256, max_seq_len: int = 512, n_layers: int = 4):
         """
-        vocab_size : Taille du dictionnaire de tokens (1500)
+        vocab_size : Taille du dictionnaire de tokens (1495)
         d_model    : Dimension des vecteurs d'embedding (256)
         max_seq_len: Taille maximale du contexte (512)
         n_layers   : Nombre de blocs Transformers empilés (ici 4 pour un modèle compact)
@@ -23,7 +23,7 @@ class MuntuLM(nn.Module):
         self.ln_f = nn.LayerNorm(d_model)
         
         # 4. Tête de prédiction du langage (Language Modeling Head)
-        # Projette d_model (256) -> vocab_size (1500)
+        # Projette d_model (256) -> vocab_size (1495)
         self.lm_head = nn.Linear(d_model, vocab_size, bias=False)
         
         # Optionnel mais pro : Partage des poids (Weight Tying)

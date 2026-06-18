@@ -4,7 +4,7 @@ import torch.nn as nn
 class MuntuEmbedding(nn.Module):
     def __init__(self, vocab_size: int, d_model: int, max_seq_len: int):
         """
-        vocab_size : Taille de ton vocabulaire (1500 pour MUNTU)
+        vocab_size : Taille de ton vocabulaire (1495 pour MUNTU)
         d_model    : Dimension cachée de ton vecteur (ex: 256)
         max_seq_len: Longueur maximale du contexte (ex: 512 tokens)
         """
