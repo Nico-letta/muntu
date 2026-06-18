@@ -31,6 +31,20 @@ class MuntuLM(nn.Module):
         # Ça réduit drastiquement le nombre de paramètres et améliore les performances sur les petits corpus.
         self.lm_head.weight = self.embedding.token_embedding.weight
 
+        # ======= INITIALISATION DES POIDS =======
+        self.apply(self._init_weights)
+        print("[+] Poids du modèle initialisés selon le standard GPT-2 (std=0.02).")
+
+    def _init_weights(self, module):
+        """ Initialisation personnalisée pour stabiliser les gradients au départ """
+        if isinstance(module, nn.Linear):
+            # On force des poids très petits et proches de 0
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
     def forward(self, input_ids: torch.Tensor, targets: torch.Tensor = None):
         """
         input_ids: Tenseur de tokens d'entrée (Batch_size, Seq_len)
