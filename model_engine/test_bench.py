@@ -29,20 +29,19 @@ def generate_text(prompt: str, max_new_tokens: int = 40):
     print(f"\n[Prompt initial] : {prompt}")
     print("[MUNTU génère...] : ", end="")
     
-    # Boucle de génération autoregressive
-    for _ in range(max_new_tokens):
-        input_cond = input_ids[:, -512:]
-        
-        with torch.no_grad():
-            logits, _ = model(input_cond)
-        
-        next_token_logits = logits[:, -1, :]
-        next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
-        input_ids = torch.cat((input_ids, next_token), dim=1)
-        
-        # Décodage propre pour éviter les caractères de contrôle BPE (Ġ, Ċ) dans le terminal
-        token_str = tokenizer.decode([next_token.item()])
-        print(token_str, end="", flush=True)
+    # 4. Génération équilibrée (Standard GPT) avec l'API de notre modèle
+    output_ids = model.generate(
+        input_ids, 
+        max_new_tokens=max_new_tokens, 
+        temperature=0.8, 
+        top_k=50, 
+        top_p=0.92
+    )
+    
+    # 5. Décodage et affichage du résultat final (Tout le texte généré)
+    # output_ids[0] contient la liste complète des tokens (Prompt + Nouvelle génération)
+    generated_text = tokenizer.decode(output_ids[0].tolist())
+    print(generated_text)
     print("\n")
 
 if __name__ == "__main__":

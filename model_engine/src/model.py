@@ -72,3 +72,49 @@ class MuntuLM(nn.Module):
             )
             
         return logits, loss
+    
+    @torch.no_grad()
+    def generate(self, input_ids: torch.Tensor, max_new_tokens: int, temperature: float = 1.0, top_k: int = None, top_p: float = None):
+        """
+        Génère une suite de tokens de manière autorégressive avec Temperature, Top-K et Top-P sampling.
+        """
+        self.eval() 
+        
+        for _ in range(max_new_tokens):
+            input_cond = input_ids[:, -512:]
+            logits, _ = self(input_cond)
+            next_token_logits = logits[:, -1, :]
+            
+            # 1. Application de la Température
+            if temperature != 1.0:
+                next_token_logits = next_token_logits / temperature
+                
+            # 2. Application du Top-K
+            if top_k is not None and top_k > 0:
+                v, _ = torch.topk(next_token_logits, min(top_k, next_token_logits.size(-1)))
+                next_token_logits[next_token_logits < v[:, [-1]]] = -float('Inf')
+            
+            # 3. Application du Top-P (Nucleus Sampling)
+            if top_p is not None and top_p > 0.0 and top_p < 1.0:
+                # On trie les logits par ordre décroissant
+                sorted_logits, sorted_indices = torch.sort(next_token_logits, descending=True, dim=-1)
+                # Calcul des probabilités cumulées
+                cumulative_probs = torch.cumsum(nn.functional.softmax(sorted_logits, dim=-1), dim=-1)
+                
+                # Masquer les tokens qui dépassent le seuil top_p
+                sorted_indices_to_remove = cumulative_probs > top_p
+                # On décale vers la droite pour conserver au moins le premier token au-dessus du seuil
+                sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+                sorted_indices_to_remove[..., 0] = 0
+                
+                # Remplacer les logits exclus par -inf
+                indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
+                next_token_logits[indices_to_remove] = -float('Inf')
+            
+            # 4. Conversion en probabilités et échantillonnage
+            probs = nn.functional.softmax(next_token_logits, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1)
+            
+            input_ids = torch.cat((input_ids, next_token), dim=1)
+            
+        return input_ids
