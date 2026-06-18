@@ -1,61 +1,50 @@
 import os
 import torch
-from torch.utils.data import DataLoader
-
-# Importations de tes modules
+import torch.nn.functional as F
+from tokenizers import ByteLevelBPETokenizer
 from src.model import MuntuLM
-from src.dataset import MuntuPretrainDataset
 
-def run_test_bench():
-    # --- STAGE 1 : SETUP DES CHEMINS ---
+def generate_text(prompt: str, max_new_tokens: int = 40):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.abspath(os.path.join(base_dir, ".."))
     
-    corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     tokenizer_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
-
-    print("\n=== STAGE 1 : CHARGEMENT DU DATASET ===")
-    max_seq_len = 64  # Taille de contexte adaptée à notre test
+    model_path = os.path.join(base_dir, "muntu_pretrained.pt")
     
-    dataset = MuntuPretrainDataset(
-        corpus_path=corpus_path,
-        tokenizer_dir=tokenizer_dir,
-        max_seq_len=max_seq_len
+    # 1. Charger le Tokeniseur
+    tokenizer = ByteLevelBPETokenizer(
+        os.path.join(tokenizer_dir, "vocab.json"),
+        os.path.join(tokenizer_dir, "merges.txt")
     )
-
-    # Création du DataLoader (Batch_size = 2 pour simuler un traitement parallèle)
-    # shuffle=True permet de mélanger les exemples à chaque époque
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
     
-    # Récupérer un seul lot (batch) pour tester la tuyauterie
-    inputs_batch, targets_batch = next(iter(dataloader))
-    print(f"[+] Format du Batch Inputs  (x) : {inputs_batch.shape}  -> (Batch_size, Seq_len)")
-    print(f"[+] Format du Batch Targets (y) : {targets_batch.shape}  -> (Batch_size, Seq_len)")
-
+    # 2. Instancier et charger les poids entraînés de MUNTU
+    model = MuntuLM(vocab_size=1495, d_model=256, max_seq_len=512, n_layers=4)
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    model.eval() 
     
-
-    # --- STAGE 2 : LE MODÈLE COMPLEMENTAIRE ---
-    print("\n=== STAGE 2 : INFERENCE & CALCUL DE LA LOSS ===")
-    model = MuntuLM(
-        vocab_size=1495,
-        d_model=256,
-        max_seq_len=512,
-        n_layers=4
-    )
-    #logits, loss = model(inputs_batch, targets_batch)
-    print(f"DEBUG - Taille dict Embedding : {model.embedding.token_embedding.weight.shape}")
-    print(f"DEBUG - Taille dict LM Head   : {model.lm_head.weight.shape}")
-    print(f"DEBUG - Max ID dans le Batch   : {inputs_batch.max().item()}")
-    # On passe le batch d'inputs ET de targets dans le modèle pour obtenir la Loss
-    logits, loss = model(inputs_batch, targets_batch)
+    # 3. Encodage du prompt d'entrée
+    encoded = tokenizer.encode(prompt)
+    input_ids = torch.tensor([encoded.ids], dtype=torch.long)
     
-    print(f"[+] Shape finale des Logits : {logits.shape}")
-    print(f"[+] Loss initiale calculée  : {loss.item():.4f}")
+    print(f"\n[Prompt initial] : {prompt}")
+    print("[MUNTU génère...] : ", end="")
     
-    # Explication technique de la loss initiale
-    # Pour un dictionnaire de 1495 tokens aléatoires, la loss théorique de départ
-    # est égale à -ln(1/1495) ~= 7.31. Si on est dans ces eaux-là, les maths sont parfaites !
-    print(" Pipeline de données connecté à l'architecture ! Prêt pour l'entraînement réel.")
+    # Boucle de génération autoregressive
+    for _ in range(max_new_tokens):
+        input_cond = input_ids[:, -512:]
+        
+        with torch.no_grad():
+            logits, _ = model(input_cond)
+        
+        next_token_logits = logits[:, -1, :]
+        next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+        input_ids = torch.cat((input_ids, next_token), dim=1)
+        
+        # Décodage propre pour éviter les caractères de contrôle BPE (Ġ, Ċ) dans le terminal
+        token_str = tokenizer.decode([next_token.item()])
+        print(token_str, end="", flush=True)
+    print("\n")
 
 if __name__ == "__main__":
-    run_test_bench()
+    # Test avec une amorce de code TypeScript propre à ton corpus
+    generate_text("const MuntuApp = () => {", max_new_tokens=40)
