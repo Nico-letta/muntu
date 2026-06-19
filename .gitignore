@@ -1,0 +1,25 @@
+# Environnement Virtuel Python
+.venv/
+venv/
+ENV/
+pyvenv.cfg
+
+# Caches Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Poids du modèle (Fichiers lourds .pt ou .pth)
+# On ne pousse JAMAIS les gigas de poids sur GitHub, on les garde en local ou sur Hugging Face
+*.pt
+*.pth
+
+# Dossiers de données brutes / Outputs de tokenization si trop volumineux
+data_engine/_output/
+
+# OS / IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
