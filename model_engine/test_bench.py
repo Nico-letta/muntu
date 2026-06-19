@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from tokenizers import ByteLevelBPETokenizer
 from src.model import MuntuLM
 
-def generate_text(prompt: str, max_new_tokens: int = 40):
+def generate_text(prompt: str, max_new_tokens: int = 100):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.abspath(os.path.join(base_dir, ".."))
     

@@ -8,12 +8,22 @@ from src.dataset import MuntuPretrainDataset
 
 def train_muntu():
     # --- 1. CONFIGURATION DES CHEMINS ---
+    # --- 1. CONFIGURATION DES CHEMINS ---
     base_dir = os.path.dirname(os.path.abspath(__file__)) # Récupère model_engine/
     root_dir = os.path.abspath(os.path.join(base_dir, "..")) # Remonte à la racine MUNTU
     
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     tokenizer_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
+    output_model_path = os.path.join(base_dir, "muntu_pretrained.pt")
     
+    # [CORRECTION OS] : Si un ancien modèle dense ou incompatible existe, on nettoie proprement
+    if os.path.exists(output_model_path):
+        archive_path = os.path.join(base_dir, "muntu_dense_legacy.pt")
+        if os.path.exists(archive_path):
+            os.remove(archive_path) # Supprime l'ancienne archive de secours pour libérer le nom
+        os.rename(output_model_path, archive_path)
+        print(f"[*] Ancien modèle obsolète archivé sous : {archive_path}")
+
     # Hyperparamètres
     BATCH_SIZE = 16
     MAX_SEQ_LEN = 64
@@ -29,7 +39,7 @@ def train_muntu():
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
     # --- 3. INITIALISATION ---
-    print("[*] Initialisation du modèle MUNTU LM...")
+    print("[*] Initialisation du modèle MUNTU MoE LM (4 Experts)...")
     model = MuntuLM(
         vocab_size=1495,
         d_model=256,
@@ -40,7 +50,7 @@ def train_muntu():
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)
 
     # --- 4. BOUCLE D'ENTRAÎNEMENT ---
-    print(f" Lancement du Pré-entraînement pour {EPOCHS} époques...")
+    print(f"Lancement du Pré-entraînement MoE pour {EPOCHS} époques...")
     model.train()
     
     for epoch in range(EPOCHS):
@@ -51,9 +61,13 @@ def train_muntu():
             inputs, targets = inputs.to(device), targets.to(device)
             
             optimizer.zero_grad()
+            
+            # Ton modèle calcule les logits et la cross-entropy loss classique
             logits, loss = model(inputs, targets)
+            
             loss.backward()
             
+            # Évite l'explosion du gradient, ultra-important sur les architectures MoE
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
@@ -64,9 +78,8 @@ def train_muntu():
         print(f"Epoch {epoch+1:02d}/{EPOCHS:02d} | Loss Moyenne : {epoch_loss:.4f}")
 
     # --- 5. SAUVEGARDE DU MODÈLE ---
-    output_model_path = os.path.join(base_dir, "muntu_pretrained.pt")
     torch.save(model.state_dict(), output_model_path)
-    print(f" Entraînement terminé ! Modèle sauvegardé sous : {output_model_path}")
+    print(f"Entraînement terminé ! Nouveau cerveau MoE sauvegardé sous : {output_model_path}")
 
 if __name__ == "__main__":
     train_muntu()
