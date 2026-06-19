@@ -1,58 +1,58 @@
-# MUNTU LLM
+# MUNTU LLM 
 
-MUNTU est un modèle de langage autorégressif basé sur l'architecture Transformer (Décodeur pur) et implémenté en PyTorch. Il intègre un mécanisme de routage clairsemé (*Sparse Mixture of Experts* - MoE) conçu pour optimiser l'efficacité computationnelle et permettre une spécialisation modulaire des paramètres selon les domaines d'entraînement.
+MUNTU is an autoregressive large language model based on the Transformer architecture (decoder-only) and implemented from scratch in PyTorch. It features a sparse Mixture of Experts (MoE) Top-1 routing mechanism designed to optimize computational efficiency and enable modular parameter specialization across distinct training domains.
 
-Ce dépôt héberge la **validation fonctionnelle de l'architecture (Proof of Concept)**. Le pipeline est actuellement validé sur un volume réduit de données composites (code source, spécifications techniques et cadres réglementaires), démontrant la stabilité du routage et la convergence de la fonction de perte sur infrastructure CPU avant d'amorcer les phases de changement d'échelle (*scaling*).
-
----
-
-##  Positionnement Stratégique & Spécificités
-
-MUNTU se différencie des grands modèles de langage globaux par deux axes majeurs :
-
-* **Efficacité Computationnelle :** L'approche *Sparse MoE Top-1* permet d'accroître la capacité du modèle (nombre total de paramètres) tout en maintenant un coût d'inférence bas. L'exécution et le déploiement deviennent ainsi viables sur des architectures matérielles locales (stations de travail ou serveurs standards), évitant la dépendance aux infrastructures cloud massives.
-* **Souveraineté Contextuelle :** Le modèle cible explicitement les angles morts sémantiques et techniques des LLM occidentaux. Sa stratégie d'apprentissage intègre nativement les structures logiques, les cadres réglementaires et les écosystèmes technologiques (ex: protocoles Mobile Money) spécifiques au contexte africain.
+This repository serves as a **functional validation of the architecture (Proof of Concept)**. The pipeline is currently validated on a scaled-down composite dataset (source code, technical specifications, and regulatory frameworks), demonstrating routing stability and loss convergence on CPU infrastructures prior to scaling up the vocabulary and data workloads.
 
 ---
 
-##  Spécifications de l'Architecture
+##  Strategic Positioning & Core Differentiators
 
-L'implémentation logicielle suit les standards rigoureux du Deep Learning pour assurer la stabilité du réseau lors de la montée en charge :
+MUNTU distinguishes itself from global, large-scale language models through two primary pillars:
 
-* **Modèle de Base :** Architecture Transformer de type Décodeur pur, optimisée pour l'apprentissage autorégressif.
-* **Normalisation (Pre-LN) :** Application de la `LayerNorm` à l'entrée de chaque sous-bloc (Attention et MoE) afin de stabiliser la propagation du gradient et prévenir les divergences.
-* **Mécanisme d'Attention :** Attention Causale multi-têtes (`MuntuCausalAttention`) avec masquage triangulaire strict du futur.
-* **Routage MoE Sparse :** Gating dynamique *Top-1 Routing* distribuant les jetons de manière ciblée vers un ensemble d'experts indépendants (`MuntuExpert`). La capacité est entièrement paramétrable (configurée à 4 experts par défaut).
-* **Contrôle du Gating (Anti-Collapse) :** Calcul interne d'une **Load Balancing Loss** (Perte auxiliaire pondérée à `0.01`) pour forcer le routeur à distribuer la charge équitablement entre les experts et empêcher le monopole d'un seul composant.
+* **Computational Efficiency (Sparse MoE):** The *Sparse MoE Top-1* routing approach expands the model's total parameter capacity (knowledge retention) while maintaining a low inference cost. This architecture makes deployment and execution viable on local hardware (standard servers or workstations), removing strict dependencies on massive cloud infrastructures.
+* **Contextual Sovereignty:** The model explicitly targets the semantic and technical blind spots of Western-centric LLMs. MUNTU natively integrates regional business logic, local regulatory frameworks, and regional fintech infrastructures (e.g., Mobile Money ecosystems) specific to the African context into its pre-training strategy.
 
 ---
 
-##  Structure du Projet
+##  Architectural Specifications
+
+The software implementation complies with rigorous Deep Learning engineering standards to ensure network stability under scaling:
+
+* **Base Model:** Decoder-only Transformer architecture optimized for autoregressive sequence learning.
+* **Normalization (Pre-LN):** Layer normalization (`LayerNorm`) applied at the input of each sub-block (Attention and MoE) to stabilize gradient propagation and prevent training divergence.
+* **Attention Mechanism:** Multi-head causal attention (`MuntuCausalAttention`) with strict lower-triangular future masking.
+* **Sparse MoE Routing:** Dynamic *Top-1 Routing* gating system distributing tokens to a set of independent feed-forward experts (`MuntuExpert`). Total expert capacity is fully parameterizable (configured to 4 experts by default).
+* **Gating Control (Anti-Collapse):** In-flight calculation of an auxiliary **Load Balancing Loss** (weighted at `0.01`) to enforce uniform token distribution across experts and prevent single-expert monopoly.
+
+---
+
+##  Project Structure
 
 ```text
 muntu/
-├── data_engine/                 # Pipeline d'ingestion et préparation des données
-│   ├── corpus_raw/              # Données sources classées par domaines
-│   │   ├── 00-core-principles/  # Directives d'architecture et performance
-│   │   ├── 01-react-native/     # Optimisations et règles de mémoisation
-│   │   ├── 02-fintech-local/    # Structures Mobile Money et régulations régionales
-│   │   └── 10-case-studies/     # Études de cas d'interfaces (UI)
-│   ├── _output/                 # Artefacts générés pour l'entraînement
-│   │   ├── muntu_tokenizer/     # Fichiers du Tokenizer BPE (vocab.json, merges.txt)
-│   │   └── corpus_pretrain.txt  # Corpus unifié prêt pour le modèle
-│   └── generate_corpus.py       # Agrégation et nettoyage des sources
-├── model_engine/                # Moteur du modèle et logique d'exécution
-│   ├── src/                     # Code source de l'architecture
-│   │   ├── attention.py         # Mécanisme d'attention causale
-│   │   ├── dataset.py           # Pipeline de chargement des tokens
-│   │   ├── embedding.py         # Gestion unifiée des Token & Position Embeddings
-│   │   ├── model.py             # Classe principale MuntuLM (Logits & Loss combinée)
-│   │   ├── moe_layer.py         # Routage Top-1 et Load Balancing Loss
-│   │   └── transformer_block.py # Blocs Transformers Pre-LN couplés au MoE
-│   ├── tokenizer_core/          # Moteur d'entraînement du tokenizer
-│   │   └── train_tokenizer.py   # Script d'apprentissage BPE
-│   ├── test_bench.py            # Banc d'essai autorégressif (Température, Top-K, Top-P)
-│   └── train.py                 # Script d'entraînement avec gestion d'archivage OS
-├── main.py                      # Point d'entrée de l'application
-├── LICENSE                      # Licence Apache 2.0
-└── README.md                    # Documentation technique
+├── data_engine/                 # Data ingestion and pre-processing pipeline
+│   ├── corpus_raw/              # Raw source datasets categorized by domain
+│   │   ├── 00-core-principles/  # Architecture guidelines and performance standards
+│   │   ├── 01-react-native/     # UI optimizations and memoization rules
+│   │   ├── 02-fintech-local/    # Mobile Money data structures and regional regulations
+│   │   └── 10-case-studies/     # Interface (UI) implementation case studies
+│   ├── _output/                 # Generated training artifacts
+│   │   ├── muntu_tokenizer/     # BPE Tokenizer assets (vocab.json, merges.txt)
+│   │   └── corpus_pretrain.txt  # Unified, model-ready pre-training corpus
+│   └── generate_corpus.py       # Source aggregation, deduplication, and cleaning
+├── model_engine/                # Core model architecture and execution layer
+│   ├── src/                     # Core engine source code
+│   │   ├── attention.py         # Multi-head causal attention mechanics
+│   │   ├── dataset.py           # Tokenized text loading and batching pipeline
+│   │   ├── embedding.py         # Unified Token & Positional Embedding management
+│   │   ├── model.py             # Main MuntuLM definition (Logits & combined Loss)
+│   │   ├── moe_layer.py         # Top-1 gating logic and Load Balancing Loss
+│   │   └── transformer_block.py # Pre-LN Transformer blocks coupled with MoE layers
+│   ├── tokenizer_core/          # Tokenizer training engine
+│   │   └── train_tokenizer.py   # Byte-Pair Encoding (BPE) training script
+│   ├── test_bench.py            # Autoregressive generation suite (Temperature, Top-K, Top-P)
+│   └── train.py                 # Training script with OS-level checkpoint archiving
+├── main.py                      # Application entry point
+├── LICENSE                      # Apache 2.0 License
+└── README.md                    # Technical documentation
