@@ -26,29 +26,22 @@ class MuntuMoELayer(nn.Module):
         B, T, C = orig_shape
         x_flat = x.view(-1, C) # Shape: (Total_Tokens, d_model)
         
-        # 1. Scores bruts et probabilités du routeur
         router_logits = self.router(x_flat) 
         routing_weights = F.softmax(router_logits, dim=-1) # Shape: (Total_Tokens, num_experts)
         
-        # 2. Top-1 Routing
+        # Top-1 Routing
         max_weights, selected_experts = torch.max(routing_weights, dim=-1)
         
         # --- [ANTI-COLLAPSE] : Calcul de la Load Balancing Loss ---
-        # f : Fraction de tokens alloués à chaque expert (combien de tokens vont chez qui)
-        # On calcule combien de tokens ont choisi chaque expert_id, divisé par le total
         tokens_per_expert = torch.zeros(self.num_experts, device=x.device)
         for expert_id in range(self.num_experts):
             tokens_per_expert[expert_id] = (selected_experts == expert_id).sum()
         
         fraction_tokens = tokens_per_expert / x_flat.size(0)
         
-        # P : Probabilité moyenne allouée par le routeur à chaque expert sur tout le batch
         mean_routing_weights = routing_weights.mean(dim=0)
         
-        # Load Balancing Loss = num_experts * somme(fraction_tokens * mean_routing_weights)
-        # Idéalement, si tout est uniforme, cette valeur vaut 1.0
         aux_loss = self.num_experts * torch.sum(fraction_tokens * mean_routing_weights)
-        # -----------------------------------------------------------
 
         out_flat = torch.zeros_like(x_flat)
         
@@ -60,4 +53,4 @@ class MuntuMoELayer(nn.Module):
                 padded_weights = max_weights[token_mask].unsqueeze(-1)
                 out_flat[token_mask] = expert_outputs * padded_weights
                 
-        return out_flat.view(orig_shape), aux_loss # On renvoie la sortie ET la perte aux
+        return out_flat.view(orig_shape), aux_loss

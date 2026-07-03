@@ -2,13 +2,10 @@
 from tokenizers import ByteLevelBPETokenizer
 
 def train_muntu_tokenizer():
-    # os.path.abspath(__file__) -> model_engine/tokenizer_core/train_tokenizer.py
-    current_dir = os.path.dirname(os.path.abspath(__file__)) # model_engine/tokenizer_core
-    
-    # On remonte de deux crans (tokenizer_core -> model_engine -> MUNTU) pour retrouver la racine
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
     root_dir = os.path.abspath(os.path.join(current_dir, "..", ".."))
     print(root_dir)
-    # Chemins d'accès absolus et propres branchés sur data_engine
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     output_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
     

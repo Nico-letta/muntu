@@ -7,24 +7,22 @@ from src.model import MuntuLM
 from src.dataset import MuntuPretrainDataset
 
 def train_muntu():
-    # --- 1. CONFIGURATION DES CHEMINS ---
-    # --- 1. CONFIGURATION DES CHEMINS ---
-    base_dir = os.path.dirname(os.path.abspath(__file__)) # Récupère model_engine/
-    root_dir = os.path.abspath(os.path.join(base_dir, "..")) # Remonte à la racine MUNTU
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.abspath(os.path.join(base_dir, ".."))
     
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     tokenizer_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
     output_model_path = os.path.join(base_dir, "muntu_pretrained.pt")
     
-    # [CORRECTION OS] : Si un ancien modèle dense ou incompatible existe, on nettoie proprement
+
     if os.path.exists(output_model_path):
         archive_path = os.path.join(base_dir, "muntu_dense_legacy.pt")
         if os.path.exists(archive_path):
-            os.remove(archive_path) # Supprime l'ancienne archive de secours pour libérer le nom
+            os.remove(archive_path)
         os.rename(output_model_path, archive_path)
         print(f"[*] Ancien modèle obsolète archivé sous : {archive_path}")
 
-    # Hyperparamètres
     BATCH_SIZE = 16
     MAX_SEQ_LEN = 64
     LEARNING_RATE = 3e-4
@@ -33,12 +31,11 @@ def train_muntu():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[*] Entraînement configuré sur le device : {device}")
 
-    # --- 2. CHARGEMENT DES DONNÉES ---
     print("[*] Préparation du Dataset et du DataLoader...")
     dataset = MuntuPretrainDataset(corpus_path, tokenizer_dir, max_seq_len=MAX_SEQ_LEN)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
-    # --- 3. INITIALISATION ---
+
     print("[*] Initialisation du modèle MUNTU MoE LM (4 Experts)...")
     model = MuntuLM(
         vocab_size=1495,
@@ -49,7 +46,6 @@ def train_muntu():
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)
 
-    # --- 4. BOUCLE D'ENTRAÎNEMENT ---
     print(f"Lancement du Pré-entraînement MoE pour {EPOCHS} époques...")
     model.train()
     
@@ -62,12 +58,11 @@ def train_muntu():
             
             optimizer.zero_grad()
             
-            # Ton modèle calcule les logits et la cross-entropy loss classique
+            # calcule des logits et de la cross-entropy loss classique
             logits, loss = model(inputs, targets)
             
             loss.backward()
             
-            # Évite l'explosion du gradient, ultra-important sur les architectures MoE
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
@@ -77,7 +72,6 @@ def train_muntu():
         epoch_loss = total_loss / nb_batches
         print(f"Epoch {epoch+1:02d}/{EPOCHS:02d} | Loss Moyenne : {epoch_loss:.4f}")
 
-    # --- 5. SAUVEGARDE DU MODÈLE ---
     torch.save(model.state_dict(), output_model_path)
     print(f"Entraînement terminé ! Nouveau cerveau MoE sauvegardé sous : {output_model_path}")
 

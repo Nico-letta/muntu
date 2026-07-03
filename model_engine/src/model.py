@@ -7,29 +7,23 @@ import torch.nn.functional as F
 class MuntuLM(nn.Module):
     def __init__(self, vocab_size: int, d_model: int = 256, max_seq_len: int = 512, n_layers: int = 4):
         """
-        vocab_size : Taille du dictionnaire de tokens (1495)
-        d_model    : Dimension des vecteurs d'embedding (256)
-        max_seq_len: Taille maximale du contexte (512)
+        vocab_size : Taille du dictionnaire de tokens 
+        d_model    : Dimension des vecteurs d'embedding
+        max_seq_len: Taille maximale du contexte
         n_layers   : Nombre de blocs Transformers empilés (ici 4)
         """
         super().__init__()
         
-        # 1. Couche d'entrée : Embedding (Regroupe les tokens et les positions)
         self.embedding = MuntuEmbedding(vocab_size, d_model, max_seq_len)
         
-        # 2. Le cœur du modèle : Empilement séquentiel de N blocs Transformers MoE
         self.blocks = nn.ModuleList([MuntuTransformerBlock(d_model) for _ in range(n_layers)])
         
-        # 3. Normalisation finale de stabilisation
         self.ln_f = nn.LayerNorm(d_model)
         
-        # 4. Tête de prédiction du langage (Language Modeling Head)
         self.lm_head = nn.Linear(d_model, vocab_size, bias=False)
-        
-        # Partage des poids (Weight Tying) aligné sur ton module customisé
+
         self.lm_head.weight = self.embedding.token_embedding.weight
 
-        # ======= INITIALISATION DES POIDS =======
         self.apply(self._init_weights)
         print("[+] Poids du modèle initialisés selon le standard GPT-2 (std=0.02).")
 
@@ -45,12 +39,11 @@ class MuntuLM(nn.Module):
     def forward(self, idx, targets=None):
         B, T = idx.shape
         
-        # CORRECTION FIX 1 : On délègue tout le travail d'embedding à ton module MuntuEmbedding
         x = self.embedding(idx)
         
         total_aux_loss = 0
         for block in self.blocks:
-            x, block_aux_loss = block(x) # On récupère la sortie et la perte MoE de chaque couche
+            x, block_aux_loss = block(x)
             total_aux_loss += block_aux_loss
             
         x = self.ln_f(x)
@@ -61,11 +54,9 @@ class MuntuLM(nn.Module):
             B, T, C = logits.shape
             logits_flat = logits.view(B*T, C)
             targets_flat = targets.view(B*T)
-            
-            # Perte de prédiction classique (Cross Entropy)
+
             main_loss = F.cross_entropy(logits_flat, targets_flat)
-            
-            # Perte finale anti-collapse = Langage + (0.01 * Équilibrage des experts)
+
             loss = main_loss + 0.01 * (total_aux_loss / len(self.blocks))
             
         return logits, loss
@@ -79,21 +70,20 @@ class MuntuLM(nn.Module):
         
         for _ in range(max_new_tokens):
             input_cond = input_ids[:, -512:]
-            
-            # CORRECTION FIX 2 : En mode évaluation/génération, on ignore la variable de perte (_) 
+
             logits, _ = self(input_cond)
             next_token_logits = logits[:, -1, :]
             
-            # 1. Application de la Température
+            # 1. Température
             if temperature != 1.0:
                 next_token_logits = next_token_logits / temperature
                 
-            # 2. Application du Top-K
+            # 2. Top-K
             if top_k is not None and top_k > 0:
                 v, _ = torch.topk(next_token_logits, min(top_k, next_token_logits.size(-1)))
                 next_token_logits[next_token_logits < v[:, [-1]]] = -float('Inf')
             
-            # 3. Application du Top-P (Nucleus Sampling)
+            # 3. Top-P (Nucleus Sampling)
             if top_p is not None and top_p > 0.0 and top_p < 1.0:
                 sorted_logits, sorted_indices = torch.sort(next_token_logits, descending=True, dim=-1)
                 cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
@@ -104,8 +94,7 @@ class MuntuLM(nn.Module):
                 
                 indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
                 next_token_logits[indices_to_remove] = -float('Inf')
-            
-            # 4. Conversion en probabilités et échantillonnage
+
             probs = F.softmax(next_token_logits, dim=-1)
             next_token = torch.multinomial(probs, num_samples=1)
             
