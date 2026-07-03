@@ -1,11 +1,9 @@
-import os
+﻿import os
 from tokenizers import ByteLevelBPETokenizer
 
 def build_muntu_tokenizer():
-    # Définition stricte de la racine de ton projet sur Google Drive
     root_dir = "/content/drive/MyDrive/muntu_project"
-    
-    # Chemins absolus explicites
+
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     output_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
     
@@ -17,8 +15,7 @@ def build_muntu_tokenizer():
     print(f"[*] Entraînement du ByteLevelBPETokenizer sur : {corpus_path}")
     
     tokenizer = ByteLevelBPETokenizer()
-    
-    # Cible de 8000 tokens, min_frequency=2 pour capturer tout ton vocabulaire technique/français
+
     tokenizer.train(
         files=[corpus_path],
         vocab_size=8000,
@@ -27,7 +24,7 @@ def build_muntu_tokenizer():
     )
     
     tokenizer.save_model(output_dir)
-    print(f"[🎉] Tokenizer entraîné avec succès ! Vocabulaire de {tokenizer.get_vocab_size()} tokens sauvegardé dans : {output_dir}")
+    print(f" Tokenizer entraîné avec succès ! Vocabulaire de {tokenizer.get_vocab_size()} tokens sauvegardé dans : {output_dir}")
 
 if __name__ == "__main__":
     build_muntu_tokenizer()

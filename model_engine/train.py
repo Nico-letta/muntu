@@ -14,13 +14,13 @@ def train_muntu():
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     tokenizer_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
     
-    # Configuration des dossiers de sauvegarde sur ton Drive
+    # Configuration des dossiers de sauvegarde
     checkpoint_dir = os.path.join(base_dir, "checkpoints")
     os.makedirs(checkpoint_dir, exist_ok=True)
     checkpoint_path = os.path.join(checkpoint_dir, "muntu_latest_checkpoint.pt")
     output_model_path = os.path.join(base_dir, "muntu_pretrained.pt")
     
-    # Archivage de sécurité si un vieux fichier traîne
+    # Archivage  si un vieux fichier traîne
     if os.path.exists(output_model_path) and not os.path.exists(checkpoint_path):
         archive_path = os.path.join(base_dir, "muntu_legacy_small_vocab.pt")
         if os.path.exists(archive_path):
@@ -28,7 +28,6 @@ def train_muntu():
         os.rename(output_model_path, archive_path)
         print(f"[*] Ancien modèle final archivé sous : {archive_path}")
 
-    # HYPERPARAMÈTRES RECALIBRÉS
     BATCH_SIZE = 32          
     MAX_SEQ_LEN = 128        
     LEARNING_RATE = 5e-4     
@@ -41,12 +40,18 @@ def train_muntu():
     dataset = MuntuPretrainDataset(corpus_path, tokenizer_dir, max_seq_len=MAX_SEQ_LEN)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
-    # 🛡️ SÉCURITÉ ANOMALIE DE TAILLE
+
     total_batches = len(dataloader)
-    print(f"[➔] VÉRIFICATION : Nombre total de batches par époque : {total_batches}")
-    if total_batches > 5000:
-        print("[⚠️] DANGER : Le nombre de batches est anormalement élevé pour 28 Mo.")
-        print("[⚠️] Assure-toi d'avoir appliqué le correctif disjoint dans model_engine/src/dataset.py !")
+    file_size_bytes = os.path.getsize(corpus_path)
+    
+    # Estimation théorique : taille fichier / (B * T) avec une marge de sécurité de 3x pour le chevauchement
+    max_batches_theorique = file_size_bytes / (BATCH_SIZE * MAX_SEQ_LEN)
+    seuil_alerte = int(max_batches_theorique * 3)
+    
+    print(f"[➔] VÉRIFICATION : Nombre total de batches par époque : {total_batches} (Seuil max estimé : {seuil_alerte})")
+    if total_batches > seuil_alerte and total_batches > 10:
+        file_size_mo = file_size_bytes / (1024 * 1024)
+        print(f"DANGER : Le nombre de batches ({total_batches}) est anormalement élevé pour la taille du fichier ({file_size_mo:.2f} Mo). Produit des séquences redondantes ou infinies.")
 
     print(f"[*] Initialisation du modèle MUNTU MoE (Vocab : {dataset.vocab_size} tokens)...")
     model = MuntuLM(
@@ -58,10 +63,9 @@ def train_muntu():
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)
 
-    # 🔄 REPRISE SUR CRASH (ANTI-DECONNEXION COLAB)
     start_epoch = 0
     if os.path.exists(checkpoint_path):
-        print(f"[🔄] Checkpoint détecté ! Chargement des états depuis {checkpoint_path}...")
+        print(f"Checkpoint détecté ! Chargement des états depuis {checkpoint_path}...")
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -91,33 +95,30 @@ def train_muntu():
             if nb_batches % 50 == 0:
                 print(f" -> Époque {epoch+1:02d}/{EPOCHS:02d} | Batch {nb_batches}/{total_batches} | Loss courante : {loss.item():.4f}")
             
-            # Sauvegarde de secours en plein milieu de l'époque (tous les 500 batches)
+            # Sauvegarde de secours(tous les 500 batches)
             if nb_batches % 500 == 0:
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                 }, checkpoint_path)
-                print(f"[💾] Sauvegarde automatique de secours effectuée (Batch {nb_batches})")
+                print(f"Sauvegarde automatique de secours effectuée (Batch {nb_batches})")
             
         epoch_loss = total_loss / nb_batches
         print(f"=== ÉPOQUE {epoch+1:02d}/{EPOCHS:02d} TERMINÉE | Loss Moyenne : {epoch_loss:.4f} ===")
         
-        # Sauvegarde charnière à la fin de chaque époque
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
         }, checkpoint_path)
-        print(f"[💾] Checkpoint d'époque validé et écrit sur le Drive.")
+        print(f"Checkpoint d'époque validé et écrit.")
 
-    # Export final une fois les 5 époques terminées
     torch.save(model.state_dict(), output_model_path)
-    # Nettoyage du checkpoint temporaire pour les prochains entraînements
     if os.path.exists(checkpoint_path):
         os.remove(checkpoint_path)
         
-    print(f"[🎉] Entraînement massif terminé ! Cerveau MoE final exporté sous : {output_model_path}")
+    print(f"Entraînement massif terminé ! Cerveau MoE final exporté sous : {output_model_path}")
 
 if __name__ == "__main__":
     train_muntu()
