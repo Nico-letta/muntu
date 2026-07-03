@@ -1,31 +1,30 @@
 ﻿import os
 from tokenizers import ByteLevelBPETokenizer
 
-def train_muntu_tokenizer():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+def build_muntu_tokenizer():
+    root_dir = "/content/drive/MyDrive/muntu_project"
 
-    root_dir = os.path.abspath(os.path.join(current_dir, "..", ".."))
-    print(root_dir)
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     output_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    
+    if not os.path.exists(corpus_path):
+        raise FileNotFoundError(f"[-] Impossible de trouver le corpus à cet endroit : {corpus_path}")
         
-    print("[*] Initialisation du ByteLevelBPETokenizer...")
+    print(f"[*] Entraînement du ByteLevelBPETokenizer sur : {corpus_path}")
     
     tokenizer = ByteLevelBPETokenizer()
-    
-    print(f"[*] Entraînement en cours sur : {corpus_path}")
+
     tokenizer.train(
         files=[corpus_path],
-        vocab_size=1495,
+        vocab_size=8000,
         min_frequency=2,
-        special_tokens=["<s>", "</s>", "<pad>", "<unk>"]
+        special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
     )
     
     tokenizer.save_model(output_dir)
-    print(f"[+] Configuration sauvegardée dans : {output_dir}")
+    print(f" Tokenizer entraîné avec succès ! Vocabulaire de {tokenizer.get_vocab_size()} tokens sauvegardé dans : {output_dir}")
 
 if __name__ == "__main__":
-    train_muntu_tokenizer()
+    build_muntu_tokenizer()
