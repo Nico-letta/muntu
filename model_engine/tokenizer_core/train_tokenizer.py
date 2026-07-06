@@ -1,4 +1,4 @@
-﻿import os
+import os
 from tokenizers import ByteLevelBPETokenizer
 
 def build_muntu_tokenizer():

@@ -1,7 +1,26 @@
-# RULE: FINTECH-MOMO-STRUCTURE
-Les architectures de paiement en Afrique Centrale et Occidentale reposent massivement sur les protocoles USSD et les APIs des opérateurs télécoms (MTN MoMo, Airtel Money, Wave).
-Une transaction Mobile Money suit un cycle de vie asynchrone strict : 
-1. Initialisation (Request to Pay via API avec le numéro MSISDN au format international).
-2. Attente du push USSD sur le terminal de l'utilisateur (timeout fréquent de 90 secondes).
-3. Callback asynchrone de l'opérateur vers notre serveur.
-Anti-pattern : Bloquer le thread principal de l'application mobile en attendant une réponse synchrone. L'application doit immédiatement libérer l'UI et écouter via un WebSocket ou un mécanisme de polling optimisé à intervalle dégressif.
+# Socio-Economic Integrations & Pay-As-You-Go Architecture
+
+## 1. Index-Based Agritech Insurance
+* **Mali (OKO & Orange Money)**: 41,000+ farmers integrated into climate-index insurance infrastructure.
+* **East Africa (ACRE Africa)**: 1,700,000 smallholder farmers covered across Kenya, Tanzania, and Uganda.
+* **Delivery Loop**: USSD application menu selection -> Crop/Risk tier validation -> Premium deduction from mobile money wallet -> Automatic index-triggered payout disbursement directly to the wallet interface.
+
+## 2. Pay-As-You-Go (PAYG) Energy Coupling
+* **Core Markets**: Kenya, Uganda, Tanzania.
+* **Mechanism**: Fractional mobile money payments coupled with solar kit hardware activation for rural electrification.
+
+## 3. Instant IPS Ecosystem Architecture Tiers
+```json
+{
+  "instant_payment_system_types": [
+    { "type": "Mobile_Money_IPS", "historical_dominance": "High" },
+    { "type": "Banking_Only_IPS", "historical_dominance": "High" },
+    { "type": "Multisector_Interoperable_IPS", "current_trend": "Dominant growth segment - 10 active systems linking banks and mobile wallets" },
+    { "type": "CBDC_IPS", "active_deployment": "eNaira (Nigeria)" }
+  ],
+  "transaction_capabilities_distribution": {
+    "p2p_and_p2b_support_rate": 0.72,
+    "full_matrix_support_rate_b2p_p2g_g2p": 0.10,
+    "g2p2_integration_count": 7
+  }
+}
