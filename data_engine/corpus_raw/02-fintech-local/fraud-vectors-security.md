@@ -21,6 +21,13 @@
 * **B2B / Merchant Security**: Merchant operations require strict verification mapping. Transition to static or dynamic QR Code generation to mitigate errors in recipient input (`Merchant ID` + `Merchant Name` matching array).
 * **Cross-Channel Consistency**: Transactions validation sequences must bind across client agents (`MoMo App`, `Merchant App`, `Agent App`) and offline interfaces (`USSD Protocol`).
 
+## MoMo Documentation Security Mapping
+* **Access Control**: The provided documentation frames Subscription Key, API User, and API Key as the core access-control mechanism for the MoMo API surface.
+* **Provisioning Control**: API user and API key creation is positioned as a formal provisioning step after onboarding and subscription.
+* **Consent & Authorization**: Pre-approval is explicitly tied to the MoMo PIN and acceptance of terms and conditions, making user authorization a first-class control.
+* **Validation Loop**: Transaction status, balance checks, and user-status validation are treated as asynchronous verification steps rather than blind execution.
+* **Callback Discipline**: The documented lifecycle expects callback-based state updates, which should be treated as a security-sensitive integration boundary.
+
 ## Institutional Governance Friction
 * **Supplier Perspective**: >70% of Mobile Money providers rate law enforcement agencies as ineffective.
 * **Root Causes**: Lack of technical/forensic skills, insufficient resources, corruption.
