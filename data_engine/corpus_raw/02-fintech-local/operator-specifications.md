@@ -73,6 +73,49 @@
 * **Active Users**: 38,000,000 clients (+20.7%).
 * **Revenue**: $837,000,000 USD in 2024.
 
+### Airtel Money — Congo (extraits opérationnels)
+* **USSD Banking / Bank-to-Wallet**: `*128*4#` (menu guidé) — point d'entrée principal.
+* **Menu générique**: `*128#` pour accès général aux services Airtel Money et retrait GAB.
+* **Flux supportés**:
+  - `1` : Virement Airtel Money vers la banque (wallet -> bank)
+  - `2` : Virement Banque vers Airtel Money (bank -> wallet)
+  - `3` : Consultation de solde bancaire
+  - `4` : Mini-relevé
+* **Processus de virement banque -> Airtel**:
+  1. Composer `*128*4#`
+  2. Choisir la banque partenaire
+  3. Saisir le montant à transférer
+  4. Saisir le mot de passe ou code PIN
+* **Banques partenaires**: UBA BANK, LCB Bank, ECOBANK, BSCA, BGFIBank, BCI, MUCODEC, BCH, CREDIT DU CONGO.
+
+### Tarification Airtel Money (extrait)
+| Type d'opération | Coût |
+|---|---:|
+| Banque vers Airtel | 0 F CFA |
+| Airtel Money vers la Banque | 1% |
+| Consultation Solde | 0 F CFA |
+| Consultation Mini relevé | 0 F CFA |
+
+### Retrait via GAB MUCODEC
+* **Disponibilité**: 24h/24, 7j/7
+* **Contraintes**: montants strictement multiples de 5 000 (5 000 ; 10 000 ; 15 000 ; 20 000 ...).
+* **Procédure**:
+  1. Composer `*128#`
+  2. Choisir option 6
+  3. Choisir option 2
+  4. Saisir le montant (multiple de 5 000)
+  5. Recevoir un SMS contenant le code de retrait valide 15 minutes
+  6. Au guichet Mucodec: sélectionner `Service sans carte` -> `Airtel Money` -> saisir MSISDN, code SMS, montant -> valider
+
+### Support opérationnel
+* Centre d'appels : `121` (24/24)
+* Tarification d'appel : 24 F CFA/appel
+* Email support : Serviceclients@cg.airtel.com
+
+### Remarques de structuration
+* Ce bloc Airtel Money doit rester focalisé sur les flux USSD, les partenaires bancaires, la tarification et les contraintes de retrait.
+* Les contenus marketing généraux d'Airtel sont exclus de cette section pour conserver un corpus technique token-efficient.
+
 ## 9. Cross-Border & Interoperability Architecture
 * **Cross-Border Clearing Rails**: PAPSS (Pan-African Payment and Settlement System) connecting over 160 commercial banks for local-currency instant settlement.
 * **Regional Integrations**: 2026 Pesalink-PAPSS partnership enabling real-time local currency routing across 80+ banks, fintechs, and SACCO networks in East Africa.

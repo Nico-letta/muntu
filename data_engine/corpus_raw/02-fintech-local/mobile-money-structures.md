@@ -68,3 +68,59 @@
 - `Payment`: merchant or bill payment flow.
 - `Preapproval`: recurring authorization granted once and reused later.
 - `Notify`: send customized SMS notifications tied to transaction activity.
+
+## 9. Bank-to-Wallet & Cash-Out Patterns (Airtel example)
+### Transaction envelope (bank ⇄ wallet)
+```json
+{
+  "transactionType": "bank_to_wallet",
+  "bankName": "ECOBANK",
+  "direction": "bank_to_wallet",
+  "amount": 15000,
+  "currency": "XAF",
+  "msisdn": "24205xxxxxxx",
+  "reference": "bank-transfer-20260707-001",
+  "callbackUrl": "https://example.test/callback"
+}
+```
+
+### USSD-driven cash-out envelope
+```json
+{
+  "ussdCode": "*128#",
+  "menuPath": ["6", "2"],
+  "amount": 10000,
+  "validationPinRequired": true,
+  "withdrawalCodeSms": true,
+  "withdrawalConstraints": {
+    "multipleOf": 5000,
+    "expiryMinutes": 15
+  }
+}
+```
+
+### Airtel bank partner list
+- UBA BANK
+- LCB Bank
+- ECOBANK
+- BSCA
+- BGFIBank
+- BCI
+- MUCODEC
+- BCH
+- CREDIT DU CONGO
+
+### Airtel Money fee model
+- `bank_to_wallet`: 0 F CFA (banque vers Airtel)
+- `wallet_to_bank`: 1% (Airtel Money vers banque)
+- `balance_inquiry`: 0 F CFA
+- `mini_statement`: 0 F CFA
+
+### Airtel USSD flow metadata
+- `entrypoint`: `*128*4#`
+- `generalAccess`: `*128#`
+- `menuActions`: [`bank_to_wallet`, `wallet_to_bank`, `check_balance`, `mini_statement`]
+- `withdrawalConstraint`: multiples of 5 000
+- `smsCodeExpiryMinutes`: 15
+- `supportNumber`: `121`
+- `supportEmail`: `Serviceclients@cg.airtel.com`

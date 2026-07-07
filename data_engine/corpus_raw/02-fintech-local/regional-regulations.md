@@ -30,3 +30,9 @@
   "integration_flow": ["sandbox_provisioning", "transaction_status_check", "balance_check", "callback_handling"]
 }
 ```
+
+## 6. Operator-specific USSD Integrations (Airtel example)
+- **USSD entrypoints** are operator-specific and must be modeled as integration parameters (`ussd_code`, `menu_path`, `timeout_seconds`).
+- **Bank partnerships & interconnect**: model partner lists and fee matrices per country and per bank to avoid hardcoding rules in training data.
+- **Cash-out constraints**: include withdrawal constraints (e.g., multiples of 5 000, SMS code expiry) as structured fields rather than prose to save tokens.
+- **Support & escalation metadata**: include `support_number`, `support_email`, and `call_tariff` for operational playbooks.

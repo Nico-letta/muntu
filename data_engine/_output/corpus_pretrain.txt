@@ -14,6 +14,508 @@ Principe immuable : Préférer les transitions d'opacité ou de transformation s
 
 --- END FILE: 01-react-native\memoization-rules.md ---
 
+--- START FILE: 02-fintech-local\airtel-money-specifications.md ---
+# Airtel Money Specifications (Congo-Brazzaville)
+
+## 1. Environnements & onboarding
+- `staging_base_url`: `https://openapiuat.airtel.cg`
+- `production_base_url`: `https://openapi.airtel.cg`
+- Créer un compte sur le portail développeur Airtel Africa.
+- Générer les credentials staging depuis les paramètres d'application.
+- Activer le compte production dans le dashboard avant le go-live.
+- Ne jamais partager `client_id` / `client_secret` hors de l'équipe d'intégration.
+
+## 2. Catalogue API (Congo CG / XAF)
+| Module | Méthode | Endpoint | Usage |
+|--------|---------|----------|-------|
+| Auth | `POST` | `/auth/oauth2/token` | Obtenir le bearer token |
+| KYC | `GET` | `/standard/v1/users/{msisdn}` | Vérifier l'abonné |
+| Balance | `GET` | `/standard/v2/users/balance` | Solde wallet |
+| Disbursement | `POST` | `/standard/v3/disbursements` | Créditer un wallet payee |
+| Disbursement status | `GET` | `/standard/v3/disbursements/{id}` | Statut disbursement |
+| Cash-In | `POST` | `/standard/v1/cashin/` | Créditer wallet depuis wallet payer |
+| Payment enquiry | `GET` | `/standard/v1/payments/{id}` | Statut transaction par external id |
+| ATM Withdrawal | `POST` | `/atmwithdrawal/v2/payments/` | Retrait GAB via paycode |
+| Bank-to-Wallet | `POST` | `/bank-to-wallet/v1/payments/` | Virement banque -> wallet |
+| Bank-to-Wallet status | `GET` | `/bank-to-wallet/v1/payments/{id}` | Statut B2W |
+| Merchant register | `POST` | `/merchant-collection/v1/merchant` | Enregistrer micro-merchant |
+| Merchant fetch | `GET` | `/merchant-collection/v1/fetch` | Récupérer merchant |
+| Merchant collection | `POST` | `/merchant-collection/v1/payments` | Collecter fonds abonné |
+| Merchant status | `GET` | `/merchant-collection/v1/payments/{id}` | Statut collection |
+| Merchant refund | `POST` | `/merchant-collection/v1/payments/refund` | Rembourser collection |
+| Remittance refund | `POST` | `/imt/v1/refund` | Remboursement intégral partenaire |
+
+## 3. Headers obligatoires (Congo)
+- `Content-Type: application/json`
+- `Accept: application/json` ou `*/*`
+- `Authorization: Bearer <access_token>`
+- `X-Country: CG` (ou `x-country: CG` selon l'API)
+- `X-Currency: XAF` (ou `x-currency: XAF`)
+- `x-signature` + `x-key`: requis pour APIs avec message signing (disbursement v3, ATM withdrawal v2)
+
+## 4. OAuth2 token flow
+```http
+POST /auth/oauth2/token HTTP/1.1
+Host: openapiuat.airtel.cg
+Content-Type: application/json
+Accept: */*
+
+{
+  "client_id": "<consumer_key>",
+  "client_secret": "<consumer_secret>",
+  "grant_type": "client_credentials"
+}
+```
+Réponse:
+```json
+{
+  "access_token": "<token>",
+  "expires_in": "180",
+  "token_type": "bearer"
+}
+```
+Règles:
+- Token secret, réutiliser jusqu'à expiration.
+- `expires_in` typiquement 180 secondes - rafraîchir proactivement.
+- Même endpoint pour toutes les APIs du portail.
+
+### Java (OAuth2)
+```java
+URL url = new URL("https://openapiuat.airtel.cg/auth/oauth2/token");
+HttpURLConnection con = (HttpURLConnection) url.openConnection();
+con.setRequestMethod("POST");
+con.setRequestProperty("Content-Type", "application/json");
+con.setRequestProperty("Accept", "*/*");
+con.setDoOutput(true);
+String body = "{\"client_id\":\"<id>\",\"client_secret\":\"<secret>\",\"grant_type\":\"client_credentials\"}";
+try (OutputStream os = con.getOutputStream()) {
+  os.write(body.getBytes("UTF-8"));
+}
+```
+
+### PHP (OAuth2 - GuzzleHttp)
+```php
+$client = new GuzzleHttp\Client();
+$response = $client->post('https://openapiuat.airtel.cg/auth/oauth2/token', [
+  'headers' => [
+    'Content-Type' => 'application/json',
+    'Accept' => '*/*'
+  ],
+  'json' => [
+    'client_id' => '<id>',
+    'client_secret' => '<secret>',
+    'grant_type' => 'client_credentials'
+  ]
+]);
+$token = json_decode($response->getBody(), true)['access_token'];
+```
+
+## 5. Chiffrement & sécurité (v2.0)
+- PIN: RSA 2048-bit, mode ECB, padding `OAEPWithSHA-256AndMGF1Padding`.
+- Callback auth: HMAC-SHA256 + Base64 sur le body callback, clé privée dans les settings application.
+- Message signing (disbursement v3, ATM withdrawal): payload chiffré via `x-signature` + `x-key` (AES key:iv pair).
+- Clé publique RSA fournie dans la documentation Encryption du portail.
+
+### Callback payload exemple
+```json
+{
+  "transaction": {
+    "id": "BBZMiscxy",
+    "message": "Paid XAF 5,000 to TECH LIMITED, Trans ID MP210603.1234.L06941.",
+    "status_code": "TS",
+    "airtel_money_id": "MP210603.1234.L06941"
+  }
+}
+```
+
+## 6. Statuts transaction Airtel
+| Code | Signification |
+|------|---------------|
+| `TS` | Transaction Success |
+| `TF` | Transaction Failed |
+| `TIP` | Transaction in Progress |
+| `TA` | Transaction Ambiguous |
+| `TR` | Transaction Reversed (remboursement) |
+
+Règle critique: `airtel_money_id` n'est généré qu'en cas de `TS`. Après un payment API, attendre au moins 1 minute avant transaction enquiry.
+
+## 7. Exemple Disbursement v3 (B2B)
+```bash
+curl -X POST https://openapiuat.airtel.cg/standard/v3/disbursements \
+  -H 'Content-Type: application/json' \
+  -H 'X-Country: CG' \
+  -H 'X-Currency: XAF' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'x-signature: <encrypted_payload>' \
+  -H 'x-key: <encrypted_aes_key_iv>' \
+  -d '{
+    "payee": {"msisdn": "75****26", "wallet_type": "SALARY"},
+    "reference": "AB***141",
+    "pin": "<encrypted_pin>",
+    "transaction": {"amount": 1000, "id": "AB***141", "type": "B2B"}
+  }'
+```
+Réponse succès:
+```json
+{
+  "data": {
+    "transaction": {
+      "reference_id": "APC**4",
+      "airtel_money_id": "product-partner-**41",
+      "id": "AB***141",
+      "status": "TS",
+      "message": "Transaction Successful"
+    }
+  },
+  "status": {
+    "response_code": "DP00900001001",
+    "code": "200",
+    "success": true,
+    "message": "SUCCESS"
+  }
+}
+```
+
+### Java (Disbursement)
+```java
+URL url = new URL("https://openapiuat.airtel.cg/standard/v3/disbursements");
+HttpURLConnection con = (HttpURLConnection) url.openConnection();
+con.setRequestMethod("POST");
+con.setRequestProperty("Content-Type", "application/json");
+con.setRequestProperty("X-Country", "CG");
+con.setRequestProperty("X-Currency", "XAF");
+con.setRequestProperty("Authorization", "Bearer " + accessToken);
+con.setRequestProperty("x-signature", encryptedPayload);
+con.setRequestProperty("x-key", encryptedAesKeyIv);
+con.setDoOutput(true);
+```
+
+### PHP (Disbursement - GuzzleHttp)
+```php
+$response = $client->post('https://openapiuat.airtel.cg/standard/v3/disbursements', [
+  'headers' => [
+    'Content-Type' => 'application/json',
+    'X-Country' => 'CG',
+    'X-Currency' => 'XAF',
+    'Authorization' => 'Bearer ' . $accessToken,
+    'x-signature' => $encryptedPayload,
+    'x-key' => $encryptedAesKeyIv
+  ],
+  'json' => $payload
+]);
+```
+
+## 8. Exemple Bank-to-Wallet
+```bash
+curl -X POST https://openapiuat.airtel.cg/bank-to-wallet/v1/payments/ \
+  -H 'Content-Type: application/json' \
+  -H 'x-country: CG' \
+  -H 'x-currency: XAF' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{
+    "transaction": {
+      "id": "AB********ya",
+      "amount": "100",
+      "payee": {"address_type": "MOBILE", "msisdn": "1********0"}
+    },
+    "note": "Bank initiated bank to wallet transfer",
+    "additional_info": {}
+  }'
+```
+
+## 9. Exemple Merchant Collection
+```bash
+curl -X POST https://openapiuat.airtel.cg/merchant-collection/v1/payments \
+  -H 'x-country: CG' \
+  -H 'x-currency: XAF' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "payee": {"relationship_id": "ABCDE1"},
+    "payer": {"msisdn": "24205xxxxxxx"},
+    "transaction": {
+      "id": "TXN-001",
+      "amount": "5000",
+      "reference": "Invoice-2026-001"
+    }
+  }'
+```
+
+## 10. Exemple Remittance Refund (statut TR)
+```bash
+curl -X POST https://openapiuat.airtel.cg/imt/v1/refund \
+  -H 'Authorization: Bearer <token>' \
+  -H 'x-country: CG' \
+  -H 'x-currency: XAF' \
+  -d '{"transaction": {"id": "1753167656"}, "pin": "<encrypted_pin>"}'
+```
+Réponse renversement:
+```json
+{
+  "data": {
+    "transaction": {
+      "id": "1754303725",
+      "airtel_money_id": "REMX-ASBDGHKL-1754303725",
+      "reference_id": "APCCG173533944374656",
+      "message": "Transaction Reversed",
+      "status": "TR"
+    }
+  },
+  "status": {
+    "code": "200",
+    "message": "Success",
+    "response_code": "DP03520001001",
+    "success": true
+  }
+}
+```
+
+## 11. KYC - User Enquiry
+```bash
+curl -X GET https://openapiuat.airtel.cg/standard/v1/users/{msisdn} \
+  -H 'X-Country: CG' \
+  -H 'X-Currency: XAF' \
+  -H 'Authorization: Bearer <token>'
+```
+Champs clés: `first_name`, `last_name`, `is_barred`, `is_pin_set`, `registration.status`.
+
+## 12. ATM Withdrawal v2
+- `authentication_medium`: uniquement `PAYCODE`.
+- `payer.transfer_type`: uniquement `WALLET`.
+- Headers: `x-country-code: CG`, `x-currency-code: XAF`, `x-signature`, `x-key`.
+- Endpoint: `POST /atmwithdrawal/v2/payments/`.
+
+## 13. USSD & services bancaires Congo (opérationnel)
+- `*128*4#`: menu Bank-to-Wallet / Wallet-to-Bank.
+- `*128#`: menu principal Airtel Money.
+- Actions: `1` wallet->banque, `2` banque->wallet, `3` solde bancaire, `4` mini relevé.
+- Banques partenaires: UBA BANK, LCB Bank, ECOBANK, BSCA, BGFIBank, BCI, MUCODEC, BCH, CREDIT DU CONGO.
+- Tarifs: banque->Airtel 0 F CFA, Airtel->banque 1%, consultation solde/relevé 0 F CFA.
+- Retrait MUCODEC GAB: `*128#` -> 6 -> 2, montants multiples de 5000, code SMS valide 15 min.
+
+## 14. Patterns d'intégration critiques
+- Toujours injecter `X-Country: CG` + `X-Currency: XAF` sur les APIs Congo.
+- External transaction id unique - doublon -> `ESB000041`.
+- En cas d'ambiguïté (`TA`, `TIP`, `0000900`): transaction enquiry obligatoire.
+- Callback envoyé une seule fois, pas de retry côté Airtel.
+- Polling fallback recommandé via GET status si callback manquant.
+- PIN toujours chiffré RSA avant envoi.
+- Support: `121` (24/24), `Serviceclients@cg.airtel.com`.
+
+--- END FILE: 02-fintech-local\airtel-money-specifications.md ---
+
+--- START FILE: 02-fintech-local\fintech-error-codes.md ---
+# Fintech Error Codes and Routing Matrix
+
+## 1. MTN Common Error Codes
+| HTTP | Response Code | Description | Action |
+|------|---------------|-------------|--------|
+| `409` | `RESOURCE_ALREADY_EXIST` | Duplicated Reference ID. Every request must use a unique UUID V4. | Generate new `X-Reference-Id` |
+| `401` | `ACCESS DENIED DUE TO INVALID SUBSCRIPTION KEY` | Invalid `Ocp-Apim-Subscription-Key`. Collection, Disbursement, Remittance have different keys. | Verify profile key; try secondary key; contact MTN support |
+| `404` | `RESOURCE NOT FOUND` | Reference ID not found in Get Status. Original request may have failed. | Verify original POST returned `202 Accepted` |
+| `400` | `REQUEST REJECTED/ BAD REQUEST` | Headers/body violate spec. | Validate UUID v4, currency, no unsupported chars, note <=160 chars, correct URL |
+| `403` | `FORBIDDEN IP` | IP not authorized for Disbursement API. | Whitelist public IP with MTN Account Manager |
+| `500` | `NOT_ALLOWED` | Token/user lacks permission. | Contact MTN Account Manager |
+| `500` | `NOT_ALLOWED_TARGET_ENVIRONMENT` | Wrong `X-Target-Environment` for country. | Use correct env (see matrix §2) |
+| `500` | `INVALID_CALLBACK_URL_HOST` | Callback host mismatch vs API user config. | Use hostname not IP; match portal config |
+| `500` | `INVALID_CURRENCY` | Currency unsupported for target account. | Use country-specific currency code |
+| `503` | `SERVICE_UNAVAILABLE` | Platform temporarily unavailable. | Retry later or escalate to MTN |
+
+## 2. MTN Target Environment Matrix
+| Pays | X-Target-Environment |
+|------|---------------------|
+| MTN Uganda | `mtnuganda` |
+| MTN Ghana | `mtnghana` |
+| MTN Ivory Coast | `mtnivorycoast` |
+| MTN Zambia | `mtnzambia` |
+| MTN Cameroon | `mtncameroon` |
+| MTN Benin | `mtnbenin` |
+| MTN Congo | `mtncongo` |
+| MTN Swaziland | `mtnswaziland` |
+| MTN GuineaConakry | `mtnguineaconakry` |
+| MTN SouthAfrica | `mtnsouthafrica` |
+| MTN Liberia | `mtnliberia` |
+| MTN SouthSudan | `mtnsouthsudan` |
+| MTN Nigeria | `mtnnigeria` |
+| MTN Rwanda | `mtnrwanda` |
+| Sandbox | `sandbox` |
+
+## 3. MTN Common Error Responses (business layer)
+| Type | Description | Action |
+|------|-------------|--------|
+| `INTERNAL_PROCESSING_ERROR` | Generic failure; often insufficient funds or wallet unreachable. | Customer retries with sufficient funds; escalate if persists |
+| `PAYEE_NOT_FOUND` | Payee MSISDN invalid or not registered. | MSISDN must include country code |
+| `PAYER_NOT_FOUND` | Payer MSISDN invalid or not registered. | MSISDN must include country code |
+| `COULD_NOT_PERFORM_TRANSACTION` | Timeout; approval delay beyond 5 minutes. | Retry and approve within 5 min window |
+
+## 4. MTN Sandbox test value routing (extrait)
+| Use Case | Test Value | Expected Error |
+|----------|------------|----------------|
+| RequestToPayPayerNotFound | `46733123455` | Payer not found |
+| RequestToPayPayerNotAllowedTargetEnvironment | `46733123458` | Wrong target env |
+| RequestToPayPayerInvalidCallbackUrlHost | `46733123459` | Callback host invalid |
+| RequestToPayPayerInvalidCurrency | `46733123460` | Invalid currency |
+| RequestToPayPayerInternalProcessingError | `46733123461` | Internal processing |
+| RequestToPayPayerCouldNotPerformTransaction | `46733123463` | Timeout |
+| TransferPayeeNotEnoughFunds | `46733123455` | Insufficient funds |
+| TransferPayeeNotFound | `46733123457` | Payee not found |
+| PaymentAmountFailed | `2000` | Payment failed |
+| PaymentAmountSuccess | `1000` | Payment success |
+
+## 5. Airtel Common Error Codes (ROUTER)
+| Code | Description | Handling |
+|------|-------------|----------|
+| `ROUTER001` | Wallet is not configured - Application Wallet not configured. | Configure wallet in dev portal before API calls |
+| `ROUTER003` | Missing header/body params - mandatory field absent. | Validate all required headers and body fields |
+| `ROUTER005` | Country route not configured. | Contact Airtel customer support |
+| `ROUTER006` | Invalid Country - incorrect country code. | Use `CG` for Congo-Brazzaville |
+| `ROUTER007` | User Not authorized for provided country. | Verify account country permissions |
+| `ROUTER112` | Invalid Currency - incorrect currency code. | Use `XAF` for Congo-Brazzaville |
+| `ROUTER114` | Error while Validating Pin. | Check PIN encryption (RSA 2048 OAEP) |
+| `ROUTER115` | Incorrect Pin. | Re-prompt user for correct PIN |
+| `ROUTER116` | Incorrect Encrypted Pin - encryption mechanism error. | Review RSA encryption implementation |
+| `ROUTER117` | Request Timeout - ambiguous for payments/refund. | Perform transaction enquiry |
+| `ROUTER119` | Invalid/Missing Currency in request parameters. | Inject `X-Currency: XAF` |
+
+## 6. Airtel Product Specific Error Codes (ESB)
+| Code | Description | Handling |
+|------|-------------|----------|
+| `ESB000001` | Something went wrong - ambiguous state. | Transaction enquiry |
+| `ESB000004` | Error initiating payment - ambiguous state. | Transaction enquiry |
+| `ESB000008` | Field validation error - ambiguous state. | Fix input + transaction enquiry |
+| `ESB000010` | Request was Success. | Proceed |
+| `ESB000011` | Request was Failed. | Fail workflow, log payload |
+| `ESB000014` | Error fetching transaction status - ambiguous. | Retry enquiry after delay |
+| `ESB000033` | Invalid MSISDN Length. | Fix MSISDN format |
+| `ESB000034` | Invalid Country Name. | Use `CG` |
+| `ESB000035` | Invalid Currency Code. | Use `XAF` |
+| `ESB000036` | Invalid MSISDN length or doesn't start with 0. | Fix MSISDN local format |
+| `ESB000039` | Vendor not configured for country. | Contact Airtel support |
+| `ESB000041` | External Transaction ID already exists. | Generate new unique transaction id |
+| `ESB000045` | No Transaction Found With Provided Transaction Id. | Verify id, re-enquire |
+| `0000900` | Transaction might be in ambiguous state. | Check `response_code` or perform enquiry |
+
+## 7. Airtel HTTP Error Codes
+| HTTP | Description | Handling |
+|------|-------------|----------|
+| `400` | Bad Request - invalid request. | Fix input |
+| `401` | Unauthorized - API key or bearer token incorrect. | Refresh OAuth2 token |
+| `403` | Forbidden. | Check permissions |
+| `404` | Not Found - path not found. | Verify endpoint URL |
+| `405` | Method Not Allowed. | Use correct HTTP verb |
+| `408` | Read Timeout - ambiguous for payments/refund. | Transaction enquiry |
+| `429` | Too Many Requests. | Apply backoff |
+| `500` | Internal Server Error. | Retry later |
+| `502` | Bad Gateway - ambiguous for payments/refund. | Transaction enquiry |
+| `503` | Service Unavailable. | Retry later |
+| `504` | Gateway Timeout - ambiguous for payments/refund. | Transaction enquiry |
+
+## 8. Airtel Cash-In Error Codes (DP01*)
+| Code | Reason | Description |
+|------|--------|-------------|
+| `DP01000001000` | Ambiguous | Still processing - perform enquiry |
+| `DP01000001001` | Success | Transaction successful |
+| `DP01000001002` | Incorrect Pin | Wrong PIN entered |
+| `DP01000001003` | Limit exceeded | Wallet transaction limit exceeded |
+| `DP01000001004` | Invalid Amount | Below minimum amount |
+| `DP01000001005` | Failed | Transaction failed |
+| `DP01000001006` | In Process | Pending - check later |
+| `DP01000001007` | Insufficient Funds | Wallet balance too low |
+| `DP01000001008` | User Not Allowed | Payer not permitted |
+| `DP01000001009` | Initiatee Invalid | Invalid initiatee |
+| `DP01000001010` | Not Permitted | User not allowed as payer |
+| `DP01000001011` | Do Not Honour | Transaction already completed |
+| `DP01000001012` | Invalid Mobile Number | MSISDN incorrect or unregistered |
+| `DP01000001013` | Failed/Refused | Transaction failed or refused |
+| `DP01000001014` | Transaction Timed Out | Ambiguous - perform enquiry |
+
+## 9. Airtel Bank-to-Wallet Error Codes (DP02*)
+| Code | Reason | Description |
+|------|--------|-------------|
+| `DP02100001000` | Ambiguous | Processing or ambiguous - perform enquiry |
+| `DP02100001001` | Success | Transaction successful |
+| `DP02100001002` | Duplicate Transaction ID | Use unique transaction id |
+| `DP02100001003` | Transaction Time Out | Perform enquiry |
+| `DP02100001004` | Transaction Not Found | Verify transaction id |
+| `DP02100001005` | Failed | Transaction failed or refused |
+| `DP02100001006` | Transaction In Progress | Perform enquiry |
+| `DP02100001007` | Invalid Input | One input field is invalid |
+
+## 10. Airtel Remittance Refund - response_code mapping
+| response_code | transaction.status | Signification |
+|---------------|-------------------|---------------|
+| `DP03520001001` | `TR` | Transaction Reversed - remboursement réussi |
+
+## 11. Airtel Transaction Status Codes
+| Code | Signification | airtel_money_id généré ? |
+|------|---------------|---------------------------|
+| `TS` | Transaction Success | Oui |
+| `TF` | Transaction Failed | Non |
+| `TIP` | Transaction in Progress | Non |
+| `TA` | Transaction Ambiguous | Non |
+| `TR` | Transaction Reversed | Oui (refund) |
+
+## 12. Country / Currency Reference Matrix (Airtel Africa)
+| Country | Currency | Country Code | Currency Code |
+|---------|----------|--------------|---------------|
+| UGANDA | Ugandan shilling | `UG` | `UGX` |
+| NIGERIA | Nigerian naira | `NG` | `NGN` |
+| TANZANIA | Tanzanian shilling | `TZ` | `TZS` |
+| KENYA | Kenyan shilling | `KE` | `KES` |
+| RWANDA | Rwandan franc | `RW` | `RWF` |
+| ZAMBIA | Zambian kwacha | `ZM` | `ZMW` |
+| GABON | CFA franc BEAC | `GA` | `CFA` |
+| NIGER | CFA franc BCEAO | `NE` | `XOF` |
+| **CONGO-BRAZZAVILLE** | **CFA franc BCEA** | **`CG`** | **`XAF`** |
+| DR CONGO | Congolese franc | `CD` | `CDF` |
+| DR CONGO | United States dollar | `CD` | `USD` |
+| CHAD | CFA franc BEAC | `TD` | `XAF` |
+| SEYCHELLES | Seychelles rupee | `SC` | `SCR` |
+| MADAGASCAR | Malagasy ariary | `MG` | `MGA` |
+| MALAWI | Malawian kwacha | `MW` | `MWK` |
+
+## 13. Cross-provider error harmonization
+### Wallet operations
+| Symptom | MTN | Airtel |
+|---------|-----|--------|
+| Duplicate reference | `409 RESOURCE_ALREADY_EXIST` | `ESB000041` |
+| Invalid subscription/key | `401 ACCESS DENIED...` | `401 Unauthorized` |
+| Wrong country env | `500 NOT_ALLOWED_TARGET_ENVIRONMENT` | `ROUTER006` / `ROUTER007` |
+| Wrong currency | `500 INVALID_CURRENCY` | `ROUTER112` / `ROUTER119` |
+| Insufficient funds | `INTERNAL_PROCESSING_ERROR` | `DP01000001007` |
+| Invalid MSISDN | `PAYEE_NOT_FOUND` / `PAYER_NOT_FOUND` | `DP01000001012` / `ESB000033` |
+| Timeout / ambiguous | `COULD_NOT_PERFORM_TRANSACTION` | `ROUTER117` / `0000900` / `DP*10000` |
+| Callback host mismatch | `500 INVALID_CALLBACK_URL_HOST` | N/A (config portal) |
+
+### Bank-to-Wallet
+| Symptom | Airtel code | Action |
+|---------|-------------|--------|
+| Duplicate txn id | `DP02100001002` | New unique id |
+| Ambiguous state | `DP02100001000` / `DP02100001006` | Transaction enquiry |
+| Timeout | `DP02100001003` | Transaction enquiry |
+
+## 14. Error handling patterns (intégration)
+- Valider body/headers avant appel API.
+- `400` / `422` -> corriger input ou rejeter côté client.
+- `401` / `403` -> rotation token ou alerte équipe intégration.
+- `409` / `ESB000041` -> générer nouveau reference/transaction id.
+- `429` -> backoff exponentiel.
+- `500` / `502` / `504` -> retry si idempotent, sinon alerte ops.
+- `202` + `PENDING` / `TIP` -> poll status ou attendre callback.
+- Toujours logger: `request_id`, `X-Reference-Id`, `transaction.id`, `response_code`, `provider_message`, `route_country`.
+
+## 15. Token-efficient troubleshooting guide
+1. Vérifier `X-Reference-Id` (MTN) ou `transaction.id` (Airtel) - unicité.
+2. Vérifier headers géo: `X-Country: CG` + `X-Currency: XAF` (Airtel Congo) ou `X-Target-Environment: mtncongo` (MTN Congo prod).
+3. Si `duplicate_request` -> retourner résultat stocké, ne pas re-débiter.
+4. Si `timeout` + appel idempotent -> une seule retry puis enquiry.
+5. Si `business_rule` failure -> message utilisateur friendly (PIN incorrect, fonds insuffisants).
+6. Si `ambiguous` (`TA`, `TIP`, `0000900`, `DP*10000`) -> transaction enquiry obligatoire avant toute action corrective.
+7. Si callback manquant -> GET status; ne jamais supposer succès sur seul `202 Accepted`.
+8. `DP03520001001` + `TR` = renversement confirmé côté Airtel remittance.
+
+--- END FILE: 02-fintech-local\fintech-error-codes.md ---
+
 --- START FILE: 02-fintech-local\fraud-vectors-security.md ---
 # Fraud Vectors, Security Threat Modeling & Structural Risks
 
@@ -129,79 +631,287 @@ Principe immuable : Préférer les transitions d'opacité ou de transformation s
 
 --- END FILE: 02-fintech-local\macro-metrics.md ---
 
---- START FILE: 02-fintech-local\mobile-money-structures.md ---
-# Mobile Money Data Structures & Generic Integration Patterns
+--- START FILE: 02-fintech-local\mtn-money-specifications.md ---
+# MTN MoMo Specifications
 
-## 1. Core Domain Objects
-- `account_holder`: consumer or merchant identity.
-- `wallet`: balance-bearing account attached to a mobile-money provider.
-- `transaction`: financial operation with amount, currency, reference, and lifecycle state.
-- `party`: payer, payee, merchant, or agent.
+## 1. Principes de conception
+- API REST JSON sur HTTPS.
+- Objets abstraits indépendants de l'implémentation wallet sous-jacente.
+- Types de transaction standardisés (RequestToPay, Transfer, Payment, Preapproval).
+- Codes ISO pour devises et pays.
+- Identifiants flexibles: `MSISDN`, `EMAIL`, `PARTY_CODE`, `ACCOUNT_ID`.
 
-## 2. MoMo API Extension Objects (from the provided documentation)
-- `product_subscription`: entitlement to a MoMo product such as Remittance, Distribute, Channel as a Service, KYC/Account Validation, Pre-approval, or Notify.
-- `api_user`: provisioning identity used to access the API.
-- `api_key`: bearer credential issued for API access.
-- `subscription_key`: primary or secondary credential used to authenticate the developer account.
-- `callback`: asynchronous endpoint used to receive transaction state updates.
-- `consent_record`: pre-approval or terms-and-conditions acceptance tied to a MoMo PIN flow.
+## 2. Catalogue produits MoMo API
+| Produit | Usage |
+|---------|-------|
+| Collection | Collecter paiements (RequestToPay, Payment) |
+| Disbursement | Verser fonds (Transfer, Deposit) |
+| Remittance | Transferts transfrontaliers vers wallet MoMo |
+| Collection Widget | Checkout web via QR dynamique |
+| Distribute | Cash-in/cash-out/airtime pour agents |
+| Channel as a Service | Sous-menu USSD/App MoMo |
+| KYC / Account Validation | Onboarding simplifié |
+| Pre-approval | Débit auto via PIN MoMo |
+| Notify | SMS personnalisé post-transaction |
 
-## 3. Generic Transaction Shape
-```json
-{
-  "amount": 5000,
-  "currency": "XOF",
-  "payer": {"partyIdType": "MSISDN", "partyId": "22500000000"},
-  "payee": {"partyIdType": "MSISDN", "partyId": "22511111111"},
-  "reference": "invoice-001",
-  "callbackUrl": "https://example.test/callback"
+## 3. Environnements & endpoints
+- `sandbox_base_url`: `https://sandbox.momodeveloper.mtn.com`
+- `production_base_url`: `https://momodeveloper.mtn.com`
+- `oauth2_token`: `POST /oauth2/v1_0/token`
+- `provision_api_user`: `POST /apiuser`
+- `provision_api_key`: `POST /apiuser/{APIUser}/apikey`
+- `get_api_user`: `GET /apiuser/{APIUser}`
+- `request_to_pay`: `POST /collection/v1_0/requesttopay`
+- `get_request_to_pay_status`: `GET /collection/v1_0/requesttopay/{referenceId}`
+- `transfer`: `POST /disbursement/v1_0/transfer`
+- `payment`: `POST /collection/v2_0/payment`
+- `preapproval`: `POST /collection/v1_0/preapproval`
+- `validate_account`: `GET /collection/v1_0/accountholder/{accountHolderIdType}/{accountHolderId}`
+- `get_balance`: `GET /collection/v1_0/account/balance`
+
+## 4. Cycle de vie développeur
+1. Signup sur `momodeveloper.mtn.com` (lien activation expire en 24h).
+2. Subscribe aux produits: Collection Widget, Collection, Remittances, Disbursements.
+3. Récupérer Primary Key + Secondary Key par produit (profil développeur).
+4. Provisionner API User + API Key via Sandbox Provisioning API.
+5. Obtenir OAuth2 token, puis appeler les APIs métier.
+
+## 5. Headers & authentication
+- `Ocp-Apim-Subscription-Key: <subscription_key>` (Primary ou Secondary)
+- `Content-Type: application/json`
+- `Accept: application/json`
+- `X-Target-Environment: sandbox` (test) ou env pays (prod)
+- `Authorization: Bearer <access_token>`
+- `X-Reference-Id: <uuid_v4>` (obligatoire sur POST)
+- `X-Callback-Url: <https_url>` (optionnel, même domaine que `providerCallbackHost`)
+
+### Provisioning API User
+```http
+POST /apiuser HTTP/1.1
+Host: sandbox.momodeveloper.mtn.com
+X-Reference-Id: c72025f5-5cd1-4630-99e4-8ba4722fad56
+Ocp-Apim-Subscription-Key: <subscription_key>
+Content-Type: application/json
+
+{"providerCallbackHost": "clinic.com"}
+```
+Réponse: `201 Created`
+
+### Provisioning API Key
+```http
+POST /apiuser/c72025f5-5cd1-4630-99e4-8ba4722fad56/apikey HTTP/1.1
+Host: sandbox.momodeveloper.mtn.com
+Ocp-Apim-Subscription-Key: <subscription_key>
+```
+Réponse: `201 Created` avec `{"apiKey": "..."}`
+
+### OAuth2 token
+- Grant: `client_credentials` (RFC 6749).
+- Auth: Basic `base64(api_user:api_key)`.
+- Token: Bearer (RFC 6750), réutilisable jusqu'à expiration.
+- Sandbox: provisioning API gère user/key. Production: Partner Portal.
+
+## 6. MTN country target environment mapping
+| Pays | X-Target-Environment |
+|------|---------------------|
+| MTN Congo | `mtncongo` |
+| MTN Uganda | `mtnuganda` |
+| MTN Ghana | `mtnghana` |
+| MTN Ivory Coast | `mtnivorycoast` |
+| MTN Zambia | `mtnzambia` |
+| MTN Cameroon | `mtncameroon` |
+| MTN Benin | `mtnbenin` |
+| MTN Swaziland | `mtnswaziland` |
+| MTN GuineaConakry | `mtnguineaconakry` |
+| MTN SouthAfrica | `mtnsouthafrica` |
+| MTN Liberia | `mtnliberia` |
+| MTN SouthSudan | `mtnsouthsudan` |
+| MTN Nigeria | `mtnnigeria` |
+| MTN Rwanda | `mtnrwanda` |
+| Sandbox test | `sandbox` |
+
+## 7. Sémantique async (POST)
+- `POST /requesttopay` et `POST /transfer` -> `202 Accepted` après validation.
+- Ressource créée en état `PENDING`.
+- État final: `SUCCESSFUL` ou `FAILED`.
+- Callback envoyé une seule fois (PUT ou POST selon config), pas de retry.
+- Fallback: `GET /requesttopay/{referenceId}` si callback manquant.
+- `X-Reference-Id` dupliqué -> `409 RESOURCE_ALREADY_EXIST`.
+
+## 8. États lifecycle
+- `PENDING`, `SUCCESSFUL`, `FAILED`, `REJECTED`, `EXPIRED`, `ONGOING`
+
+## 9. Aggregator API - transferType requis
+Sandbox values:
+- `CUSTOM_PAYMENT`
+- `CUSTOM_BANK_PAYMENT`
+- `CUSTOM_BANK_PAYMENT_FEE`
+
+Production: valeurs contractuelles fournies par l'onboarding team.
+
+### RequestToPay (Aggregator)
+```bash
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay' \
+--header 'Ocp-Apim-Subscription-Key: <key>' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer <token>' \
+--header 'X-Reference-Id: <uuid_v4>' \
+--data '{
+  "amount": "1000",
+  "currency": "EUR",
+  "externalId": "10001",
+  "payer": {"partyIdType": "MSISDN", "partyId": "123456789012"},
+  "payerMessage": "Order Payment",
+  "payeeNote": "Order Payment",
+  "transferType": "CUSTOM_PAYMENT"
+}'
+```
+
+### Transfer (Aggregator)
+```bash
+curl --location 'https://sandbox.momodeveloper.mtn.com/disbursement/v1_0/transfer' \
+--header 'Ocp-Apim-Subscription-Key: <key>' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer <token>' \
+--header 'X-Reference-Id: <uuid_v4>' \
+--data '{
+  "amount": "1000",
+  "currency": "EUR",
+  "externalId": "10001",
+  "payee": {"partyIdType": "MSISDN", "partyId": "123456789012"},
+  "payerMessage": "Order Payment",
+  "payeeNote": "Order Payment",
+  "transferType": "CUSTOM_PAYMENT"
+}'
+```
+
+### Payment (Aggregator)
+```bash
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v2_0/payment' \
+--header 'Ocp-Apim-Subscription-Key: <key>' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer <token>' \
+--header 'X-Reference-Id: <uuid_v4>' \
+--data '{
+  "externalTransactionId": "10001",
+  "money": {"amount": "1000", "currency": "EUR"},
+  "customerReference": "MSISDN",
+  "serviceProviderUserName": "TestSpUsername",
+  "transferType": "CUSTOM_PAYMENT"
+}'
+```
+
+## 10. Java / PHP client patterns
+
+### Java (RequestToPay)
+```java
+URL url = new URL("https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay");
+HttpURLConnection con = (HttpURLConnection) url.openConnection();
+con.setRequestMethod("POST");
+con.setRequestProperty("Content-Type", "application/json");
+con.setRequestProperty("Ocp-Apim-Subscription-Key", subscriptionKey);
+con.setRequestProperty("X-Target-Environment", "sandbox");
+con.setRequestProperty("Authorization", "Bearer " + accessToken);
+con.setRequestProperty("X-Reference-Id", referenceId);
+con.setDoOutput(true);
+try (OutputStream os = con.getOutputStream()) {
+  os.write(payload.getBytes("UTF-8"));
 }
 ```
 
-## 4. MoMo-Oriented Access Envelope
-```json
-{
-  "product": "remittance",
-  "subscriptionKey": "primary-or-secondary",
-  "apiUser": "partner-api-user",
-  "apiKey": "secret-bearer-token",
-  "callbackUrl": "https://example.test/callback",
-  "party": {
-    "partyIdType": "MSISDN",
-    "partyId": "22500000000"
-  }
-}
+### PHP (RequestToPay - GuzzleHttp)
+```php
+$client = new GuzzleHttp\Client();
+$response = $client->post('https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay', [
+  'headers' => [
+    'Content-Type' => 'application/json',
+    'Ocp-Apim-Subscription-Key' => $subscriptionKey,
+    'X-Target-Environment' => 'sandbox',
+    'Authorization' => 'Bearer ' . $accessToken,
+    'X-Reference-Id' => $referenceId
+  ],
+  'body' => json_encode($payload)
+]);
 ```
 
-## 5. Party Identifier Types
-- `MSISDN`
-- `EMAIL`
-- `PARTY_CODE`
-- `ACCOUNT_ID`
+## 11. Callback rules
+### Sandbox
+- Enregistrer `providerCallbackHost` à la création API Key.
+- Callback URL dans header `X-Callback-Url` sur chaque POST.
+- HTTPS obligatoire.
+- Autoriser PUT et POST sur le listener callback.
 
-## 6. Lifecycle States
-- `PENDING`
-- `SUCCESSFUL`
-- `FAILED`
-- `REJECTED`
-- `EXPIRED`
-- `ONGOING`
+### Production
+- Callback host enregistré via Accounts Portal.
+- HTTPS obligatoire.
+- Callback envoyé une seule fois - implémenter polling GET en fallback.
 
-## 7. Design Principles
-- Use REST over HTTPS.
-- Prefer ISO currency and country codes.
-- Keep identifiers flexible because no single global mobile-money account ID exists.
-- Allow provider-specific metadata without breaking the baseline schema.
-- Separate access management from transaction processing via subscription keys and API user/API key provisioning.
+### CA intermédiaires approuvés (extrait)
+- Amazon Root CA 1/4, Amazon RSA 2048 M01/M02/M03
+- COMODO RSA Domain Validation Secure Server CA
+- Certum Domain Validation CA SHA2
 
-## 8. Generic Use-Case Patterns
-- `RequestToPay`: collect a payment from a payer.
-- `Transfer`: move funds from provider to payee.
-- `Payment`: merchant or bill payment flow.
-- `Preapproval`: recurring authorization granted once and reused later.
-- `Notify`: send customized SMS notifications tied to transaction activity.
+## 12. Sandbox test environment
+- `X-Target-Environment`: `sandbox`
+- Devise sandbox: `EUR`
+- Comptes Partner GUI existants ne fonctionnent PAS en sandbox - utiliser Provisioning API.
+- Tout MSISDN non listé -> succès par défaut.
 
---- END FILE: 02-fintech-local\mobile-money-structures.md ---
+### Valeurs de test RequestToPay (extrait)
+| Scénario | MSISDN test |
+|----------|-------------|
+| PayerFailed | `46733123450` |
+| PayerRejected | `46733123451` |
+| PayerExpired | `46733123452` |
+| PayerNotFound | `46733123455` |
+| PayerNotAllowedTargetEnvironment | `46733123458` |
+| PayerInvalidCallbackUrlHost | `46733123459` |
+| PayerInvalidCurrency | `46733123460` |
+| PayerInternalProcessingError | `46733123461` |
+| PayerCouldNotPerformTransaction | `46733123463` |
+| PayerTransfertypeUnknown | `46733123464` |
+
+### Valeurs de test Transfer (extrait)
+| Scénario | MSISDN test |
+|----------|-------------|
+| PayeeFailed | `46733123450` |
+| PayeeNotEnoughFunds | `46733123455` |
+| PayeeNotFound | `46733123457` |
+| PayeeInternalProcessingError | `46733123462` |
+
+### Valeurs de test Payment (montant)
+| Scénario | Montant |
+|----------|---------|
+| PaymentAmountSuccess | `1000` |
+| PaymentAmountFailed | `2000` |
+| PaymentAmountPendingSuccess | `3000` |
+| PaymentTransfertypeUnknown | `7000` |
+
+## 13. Use cases séquentiels
+1. **RequestToPay**: POST -> 202 -> PENDING -> client approuve USSD/App -> SUCCESSFUL/FAILED -> callback.
+2. **Preapproval**: même flux, puis débits futurs sans re-autorisation.
+3. **Transfer**: POST -> 202 -> fonds provider->payee -> callback final.
+4. **Validate Account Holder**: GET -> 200 si actif (ne valide pas le montant).
+5. **Get Balance**: GET solde compte par défaut lié à l'API User.
+6. **Consent flows**: `POST /bc-authorize` -> `POST /oauth2/token/` -> API métier avec consent.
+
+## 14. Règles de validation request body
+- `X-Reference-Id` obligatoirement UUID v4 unique.
+- Notes/messages max 160 caractères (utiliser Notify API au-delà).
+- Pas de caractères spéciaux non supportés (ex: apostrophe `'`).
+- Devise doit correspondre au pays cible.
+- URL callback: hostname, pas IP.
+- Collection, Disbursement, Remittance ont des subscription keys distinctes.
+
+## 15. MTN Congo - note d'intégration
+- Production Congo: `X-Target-Environment: mtncongo`
+- Devise: XAF (Franc CFA CEA)
+- Sandbox: toujours `sandbox` + EUR pour les tests documentés.
+
+--- END FILE: 02-fintech-local\mtn-money-specifications.md ---
 
 --- START FILE: 02-fintech-local\operator-specifications.md ---
 # Telecom Operator Specifications & Financial Volumes (2024-2026)
@@ -279,6 +989,49 @@ Principe immuable : Préférer les transitions d'opacité ou de transformation s
 * **Active Users**: 38,000,000 clients (+20.7%).
 * **Revenue**: $837,000,000 USD in 2024.
 
+### Airtel Money — Congo (extraits opérationnels)
+* **USSD Banking / Bank-to-Wallet**: `*128*4#` (menu guidé) — point d'entrée principal.
+* **Menu générique**: `*128#` pour accès général aux services Airtel Money et retrait GAB.
+* **Flux supportés**:
+  - `1` : Virement Airtel Money vers la banque (wallet -> bank)
+  - `2` : Virement Banque vers Airtel Money (bank -> wallet)
+  - `3` : Consultation de solde bancaire
+  - `4` : Mini-relevé
+* **Processus de virement banque -> Airtel**:
+  1. Composer `*128*4#`
+  2. Choisir la banque partenaire
+  3. Saisir le montant à transférer
+  4. Saisir le mot de passe ou code PIN
+* **Banques partenaires**: UBA BANK, LCB Bank, ECOBANK, BSCA, BGFIBank, BCI, MUCODEC, BCH, CREDIT DU CONGO.
+
+### Tarification Airtel Money (extrait)
+| Type d'opération | Coût |
+|---|---:|
+| Banque vers Airtel | 0 F CFA |
+| Airtel Money vers la Banque | 1% |
+| Consultation Solde | 0 F CFA |
+| Consultation Mini relevé | 0 F CFA |
+
+### Retrait via GAB MUCODEC
+* **Disponibilité**: 24h/24, 7j/7
+* **Contraintes**: montants strictement multiples de 5 000 (5 000 ; 10 000 ; 15 000 ; 20 000 ...).
+* **Procédure**:
+  1. Composer `*128#`
+  2. Choisir option 6
+  3. Choisir option 2
+  4. Saisir le montant (multiple de 5 000)
+  5. Recevoir un SMS contenant le code de retrait valide 15 minutes
+  6. Au guichet Mucodec: sélectionner `Service sans carte` -> `Airtel Money` -> saisir MSISDN, code SMS, montant -> valider
+
+### Support opérationnel
+* Centre d'appels : `121` (24/24)
+* Tarification d'appel : 24 F CFA/appel
+* Email support : Serviceclients@cg.airtel.com
+
+### Remarques de structuration
+* Ce bloc Airtel Money doit rester focalisé sur les flux USSD, les partenaires bancaires, la tarification et les contraintes de retrait.
+* Les contenus marketing généraux d'Airtel sont exclus de cette section pour conserver un corpus technique token-efficient.
+
 ## 9. Cross-Border & Interoperability Architecture
 * **Cross-Border Clearing Rails**: PAPSS (Pan-African Payment and Settlement System) connecting over 160 commercial banks for local-currency instant settlement.
 * **Regional Integrations**: 2026 Pesalink-PAPSS partnership enabling real-time local currency routing across 80+ banks, fintechs, and SACCO networks in East Africa.
@@ -318,6 +1071,12 @@ Principe immuable : Préférer les transitions d'opacité ou de transformation s
   "integration_flow": ["sandbox_provisioning", "transaction_status_check", "balance_check", "callback_handling"]
 }
 ```
+
+## 6. Operator-specific USSD Integrations (Airtel example)
+- **USSD entrypoints** are operator-specific and must be modeled as integration parameters (`ussd_code`, `menu_path`, `timeout_seconds`).
+- **Bank partnerships & interconnect**: model partner lists and fee matrices per country and per bank to avoid hardcoding rules in training data.
+- **Cash-out constraints**: include withdrawal constraints (e.g., multiples of 5 000, SMS code expiry) as structured fields rather than prose to save tokens.
+- **Support & escalation metadata**: include `support_number`, `support_email`, and `call_tariff` for operational playbooks.
 --- END FILE: 02-fintech-local\regional-regulations.md ---
 
 --- START FILE: 10-case-studies\case-ui-001\input.tsx ---
