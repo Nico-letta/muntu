@@ -1,4 +1,7 @@
-# MTN MoMo Specifications
+﻿# MTN MoMo API Reference (Catalogue Developer)
+
+> **Couche** : `30-system-integrations` · **Type** : référence API MTN Developer (produits, provisioning, headers)  
+> **Complément** : [Intégration wallet platform](./mtn-momo.md) (RequestToPay, compensation, webhooks AfriWallet)
 
 ## 1. Principes de conception
 - API REST JSON sur HTTPS.

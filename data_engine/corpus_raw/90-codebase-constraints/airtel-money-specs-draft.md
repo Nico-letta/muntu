@@ -1,5 +1,8 @@
 # Airtel Money Specifications (Congo-Brazzaville)
 
+> **STATUT : NON IMPLÉMENTÉ** · Dossier `90-codebase-constraints` · Enum Prisma seulement  
+> **Protocole migration** : quand `src/providers/airtel.service.ts` existe → déplacer vers `30-system-integrations/airtel-money-specs.md` et retirer de `project-roadmap.md`
+
 ## 1. Environnements & onboarding
 - `staging_base_url`: `https://openapiuat.airtel.cg`
 - `production_base_url`: `https://openapi.airtel.cg`

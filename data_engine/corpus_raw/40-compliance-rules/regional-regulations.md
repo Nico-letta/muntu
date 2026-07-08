@@ -1,6 +1,24 @@
-# Regional Governance, Onboarding & Compliance Patterns
+# Regional Governance — Index Multi-Zone
 
-## 1. Product Governance Model
+> **Couche** : `40-compliance-rules` · **Ne pas fusionner les zones** — le modèle hallucine si NG, CM et CI sont mélangés.
+
+## Matrice réglementaire (sectorisation v4)
+
+| Fichier | Zone | Devise | Pays clés |
+|---------|------|--------|-----------|
+| [cemac-cobac.md](./cemac-cobac.md) | CEMAC / BEAC / COBAC | XAF | CM, CG |
+| [uemoa-bceao.md](./uemoa-bceao.md) | UEMOA / BCEAO | XOF | CI |
+| [cbn-nigeria.md](./cbn-nigeria.md) | Nigeria / CBN / NIMC | NGN | NG |
+
+```json
+{
+  "rule": "Toujours résoudre ISO pays + devise AVANT d'appliquer regex KYC ou OpCo MTN",
+  "kyc_detail": "kyc-id-rules-by-country.md",
+  "async_flows": "../30-system-integrations/async-reconciliation-patterns.md"
+}
+```
+
+## Product Governance Model (MTN Developer)
 - The provided MoMo documentation organizes the platform around distinct products: Remittance, Distribute, Channel as a Service, KYC/Account Validation, Pre-approval, and Notify.
 - Each product is presented as a separate capability surface, which makes it suitable for a modular training corpus.
 

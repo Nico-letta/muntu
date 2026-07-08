@@ -1,0 +1,71 @@
+{
+  "version": "4.1.0",
+  "format": "markdown+json_hybrid",
+  "architecture": "multi_expert_moe",
+  "numbering_policy": {
+    "parent_folders": "increments_of_10_for_compile_order",
+    "child_folders_and_files": "semantic_names_only"
+  },
+  "compile_order": [
+    "00-core-principles",
+    "10-frontend-mobile",
+    "15-mobile-ux-studies",
+    "20-backend-api",
+    "25-database-storage",
+    "30-system-integrations",
+    "35-business-flows",
+    "40-compliance-rules",
+    "90-codebase-constraints"
+  ],
+  "consolidation_map": "CONSOLIDATION-MAP.md",
+  "corpus_linter": "../lint_corpus.py",
+  "moe_routing": {
+    "00-core-principles": "Global behavior conditioning",
+    "10-frontend-mobile": "React Native UI expert",
+    "15-mobile-ux-studies": "Mobile UX code examples",
+    "20-backend-api": "Contract-driven NestJS expert",
+    "25-database-storage": "PostgreSQL Prisma expert",
+    "30-system-integrations": "Provider API plumbing + async reconciliation + error codes",
+    "35-business-flows": "Transactional business orchestration",
+    "40-compliance-rules": "Multi-OpCo regulatory matrix (CEMAC/UEMOA/NG)",
+    "90-codebase-constraints": "Negative knowledge only (ghost features, roadmap)"
+  },
+  "layers": {
+    "00-core-principles": ["mobile-first.md", "performance-first.md"],
+    "10-frontend-mobile": ["react-native-architecture.md", "memoization-rules.md", "state-management.md"],
+    "15-mobile-ux-studies": ["case-ui-001/"],
+    "20-backend-api": {
+      "input-boundaries": ["payload-validation.md", "webhook-security.md"],
+      "execution-lifecycle": ["middleware-chain.md", "async-pipeline-jobs.md"],
+      "error-resilience": ["error-boundaries.md"]
+    },
+    "25-database-storage": ["postgres-policies.md", "prisma-patterns.md"],
+    "30-system-integrations": {
+      "root": [
+        "domain-knowledge.md",
+        "async-reconciliation-patterns.md",
+        "provider-specs.md",
+        "provider-error-codes.md",
+        "api-endpoints.md"
+      ],
+      "providers": ["mtn-momo-api-reference.md"]
+    },
+    "35-business-flows": ["afriwallet-business-flows.md"],
+    "40-compliance-rules": [
+      "cemac-cobac.md",
+      "uemoa-bceao.md",
+      "cbn-nigeria.md",
+      "kyc-id-rules-by-country.md",
+      "regional-regulations.md",
+      "macro-metrics.md",
+      "fraud-vectors-security.md",
+      "operator-specifications.md",
+      "compliance-kyc-aml.md"
+    ],
+    "90-codebase-constraints": ["project-roadmap.md", "airtel-money-specs-draft.md"]
+  },
+  "source_repos": {
+    "afriwallet_codebase": "D:/zeno",
+    "corpus_staging": "D:/zeno/fintech-corpus"
+  }
+}

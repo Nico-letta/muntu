@@ -1,21 +1,3173 @@
 
---- START FILE: 00-core-principles\mobile-first.md ---
+--- START FILE: 00-core-principles/mobile-first.md ---
+# RULE: MOBILE-FIRST-AFRICA
+En Afrique, le canal principal est le **téléphone mobile** (MSISDN), pas l'email ni le desktop.
 
---- END FILE: 00-core-principles\mobile-first.md ---
+Principes immuables pour AfriWallet et apps associées :
+- L'identité utilisateur = numéro international (`+237…`, `+234…`).
+- OTP SMS remplace l'email de vérification en production.
+- PIN court (4+ chiffres) hashé bcrypt — pas de mot de passe complexe occidental.
+- UX offline-tolerant : Mobile Money et KYC sont **asynchrones** — toujours prévoir polling + feedback utilisateur.
+- Bande passante limitée : payloads API minimaux, pas de sur-fetching.
 
---- START FILE: 00-core-principles\performance-first.md ---
+```json
+{
+  "primary_identifier": "phoneNumber MSISDN",
+  "auth_flow": ["OTP SMS", "PIN bcrypt", "JWT 15m"],
+  "async_operations": ["MoMo deposit", "MoMo withdraw", "KYC biometric", "Bridge deposit"]
+}
+```
+
+--- END FILE: 00-core-principles/mobile-first.md ---
+
+--- START FILE: 00-core-principles/performance-first.md ---
 # RULE: PERFORMANCE-FIRST-MOBILE
 En contexte de connectivité contrainte et de processeurs mobiles de milieu de gamme, chaque octet compte.
 L'utilisation abusive des couches de composition GPU via la propriété CSS 'will-change' ou des animations matricielles lourdes sur des éléments décoratifs au scroll détruit l'autonomie de la batterie et provoque du thermal throttling (surchauffe et ralentissement du processeur).
 Principe immuable : Préférer les transitions d'opacité ou de transformation simples nativisées par le navigateur. Ne forcer l'accélération matérielle que sur des éléments interactifs hautement dynamiques.
---- END FILE: 00-core-principles\performance-first.md ---
+--- END FILE: 00-core-principles/performance-first.md ---
 
---- START FILE: 01-react-native\memoization-rules.md ---
+--- START FILE: 10-frontend-mobile/memoization-rules.md ---
+﻿# Frontend Mobile — Memoization & Performance
 
---- END FILE: 01-react-native\memoization-rules.md ---
+> **Couche** : `10-frontend-mobile`  
+> **Lié** : `00-core-principles/performance-first.md`
 
---- START FILE: 02-fintech-local\airtel-money-specifications.md ---
+## Règles
+
+- `React.memo` sur listes transactions (historique wallet).
+- `useCallback` / `useMemo` pour handlers OTP et polling intervals.
+- Éviter re-render sur balance FCFA pendant polling MoMo.
+
+```json
+{
+  "heavy_lists": ["wallet transactions", "kyc liveness preview thumbnails"],
+  "avoid": ["will-change abuse on scroll decorations", "matrix animations on lists"]
+}
+```
+
+--- END FILE: 10-frontend-mobile/memoization-rules.md ---
+
+--- START FILE: 10-frontend-mobile/react-native-architecture.md ---
+﻿# Frontend Mobile — Architecture React Native
+
+> **Couche** : `10-frontend-mobile` · **Expert MoE** : UI mobile  
+> **Source** : `15-mobile-ux-studies/case-ui-001/`
+
+## Contexte
+
+Apps wallet AfriWallet consomment l'API REST async (MoMo, KYC). L'UI doit gérer états PENDING, polling, et connectivité intermittente.
+
+## Principes
+
+- MSISDN comme identifiant — clavier numérique PIN/OTP.
+- Jamais afficher OTP en prod (vient par SMS).
+- Polling statut paiement avec backoff (2s → 10s → 30s).
+- États KYC : PENDING / VERIFIED / REJECTED clairement affichés.
+
+```json
+{
+  "api_base": "JWT Bearer after /auth/otp/verify",
+  "async_screens": ["momo_deposit_pending", "kyc_upload_progress", "bridge_payment_url"],
+  "reference_case_study": "../15-mobile-ux-studies/case-ui-001/"
+}
+```
+
+## Voir aussi
+
+- `00-core-principles/mobile-first.md`
+- `35-business-flows/afriwallet-business-flows.md`
+
+--- END FILE: 10-frontend-mobile/react-native-architecture.md ---
+
+--- START FILE: 10-frontend-mobile/state-management.md ---
+﻿# Frontend Mobile — State Management
+
+> **Couche** : `10-frontend-mobile`
+
+## État global recommandé
+
+```json
+{
+  "auth": {
+    "accessToken": "JWT",
+    "phoneNumber": "string",
+    "expiresAt": "derived from 15m TTL"
+  },
+  "user": {
+    "kycStatus": "PENDING | VERIFIED | REJECTED",
+    "wallets": [{ "id": "string", "balanceFcfa": "number for display" }]
+  },
+  "pending_operations": {
+    "momoReferenceId": "string?",
+    "pollIntervalMs": "dynamic from provider status"
+  }
+}
+```
+
+## Règle async
+
+Ne jamais mettre `balanceFcfa` à jour optimistically sur cash-out — attendre SUCCESS ou afficher réservation PENDING.
+
+## Voir aussi
+
+- `20-backend-api/execution-lifecycle/async-pipeline-jobs.md`
+
+--- END FILE: 10-frontend-mobile/state-management.md ---
+
+--- START FILE: 15-mobile-ux-studies/case-ui-001/input.tsx ---
+import React, { memo } from 'react';
+import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
+import { Target, Zap, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import CustomActionButton from '../ui/CustomActionButton';
+
+// 1. Constantes typées et gelées pour éviter la ré-allocation mémoire
+const TEAM_AVATARS = [
+  '/IMG_5174.webp',
+  '/IMG_5182.webp', 
+  '/IMG_5199.webp',
+  '/IMG_5216.webp'
+] as const;
+
+// 2. Variants optimisés (Utilisation de hardware acceleration via transform)
+const fadeInDown: Variants = {
+  hidden: { opacity: 0, y: 20 }, // Réduit de 40 à 20 pour éviter les grands sauts de layout sur mobile
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.5, // 0.8 est trop lent sur mobile (sensation de lourdeur)
+      ease: [0.215, 0.610, 0.355, 1.000] // Cubic-bezier optimisé pour l'UI (EaseOutCubic)
+    } 
+  }
+};
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { 
+      staggerChildren: 0.1, 
+      delayChildren: 0.1 
+    }
+  }
+};
+
+// Option de viewport globale pour économiser la batterie (Exécuté une seule fois)
+const VIEWPORT_CONFIG = { once: true, margin: "-10%" };
+
+const AboutSection: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <section className="relative w-full py-16 md:py-24 lg:py-32 overflow-hidden bg-[var(--color-brand-light)] font-sans contain-intrinsic-size">
+      
+      {/* --- ÉLÉMENTS DÉCORATIFS (Désactivés ou simplifiés sur mobile pour économiser le GPU) --- */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 0.05 }}
+        viewport={VIEWPORT_CONFIG}
+        transition={{ duration: 1 }}
+        className="absolute top-0 right-0 w-1/3 h-full bg-[var(--color-brand-lavender)] z-0 pointer-events-none will-change-opacity hidden sm:block" 
+      />
+      
+      {/* Background Text : purement décoratif, masqué sur mobile pour éviter la surcharge de layout textuel */}
+      <div className="absolute top-1/2 left-6 -translate-y-1/2 opacity-[0.02] pointer-events-none hidden xl:block z-0">
+        <motion.h2 
+          initial={{ x: -50, opacity: 0 }}
+          whileInView={{ x: 0, opacity: 1 }}
+          viewport={VIEWPORT_CONFIG}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="text-[12vw] font-black text-[var(--color-brand-dark)] leading-none uppercase select-none tracking-tighter will-change-transform"
+        >
+          Corporate
+        </motion.h2>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center">
+          
+          {/* --- COLONNE GAUCHE : VISUEL (Optimisé Desktop vs Mobile) --- */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={VIEWPORT_CONFIG}
+            transition={{ duration: 0.6 }}
+            className="col-span-1 lg:col-span-5 relative group"
+          >
+            {/* Cadre de structure : animation désactivée au hover sur mobile (no-hover query) */}
+            <div className="absolute -top-4 -right-4 md:-top-6 md:-right-6 w-full h-full border-2 border-[var(--color-brand-blue)] z-0 transform transition-transform duration-500 group-hover:translate-x-2 group-hover:-translate-y-2 motion-reduce:transition-none" />
+
+            {/* Container Image Principal avec Ratio strict pour éviter le CLS */}
+            <div className="relative z-10 w-full aspect-[3/4] bg-[var(--color-brand-dark)] overflow-hidden border border-[var(--color-brand-dark)] shadow-sm">
+              <img 
+                src="/hero-display.jpg" 
+                alt="L'équipe" 
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover grayscale transition-transform duration-700 ease-out md:group-hover:scale-105 md:group-hover:grayscale-0 will-change-transform"
+              />
+              <div className="absolute inset-0 bg-[var(--color-brand-blue)] mix-blend-multiply opacity-0 md:group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
+            </div>
+
+            {/* Badge d'Impact (Style Brutaliste) */}
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={VIEWPORT_CONFIG}
+              transition={{ delay: 0.2, type: "spring", damping: 20 }}
+              className="absolute -bottom-6 -left-2 sm:-bottom-10 sm:left-4 lg:-left-10 z-20 bg-[var(--color-brand-lime)] p-4 sm:p-6 lg:p-8 shadow-[8px_8px_0px_rgba(21,22,50,1)] sm:shadow-[15px_15px_0px_rgba(21,22,50,1)]"
+            >
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--color-brand-dark)] leading-none">08+</span>
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand-dark)] leading-tight">
+                  Ans d'Expertise <br/> Radicales
+                </span>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* --- COLONNE DROITE : CONTENU CONTRAINT --- */}
+          <motion.div 
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={VIEWPORT_CONFIG}
+            className="col-span-1 lg:col-span-7 mt-8 lg:mt-0"
+          >
+            {/* Label */}
+            <motion.div variants={fadeInDown} className="flex items-center gap-4 mb-4 sm:mb-6">
+              <div className="h-[2px] w-8 sm:w-12 bg-[var(--color-brand-blue)]" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[var(--color-brand-blue)]">
+                Qui nous sommes
+              </span>
+            </motion.div>
+
+            {/* Titre Fluide */}
+            <motion.h2 variants={fadeInDown} className="text-3xl sm:text-5xl lg:text-7xl font-black text-[var(--color-brand-dark)] leading-[0.95] uppercase mb-6 sm:mb-8 tracking-tighter">
+              Stratégie, Contenu <span className="block sm:inline lg:block">Et Influence</span>
+              <span className="block text-transparent style-stroke" style={{ WebkitTextStroke: '1px var(--color-brand-dark)' }}>
+                Au Service De Votre Image
+              </span>
+            </motion.h2>
+
+            {/* Paragraphes avec Surlignage Performance-First */}
+            <motion.p variants={fadeInDown} className="text-lg sm:text-xl lg:text-2xl text-[var(--color-brand-dark)] font-medium leading-tight mb-8 max-w-xl">
+              Notre collectif accompagne les marques dans la construction d’une{' '}
+              <span className="relative inline-block isolate">
+                <span className="relative z-10 italic pr-1">communication claire</span>
+                <motion.span 
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={VIEWPORT_CONFIG}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                  className="absolute bottom-0.5 left-0 w-full h-2 sm:h-3 bg-[var(--color-brand-lime)] -z-10 origin-left will-change-transform"
+                />
+              </span>{' '}
+              forte et durable.
+            </motion.p>
+
+            {/* Stats Grille */}
+            <motion.div variants={fadeInDown} className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12 border-y border-[var(--color-brand-dark)]/10 py-6 sm:py-10">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[var(--color-brand-lavender)]/20 border border-[var(--color-brand-blue)]/10 flex-shrink-0" aria-hidden="true">
+                  <Target size={20} className="text-[var(--color-brand-blue)]" />
+                </div>
+                <div>
+                  <h3 className="font-black uppercase text-[10px] sm:text-[11px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Cible</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Entreprises, institutions et marques</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[var(--color-brand-lime)]/20 border border-[var(--color-brand-dark)]/5 flex-shrink-0" aria-hidden="true">
+                  <Zap size={20} className="text-[var(--color-brand-dark)]" />
+                </div>
+                <div>
+                  <h3 className="font-black uppercase text-[10px] sm:text-[11px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Force</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Expertise stratégique & créativité audacieuse</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* CTA & Team Avatars */}
+            <motion.div variants={fadeInDown} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 sm:gap-8">
+              <div className="flex-grow-0">
+                <CustomActionButton
+                  label={
+                    <span className="flex items-center justify-center gap-2 font-bold text-xs sm:text-sm tracking-wider">
+                      EXPLORER LE MANIFESTO <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </span>
+                  }
+                  backgroundColor={'var(--color-brand-dark)'}
+                  borderColor={'var(--color-brand-dark)'}
+                  textColor={'var(--color-brand-lime)'}
+                  onClick={() => navigate('/#manifesto')}
+                />
+              </div>
+              
+              <div className="flex items-center gap-4 justify-start sm:justify-auto mt-2 sm:mt-0">
+                <div className="flex -space-x-2.5 sm:-space-x-3">
+                  {TEAM_AVATARS.map((avatarSrc, i) => (
+                    <div 
+                      key={avatarSrc}
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[var(--color-brand-light)] bg-gray-100 overflow-hidden shadow-sm transition-transform duration-300 md:hover:-translate-y-1 md:hover:z-30 cursor-pointer"
+                    >
+                      <img
+                        src={avatarSrc}
+                        alt={`Membre de l'équipe ${i + 1}`}
+                        width={48}
+                        height={48}
+                        loading="lazy"
+                        decoding="async"
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-tighter leading-tight text-[var(--color-brand-dark)]">
+                  Expertise <br/> Collective
+                </span>
+              </div>
+            </motion.div>
+
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// 3. Memoization inutile (Anti-pattern sans props fluctuantes)
+export default memo(AboutSection);
+--- END FILE: 15-mobile-ux-studies/case-ui-001/input.tsx ---
+
+--- START FILE: 15-mobile-ux-studies/case-ui-001/output.tsx ---
+import React from 'react';
+import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
+import { Target, Zap, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import CustomActionButton from '../ui/CustomActionButton';
+
+// 1. Constantes typées et gelées pour éviter la ré-allocation mémoire à chaque render
+const TEAM_AVATARS = [
+  '/IMG_5174.webp',
+  '/IMG_5182.webp', 
+  '/IMG_5199.webp',
+  '/IMG_5216.webp'
+] as const;
+
+// 2. Configuration globale du Viewport pour économiser la batterie (exécutée une seule fois)
+const VIEWPORT_CONFIG = { once: true, margin: "-10%" };
+
+// 3. Variants optimisés pour Mobile (Transitions fluides, amplitude d'atténuation y réduite)
+const fadeInDown: Variants = {
+  hidden: { opacity: 0, y: 15 }, 
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.4, // Timing resserré pour une sensation de réactivité accrue
+      ease: [0.215, 0.610, 0.355, 1.000] // EaseOutCubic : Décélération naturelle de l'interface
+    } 
+  }
+};
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { 
+      staggerChildren: 0.08, // Staggering légèrement accéléré pour le mobile
+      delayChildren: 0.05 
+    }
+  }
+};
+
+const AboutSection: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    // Suppression du contain-intrinsic-size sauvage qui cassait le calcul initial de la boîte
+    <section className="relative w-full py-16 md:py-24 lg:py-32 overflow-hidden bg-[var(--color-brand-light)] font-sans">
+      
+      {/* --- ÉLÉMENTS DÉCORATIFS (Optimisés ou supprimés sur mobile pour limiter les couches GPU) --- */}
+      {/* On utilise un div standard statique au lieu d'un composant motion sur mobile, basculé en CSS pur */}
+      <div 
+        className="absolute top-0 right-0 w-1/3 h-full bg-[var(--color-brand-lavender)] opacity-[0.05] z-0 pointer-events-none hidden sm:block" 
+      />
+      
+      {/* Background Text : Purement décoratif -> Masqué par défaut, affiché uniquement sur écrans ultra-larges */}
+      <div className="absolute top-1/2 left-6 -translate-y-1/2 opacity-[0.02] pointer-events-none hidden xl:block z-0">
+        <motion.h2 
+          initial={{ x: -30, opacity: 0 }}
+          whileInView={{ x: 0, opacity: 1 }}
+          viewport={VIEWPORT_CONFIG}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="text-[12vw] font-black text-[var(--color-brand-dark)] leading-none uppercase select-none tracking-tighter"
+        >
+          Corporate
+        </motion.h2>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center">
+          
+          {/* --- COLONNE GAUCHE : VISUEL (Gestion stricte du CLS) --- */}
+          <div className="col-span-1 lg:col-span-5 relative group">
+            {/* Effet brutaliste de bordure : Les animations au hover sont limitées aux devices Desktop uniquement (md:hover) */}
+            <div className="absolute -top-4 -right-4 md:-top-6 md:-right-6 w-full h-full border-2 border-[var(--color-brand-blue)] z-0 transform transition-transform duration-500 md:group-hover:translate-x-2 md:group-hover:-translate-y-2 motion-reduce:transition-none" />
+
+            {/* Container Image avec Aspect Ratio strict pour empêcher les sauts de layout (Cumulative Layout Shift) */}
+            <div className="relative z-10 w-full aspect-[3/4] bg-[var(--color-brand-dark)] overflow-hidden border border-[var(--color-brand-dark)] shadow-sm">
+              <img 
+                src="/hero-display.jpg" 
+                alt="L'équipe de l'agence" 
+                loading="lazy"          // Chargement différé hors-écran natif
+                decoding="async"        // Décodage parallélisé pour ne pas bloquer le thread principal UI
+                className="w-full h-full object-cover grayscale transition-transform duration-700 ease-out md:group-hover:scale-105 md:group-hover:grayscale-0"
+              />
+              <div className="absolute inset-0 bg-[var(--color-brand-blue)] mix-blend-multiply opacity-0 md:group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
+            </div>
+
+            {/* Badge d'Impact Brutaliste */}
+            <div 
+              className="absolute -bottom-6 -left-2 sm:-bottom-10 sm:left-4 lg:-left-10 z-20 bg-[var(--color-brand-lime)] p-4 sm:p-6 lg:p-8 shadow-[6px_6px_0px_rgba(21,22,50,1)] sm:shadow-[12px_12px_0px_rgba(21,22,50,1)]"
+            >
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--color-brand-dark)] leading-none">08+</span>
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand-dark)] leading-tight">
+                  Ans d'Expertise <br/> Radicales
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* --- COLONNE DROITE : CONTENU FLUIDE ET CONTRAINT --- */}
+          <motion.div 
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={VIEWPORT_CONFIG}
+            className="col-span-1 lg:col-span-7 mt-4 lg:mt-0"
+          >
+            {/* Label de section */}
+            <motion.div variants={fadeInDown} className="flex items-center gap-4 mb-4">
+              <div className="h-[2px] w-8 sm:w-12 bg-[var(--color-brand-blue)]" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[var(--color-brand-blue)]">
+                Qui nous sommes
+              </span>
+            </motion.div>
+
+            {/* Titre Typographique */}
+            <motion.h2 variants={fadeInDown} className="text-3xl sm:text-5xl lg:text-7xl font-black text-[var(--color-brand-dark)] leading-[0.95] uppercase mb-6 tracking-tighter">
+              Stratégie, Contenu <span className="block sm:inline lg:block">Et Influence</span>
+              <span className="block text-transparent style-stroke" style={{ WebkitTextStroke: '1px var(--color-brand-dark)' }}>
+                Au Service De Votre Image
+              </span>
+            </motion.h2>
+
+            {/* Paragraphe avec animation scaleX d'arrière-plan optimisée */}
+            <motion.p variants={fadeInDown} className="text-lg sm:text-xl lg:text-2xl text-[var(--color-brand-dark)] font-medium leading-tight mb-8 max-w-xl">
+              Notre collectif accompagne les marques dans la construction d’une{' '}
+              <span className="relative inline-block isolate">
+                <span className="relative z-10 italic pr-1">communication claire</span>
+                <motion.span 
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={VIEWPORT_CONFIG}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                  className="absolute bottom-0.5 left-0 w-full h-2 sm:h-3 bg-[var(--color-brand-lime)] -z-10 origin-left"
+                />
+              </span>{' '}
+              forte et durable.
+            </motion.p>
+
+            {/* Grille de statistiques */}
+            <motion.div variants={fadeInDown} className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 border-y border-[var(--color-brand-dark)]/10 py-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[var(--color-brand-lavender)]/20 border border-[var(--color-brand-blue)]/10 flex-shrink-0" aria-hidden="true">
+                  <Target size={20} className="text-[var(--color-brand-blue)]" />
+                </div>
+                <div>
+                  <h3 className="font-black uppercase text-[10px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Cible</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Entreprises, institutions et marques</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[var(--color-brand-lime)]/20 border border-[var(--color-brand-dark)]/5 flex-shrink-0" aria-hidden="true">
+                  <Zap size={20} className="text-[var(--color-brand-dark)]" />
+                </div>
+                <div>
+                  <h3 className="font-black uppercase text-[10px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Force</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Expertise stratégique & créativité audacieuse</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* CTAs & Avatars d'équipe */}
+            <motion.div variants={fadeInDown} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6">
+              <div className="flex-shrink-0">
+                <CustomActionButton
+                  label={
+                    <span className="flex items-center justify-center gap-2 font-bold text-xs sm:text-sm tracking-wider">
+                      EXPLORER LE MANIFESTO <Plus className="w-4 h-4" />
+                    </span>
+                  }
+                  backgroundColor={'var(--color-brand-dark)'}
+                  borderColor={'var(--color-brand-dark)'}
+                  textColor={'var(--color-brand-lime)'}
+                  onClick={() => navigate('/#manifesto')}
+                />
+              </div>
+              
+              <div className="flex items-center gap-4 justify-start mt-2 sm:mt-0">
+                <div className="flex -space-x-2.5 sm:-space-x-3">
+                  {TEAM_AVATARS.map((avatarSrc, i) => (
+                    <div 
+                      key={avatarSrc}
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[var(--color-brand-light)] bg-gray-100 overflow-hidden shadow-sm transition-transform duration-300 md:hover:-translate-y-1 md:hover:z-30 cursor-pointer"
+                    >
+                      <img
+                        src={avatarSrc}
+                        alt={`Membre de l'équipe ${i + 1}`}
+                        width={48}
+                        height={48}
+                        loading="lazy"
+                        decoding="async"
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-tighter leading-tight text-[var(--color-brand-dark)]">
+                  Expertise <br/> Collective
+                </span>
+              </div>
+            </motion.div>
+
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Suppression du wrapper `memo()` inutile qui forçait une comparaison de props superflue à chaque cycle
+export default AboutSection;
+--- END FILE: 15-mobile-ux-studies/case-ui-001/output.tsx ---
+
+--- START FILE: 20-backend-api/input-boundaries/payload-validation.md ---
+﻿# Frontières d'entrée — Validation des Payloads
+
+> **Couche** : `20-backend-api/input-boundaries` · **Axe** : Entrée → typage strict  
+> **Stack** : NestJS 11, class-validator, class-transformer  
+> **Source** : `src/kyc/kyc.controller.ts`, `src/kyc/smile-id-id-rules.ts`, `src/auth/auth.controller.ts`
+
+## Contexte (Contract-Driven)
+
+Les bugs critiques naissent aux **frontières** : une donnée externe non typée pénètre l'application. AfriWallet valide **avant** tout appel provider (MTN, Smile ID, Onafriq).
+
+Le LLM ne doit pas inventer des formats d'ID africains — il applique les regex ci-dessous.
+
+## KYC — Validations globales
+
+```json
+{
+  "country": { "regex": "^[A-Z]{2}$", "format": "ISO 3166-1 alpha-2" },
+  "dob": { "regex": "^\\d{4}-\\d{2}-\\d{2}$", "format": "yyyy-mm-dd" },
+  "idNumber": { "max_length": 32 }
+}
+```
+
+## KYC — Nigeria (NIN) — contrat strict
+
+```json
+{
+  "NG": {
+    "NIN": { "regex": "^\\d{11}$" },
+    "NIN_V2": { "regex": "^\\d{11}$" },
+    "BVN": { "regex": "^\\d{11}$" },
+    "BANK_ACCOUNT": { "regex": "^\\d{10}$", "required_fields": ["bankCode"] },
+    "V_NIN": { "regex": "^[A-Za-z0-9]{16}$" }
+  }
+}
+```
+
+## KYC — SmartSelfie reason (enum strict)
+
+```json
+{
+  "smartselfie_auth_reasons": [
+    "large_withdrawal",
+    "pin_reset",
+    "high_risk_device",
+    "wallet_recovery"
+  ],
+  "validation": "@IsIn decorator — toute autre valeur = BadRequestException"
+}
+```
+
+## Paiements — Montants
+
+```json
+{
+  "amountFcfa": {
+    "type": "integer",
+    "rule": "must be > 0",
+    "storage": "BigInt in PostgreSQL — never float"
+  }
+}
+```
+
+## Auth — OTP / PIN
+
+```json
+{
+  "otp": { "length": 6, "ttl_minutes": 5, "max_attempts": 3 },
+  "pin": { "required_on_verify": true, "stored": "bcrypt hash only" },
+  "phoneNumber": { "required": true, "format": "international MSISDN" }
+}
+```
+
+## Règle impérative
+
+Validation échouée → **BadRequestException** avant tout side-effect (pas de transaction PENDING, pas d'appel MTN).
+
+## Voir aussi
+
+- `40-compliance-rules/kyc-id-rules-by-country.md`
+- `20-backend-api/input-boundaries/webhook-security.md`
+
+--- END FILE: 20-backend-api/input-boundaries/payload-validation.md ---
+
+--- START FILE: 20-backend-api/input-boundaries/webhook-security.md ---
+﻿# Frontières d'entrée — Sécurité Webhooks
+
+> **Couche** : `20-backend-api/input-boundaries` · **Axe** : Entrée non typée → verrous  
+> **Source** : `src/webhooks/webhooks.service.ts`, `src/webhooks/webhooks.controller.ts`
+
+## Contexte
+
+Les webhooks sont le point d'entrée le plus sensible : payloads tiers, replays, doublons. AfriWallet applique **signature + idempotence** avant mutation du wallet.
+
+## Contrat — Idempotence (eventKey)
+
+```json
+{
+  "MTN_MOMO": "mtn:r2p:{referenceId}",
+  "SMILE_ID": "{job_id}",
+  "ONAFRIQ": "onafriq:{notificationType}:{requestId}:{transactionId|customerId}",
+  "BRIDGE": "bridge:payments:{type}:{paymentRequestId}:{status}",
+  "duplicate_behavior": "Prisma P2002 → return 200 silently, no double credit"
+}
+```
+
+## Contrat — Signatures par provider
+
+```json
+{
+  "SMILE_ID": {
+    "method": "HMAC",
+    "anti_replay_window": "±5 minutes on timestamp"
+  },
+  "ONAFRIQ": {
+    "header": "x-webhook-signature",
+    "method": "AES256",
+    "secrets": ["ONAFRIQ_SECRET_KEY", "ONAFRIQ_WEBHOOK_SECRET"]
+  },
+  "BRIDGE": {
+    "header": "bridgeapi-signature",
+    "method": "HMAC-SHA256"
+  },
+  "MTN_MOMO": {
+    "optional": "IP allowlist MTN_MOMO_WEBHOOK_IP_ALLOWLIST"
+  }
+}
+```
+
+## Contrat — Endpoints webhook (surface publique)
+
+```json
+{
+  "MTN": "POST|PUT /webhooks/mtn/requesttopay/:referenceId",
+  "SMILE_ID": "POST /webhooks/smile-id",
+  "ONAFRIQ": "POST /webhooks/onafriq/cards",
+  "BRIDGE": "POST /webhooks/bridge/payments"
+}
+```
+
+## Règles de traitement
+
+1. Transaction déjà `SUCCESS` ou `FAILED` → ignore (idempotent).
+2. Cash-out MoMo `FAILED` → **compensation** recrédit wallet.
+3. Smile webhook sans `user_id` → audit `WebhookEvent` only, pas de mutation User.
+4. KYC déjà `VERIFIED`/`REJECTED` → ignore webhook Smile (idempotent).
+
+---
+
+## Golden Snippets — validation signatures (AfriWallet)
+
+Extraits de référence depuis `src/webhooks/` et `src/providers/`. **Ne pas copier `src/` en entier** — seules les frontières à haute valeur métier sont documentées ici.
+
+### Smile ID — anti-replay ±5 min + HMAC
+
+Le controller rejette tout webhook sans signature/timestamp, puis délègue la vérification HMAC au SDK Smile Identity **avant** toute mutation `kycStatus`.
+
+```typescript
+// src/webhooks/webhooks.controller.ts — smileIdCallback()
+@Post('smile-id')
+async smileIdCallback(@Body() body: SmileWebhookBody) {
+  const { signature, timestamp } = body;
+  if (!signature || !timestamp) {
+    throw new ForbiddenException('Missing Smile ID signature or timestamp');
+  }
+
+  // Anti-replay: fenêtre ± 5 minutes
+  const now = Date.now();
+  const ts = new Date(timestamp).getTime();
+  if (!Number.isFinite(ts)) throw new ForbiddenException('Invalid timestamp');
+  if (Math.abs(now - ts) > 5 * 60 * 1000) {
+    throw new ForbiddenException('Expired signature');
+  }
+
+  const valid = this.smileIdService.verifyCallbackSignature(signature, timestamp);
+  if (!valid) throw new ForbiddenException('Invalid Smile ID signature');
+
+  return this.webhooksService.handleSmileIdWebhook(body);
+}
+
+// src/providers/smile-id.service.ts
+verifyCallbackSignature(receivedSignature: string, receivedTimestamp: string): boolean {
+  const connection = new Signature(this.config.partnerId, this.config.signatureApiKey);
+  return connection.confirm_signature(receivedTimestamp, receivedSignature);
+}
+```
+
+### Onafriq — signature AES256 (`x-webhook-signature`)
+
+Le header est chiffré AES256 avec `ONAFRIQ_SECRET_KEY` ; le plaintext doit égaler `ONAFRIQ_WEBHOOK_SECRET`.
+
+```typescript
+// src/providers/onafriq-webhook.service.ts
+verifySignature(xWebhookSignature: string): boolean {
+  this.assertConfig();
+  try {
+    const decrypted = AES256.decrypt(xWebhookSignature, this.secretKey);
+    return decrypted === this.webhookSecret;
+  } catch {
+    return false;
+  }
+}
+```
+
+### Bridge — HMAC-SHA256 timing-safe sur raw body
+
+NestJS doit exposer `req.rawBody` (middleware) — la signature porte sur le payload brut, pas le JSON re-sérialisé.
+
+```typescript
+// src/providers/bridge-payments-webhook.service.ts
+verifySignature(signatureHeader: string | undefined, rawBody: Buffer | string | undefined): boolean {
+  const payload = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : rawBody;
+  const expected = createHmac('sha256', this.secret).update(payload).digest('hex').toUpperCase();
+
+  const candidates = signatureHeader
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.toLowerCase().startsWith('v1='))
+    .map((entry) => entry.slice(3).trim().toUpperCase());
+
+  return candidates.some((candidate) => {
+    const a = Buffer.from(candidate, 'utf8');
+    const b = Buffer.from(expected, 'utf8');
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
+}
+```
+
+### Idempotence — `WebhookEvent.create` + catch P2002
+
+Pattern canonique MTN MoMo : persister `eventKey` **avant** mutation wallet ; doublon = 200 silencieux.
+
+```typescript
+// src/webhooks/webhooks.service.ts — handleMtnRequestToPayCallback()
+const eventKey = `mtn:r2p:${referenceId}`;
+try {
+  await this.prisma.webhookEvent.create({
+    data: {
+      provider: PaymentProvider.MTN_MOMO,
+      eventKey,
+      userId: tx.wallet.userId,
+      payload: payload as Prisma.InputJsonValue,
+    },
+  });
+} catch (err) {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+    this.logger.warn(`Duplicate MTN webhook ignored for eventKey=${eventKey}`);
+    return { received: true };
+  }
+  throw err;
+}
+
+// Transaction déjà finalisée → idempotent, pas de double crédit
+if (tx.status === TransactionStatus.SUCCESS || tx.status === TransactionStatus.FAILED) {
+  await this.prisma.webhookEvent.update({
+    where: { eventKey },
+    data: { processedAt: new Date() },
+  });
+  return { received: true };
+}
+```
+
+## Voir aussi
+
+- `20-backend-api/execution-lifecycle/async-pipeline-jobs.md`
+- `30-system-integrations/provider-specs.md`
+
+--- END FILE: 20-backend-api/input-boundaries/webhook-security.md ---
+
+--- START FILE: 20-backend-api/execution-lifecycle/async-pipeline-jobs.md ---
+﻿# Cycle de vie — Pipelines Asynchrones (MoMo, KYC, Bridge)
+
+> **Couche** : `20-backend-api/execution-lifecycle` · **Axe** : Entrée validée → état PENDING → finalisation  
+> **Source** : `src/payments/payments.service.ts`, `src/providers/mtn.service.ts`
+
+## Contexte
+
+Mobile Money africain est **async by design**. HTTP 202 ≠ succès.
+
+> **Référence canonique** : `30-system-integrations/async-reconciliation-patterns.md` (machine à états, golden snippets, edge cases).
+
+## Flux cash-in MoMo (RequestToPay) — résumé
+
+```json
+{
+  "steps": [
+    "1. Validate KYC VERIFIED + amountFcfa > 0",
+    "2. MTN POST /collection/v1_0/requesttopay → HTTP 202",
+    "3. Create Transaction CASH_IN_MOMO PENDING, providerTxId = referenceId UUID",
+    "4. Client confirms on phone",
+    "5. Webhook OR polling → SUCCESS credits wallet"
+  ],
+  "never": "Credit wallet before SUCCESSFUL/SUCCESS status"
+}
+```
+
+## Flux cash-out MoMo (Disbursement + compensation)
+
+```json
+{
+  "steps": [
+    "1. Validate balance >= amount",
+    "2. Decrement wallet IMMEDIATELY (reservation)",
+    "3. MTN POST /disbursement/v1_0/transfer",
+    "4. SUCCESS → finalize | FAILED → re-credit full amount"
+  ],
+  "critical_pattern": "compensation on FAILED/REJECTED"
+}
+```
+
+## Contrat — Polling fallback (si pas de callback)
+
+```json
+{
+  "intervals_ms": {
+    "CREA": 2000,
+    "ACTC": 2000,
+    "PDNG": 10000,
+    "PENDING": 10000,
+    "default": 30000
+  },
+  "endpoints": {
+    "momo_deposit": "GET /payments/deposit/momo/:referenceId/status",
+    "momo_withdraw": "GET /payments/withdraw/momo/:referenceId/status",
+    "bridge": "GET /payments/deposit/bridge/:paymentRequestId/status"
+  }
+}
+```
+
+## Contrat — Statuts normalisés
+
+```json
+{
+  "success": ["SUCCESSFUL", "SUCCESS", "ACSC"],
+  "failed": ["FAILED", "REJECTED", "RJCT", "CANC", "CANCELLED"],
+  "pending": ["CREA", "ACTC", "PDNG", "PENDING", "UNKNOWN"]
+}
+```
+
+## KYC async (Smile ID)
+
+```json
+{
+  "flow": "upload-url → ZIP → upload-zip → webhook job_success",
+  "kyc_status": {
+    "PENDING": "session open",
+    "VERIFIED": "job_success true",
+    "REJECTED": "job_success false"
+  }
+}
+```
+
+## Voir aussi
+
+- `30-system-integrations/provider-specs.md`
+- `35-business-flows/afriwallet-business-flows.md`
+
+--- END FILE: 20-backend-api/execution-lifecycle/async-pipeline-jobs.md ---
+
+--- START FILE: 20-backend-api/execution-lifecycle/middleware-chain.md ---
+﻿# Cycle de vie — Chaîne Middleware & Guards
+
+> **Couche** : `20-backend-api/execution-lifecycle` · **Axe** : req/res typé  
+> **Stack** : NestJS JWT, JwtAuthGuard  
+> **Source** : `src/auth/jwt.strategy.ts`, `src/auth/jwt-auth.guard.ts`
+
+## Contexte
+
+AfriWallet injecte `{ userId, phoneNumber }` via JWT après OTP/PIN. Les routes sensibles exigent **JwtAuthGuard** + souvent **KYC VERIFIED** côté service.
+
+## Contrat — JWT
+
+```json
+{
+  "header": "Authorization: Bearer {token}",
+  "payload": { "sub": "userId", "phoneNumber": "string" },
+  "expiry_default": "15m",
+  "secret_env": "JWT_SECRET"
+}
+```
+
+## Contrat — Routes publiques vs protégées
+
+```json
+{
+  "public_auth": [
+    "POST /auth/otp/request",
+    "POST /auth/otp/verify",
+    "POST /auth/pin/verify",
+    "POST /auth/pin/reset/request",
+    "POST /auth/pin/reset/verify"
+  ],
+  "jwt_required": [
+    "/wallets/*",
+    "/payments/*",
+    "/kyc/*",
+    "/virtual-cards"
+  ],
+  "webhooks_public_signed": [
+    "/webhooks/mtn/*",
+    "/webhooks/smile-id",
+    "/webhooks/onafriq/*",
+    "/webhooks/bridge/*"
+  ]
+}
+```
+
+## Contrat — Guards métier (service layer)
+
+```json
+{
+  "kyc_verified_required": [
+    "POST /payments/deposit/momo",
+    "POST /payments/withdraw/momo",
+    "POST /payments/deposit/bridge",
+    "POST /virtual-cards"
+  ],
+  "check": "user.kycStatus === VERIFIED else BadRequestException"
+}
+```
+
+## Throttling
+
+```json
+{
+  "otp_endpoints": "5 requests/minute/IP",
+  "auth_module_global": "120 requests/minute"
+}
+```
+
+## Voir aussi
+
+- `20-backend-api/input-boundaries/payload-validation.md`
+- `30-system-integrations/api-endpoints.md`
+
+--- END FILE: 20-backend-api/execution-lifecycle/middleware-chain.md ---
+
+--- START FILE: 20-backend-api/error-resilience/error-boundaries.md ---
+﻿# Résilience — Error Boundaries & Compensation
+
+> **Couche** : `20-backend-api/error-resilience` · **Axe** : pannes propres, pas de perte de fonds  
+> **Source** : `src/webhooks/webhooks.service.ts`, `src/auth/auth.service.ts`
+
+## Contexte
+
+Le backend NestJS AfriWallet privilégie : réponses HTTP explicites, journal immuable, compensation cash-out, pas de fuite OTP en prod.
+
+## Contrat — Exceptions auth (UX FR)
+
+```json
+{
+  "403": "Ce numero est deja active. Utilisez le PIN pour vous connecter.",
+  "410": "Le code OTP a expire. Veuillez en demander un nouveau.",
+  "429": "Trop de demandes de code. Reessayez dans une heure.",
+  "401": "Invalid credentials (PIN)"
+}
+```
+
+## Contrat — Idempotence transaction
+
+```json
+{
+  "providerTxId": "@unique — MTN referenceId UUID",
+  "on_duplicate_P2002": "return existing referenceId, no second MTN call",
+  "journal_rule": "Transaction immutable — only status/metadata update"
+}
+```
+
+## Contrat — Compensation cash-out
+
+```json
+{
+  "trigger": "providerStatus FAILED or REJECTED",
+  "action": "wallet.balanceFcfa increment by tx.amountFcfa",
+  "transaction_status": "FAILED",
+  "reason": "Consumer protection — funds never lost on provider failure"
+}
+```
+
+## Contrat — Webhook processing failure
+
+```json
+{
+  "on_error": "WebhookEvent.error = message, rethrow or log",
+  "on_unknown_tx": "MTN callback unknown referenceId → 200 received (avoid retries storm)"
+}
+```
+
+---
+
+## Golden Snippets — compensation cash-out MoMo
+
+Le solde est **décrémenté à l'initiation** (réservation PENDING). Si MTN renvoie `FAILED`/`REJECTED`, recrédit atomique — protection consommateur.
+
+### Réservation solde à l'initiation
+
+```typescript
+// src/payments/payments.service.ts — initiateMomoWithdraw()
+const amountBigInt = BigInt(amountFcfa);
+if (wallet.balanceFcfa < amountBigInt) {
+  throw new BadRequestException('Insufficient wallet balance');
+}
+
+const { referenceId } = await this.mtn.initiateTransfer({ phoneNumber, amountFcfa });
+
+// Décrément immédiat en PENDING (réserve le FCFA)
+await this.prisma.$transaction([
+  this.prisma.wallet.update({
+    where: { id: wallet.id },
+    data: { balanceFcfa: { decrement: amountBigInt } },
+  }),
+  this.prisma.transaction.create({
+    data: {
+      amountFcfa: amountBigInt,
+      type: TransactionType.CASH_OUT_MOMO,
+      status: TransactionStatus.PENDING,
+      providerTxId: referenceId, // UUID MTN = clé idempotence
+    },
+  }),
+]);
+```
+
+### Compensation webhook (chemin principal)
+
+```typescript
+// src/webhooks/webhooks.service.ts
+if (providerStatus === 'FAILED' || providerStatus === 'REJECTED') {
+  if (tx.type === TransactionType.CASH_OUT_MOMO) {
+    await this.prisma.$transaction([
+      this.prisma.wallet.update({
+        where: { id: tx.walletId },
+        data: { balanceFcfa: { increment: tx.amountFcfa } },
+      }),
+      this.prisma.transaction.update({
+        where: { id: tx.id },
+        data: { status: TransactionStatus.FAILED, failureReason: reason },
+      }),
+    ]);
+  }
+}
+```
+
+### Compensation polling (fallback si webhook perdu)
+
+```typescript
+// src/payments/payments.service.ts — syncMomoWithdrawStatus()
+if (providerStatus === 'FAILED' || providerStatus === 'REJECTED') {
+  if (tx.status === TransactionStatus.PENDING) {
+    await this.prisma.$transaction([
+      this.prisma.wallet.update({
+        where: { id: tx.walletId },
+        data: { balanceFcfa: { increment: tx.amountFcfa } },
+      }),
+      this.prisma.transaction.update({
+        where: { id: tx.id },
+        data: { status: TransactionStatus.FAILED },
+      }),
+    ]);
+  }
+}
+```
+
+## Retry policies (HTTP outbound)
+
+```json
+{
+  "ONAFRIQ": {
+    "timeout_ms": 10000,
+    "retry_count": 2,
+    "backoff_ms": 400,
+    "retriable": [408, 429, "5xx"]
+  }
+}
+```
+
+## Voir aussi
+
+- `30-system-integrations/provider-error-codes.md`
+- `90-codebase-constraints/project-roadmap.md`
+
+--- END FILE: 20-backend-api/error-resilience/error-boundaries.md ---
+
+--- START FILE: 25-database-storage/postgres-policies.md ---
+﻿# PostgreSQL — Politiques AfriWallet
+
+> **Couche** : `25-database-storage` · **Stack** : PostgreSQL 16, Docker  
+> **Source** : `docker-compose.yml`, `prisma/schema.prisma`
+
+## Contexte
+
+AfriWallet utilise PostgreSQL via Prisma. Les montants FCFA sont des **BigInt entiers** — jamais DECIMAL/FLOAT pour éviter les erreurs d'arrondi.
+
+## Contrat — Configuration
+
+```json
+{
+  "database": "PostgreSQL 16",
+  "provider": "postgresql",
+  "connection": "DATABASE_URL env",
+  "schema": "public"
+}
+```
+
+## Contrat — Indexation
+
+```json
+{
+  "Transaction": ["walletId + createdAt"],
+  "OtpRequest": ["phoneNumber + createdAt"],
+  "unique_constraints": [
+    "User.phoneNumber",
+    "Wallet.userId",
+    "Transaction.providerTxId",
+    "Transaction.idempotencyKey",
+    "WebhookEvent.eventKey"
+  ]
+}
+```
+
+## Contrat — Rétention (maintenance cron 2h)
+
+```json
+{
+  "OtpRequest_expired": "purge after 7 days (OTP_RETENTION_DAYS)",
+  "WebhookEvent_processed": "purge after 30 days (WEBHOOK_RETENTION_DAYS)",
+  "Transaction": "never deleted — immutable journal"
+}
+```
+
+## Règles
+
+- Toute mutation solde wallet = transaction Prisma atomique avec enregistrement `Transaction`.
+- Pas de multi-wallet : `Wallet.userId @unique`.
+
+## Voir aussi
+
+- `25-database-storage/prisma-patterns.md`
+
+--- END FILE: 25-database-storage/postgres-policies.md ---
+
+--- START FILE: 25-database-storage/prisma-patterns.md ---
+﻿# Prisma — Patterns & Schéma AfriWallet
+
+> **Couche** : `25-database-storage` · **ORM** : Prisma Client  
+> **Source** : `prisma/schema.prisma`
+
+## Contexte
+
+Le schéma Prisma encode les invariants métier. Le modèle **ne doit pas** être étendu avec des features non implémentées sans mise à jour de `90-codebase-constraints/project-roadmap.md`.
+
+## Contrat — User
+
+```json
+{
+  "User": {
+    "phoneNumber": "String @unique",
+    "pinHash": "String bcrypt",
+    "kycStatus": "KycStatus default PENDING",
+    "kycReference": "String?",
+    "smartSelfieLastAuthSuccess": "Boolean? — decorrelated from kycStatus"
+  }
+}
+```
+
+## Contrat — Wallet
+
+```json
+{
+  "Wallet": {
+    "userId": "String @unique — one wallet per user",
+    "balanceFcfa": "BigInt @default(0) — integer FCFA only"
+  }
+}
+```
+
+## Contrat — Transaction (journal immuable)
+
+```json
+{
+  "Transaction": {
+    "amountFcfa": "BigInt",
+    "feeFcfa": "BigInt @default(0) — always 0 in current impl",
+    "currency": "String @default XAF",
+    "type": "TransactionType",
+    "status": "TransactionStatus",
+    "providerTxId": "String? @unique",
+    "metadata": "Json? — webhook payload, card passCode"
+  },
+  "mutable_fields_only": ["status", "failureReason", "metadata"]
+}
+```
+
+## Contrat — Enums avec statut implémentation
+
+```json
+{
+  "PaymentProvider": {
+    "MTN_MOMO": "implemented",
+    "ONAFRIQ": "implemented",
+    "SMILE_ID": "implemented",
+    "BRIDGE": "implemented",
+    "AIRTEL": "schema_only — NO service in src/"
+  },
+  "TransactionType": {
+    "CASH_IN_MOMO": "implemented",
+    "CASH_OUT_MOMO": "implemented",
+    "CARD_ISSUANCE_FEE": "implemented",
+    "ADJUSTMENT": "implemented Bridge",
+    "CASH_IN_AIRTEL": "schema_only",
+    "CARD_PAYMENT": "schema_only",
+    "CARD_REFUND": "schema_only"
+  }
+}
+```
+
+## Patterns Prisma obligatoires
+
+- Mutation solde + Transaction = `$transaction([...])` atomique.
+- Webhook idempotence = `webhookEvent.create` avec catch P2002.
+- BigInt API response = `Number(balanceFcfa)` pour JSON uniquement.
+
+---
+
+## Golden Snippets — BigInt FCFA (pas de float)
+
+JavaScript `number` perd la précision au-delà de 2^53. AfriWallet stocke les montants FCFA en **entiers BigInt** côté Prisma ; conversion explicite à la frontière API.
+
+### Schéma Prisma (source de vérité)
+
+```prisma
+// prisma/schema.prisma
+model Wallet {
+  /// Solde disponible en FCFA (unités entières, jamais de centimes EUR).
+  balanceFcfa  BigInt  @default(0)
+}
+
+model Transaction {
+  amountFcfa     BigInt
+  feeFcfa        BigInt  @default(0)
+  providerTxId   String? @unique  // UUID MTN pour idempotence
+}
+
+model WebhookEvent {
+  eventKey  String  @unique  // job_id Smile, mtn:r2p:{id}, etc.
+  payload   Json
+}
+```
+
+### Écriture — `number` API → `BigInt` Prisma
+
+```typescript
+// src/payments/payments.service.ts
+const amountBigInt = BigInt(amountFcfa);
+if (wallet.balanceFcfa < amountBigInt) {
+  throw new BadRequestException('Insufficient wallet balance');
+}
+
+await this.prisma.wallet.update({
+  where: { id: wallet.id },
+  data: { balanceFcfa: { increment: amountBigInt } }, // ou decrement
+});
+```
+
+### Lecture — `BigInt` Prisma → `number` JSON
+
+```typescript
+// src/wallets/wallets.service.ts — sérialisation réponse API
+return {
+  balanceFcfa: Number(wallet.balanceFcfa),
+  transactions: txs.map((tx) => ({
+    amountFcfa: Number(tx.amountFcfa),
+  })),
+};
+```
+
+> **Invariant** : jamais `amountFcfa / 100` ni `parseFloat` sur un montant wallet — le FCFA CEMAC est déjà en unités entières.
+
+## Voir aussi
+
+- `90-codebase-constraints/project-roadmap.md`
+- `25-database-storage/postgres-policies.md`
+
+--- END FILE: 25-database-storage/prisma-patterns.md ---
+
+--- START FILE: 30-system-integrations/api-endpoints.md ---
+﻿# Interface — Référence API REST
+
+> **Couche** : `30-system-integrations` · **Surface HTTP** exposée par la plateforme  
+> **Source** : controllers NestJS, Postman collection
+
+## Contexte
+
+Cette couche documente **ce que la plateforme expose** — distincte des adapters (ce qu'elle consomme) et des use cases (comment orchestrer).
+
+Auth par défaut : `Authorization: Bearer {JWT}` sauf endpoints publics et webhooks.
+
+## Contrat — Auth
+
+```json
+{
+  "public": [
+    "POST /auth/otp/request",
+    "POST /auth/otp/verify",
+    "POST /auth/pin/verify",
+    "POST /auth/pin/reset/request",
+    "POST /auth/pin/reset/verify"
+  ],
+  "jwt_required": ["/wallets/*", "/payments/*", "/kyc/*", "/virtual-cards"]
+}
+```
+
+## Contrat — Payments (JWT + KYC VERIFIED)
+
+```json
+{
+  "POST /payments/deposit/momo": { "body": { "amountFcfa": "integer > 0" } },
+  "POST /payments/withdraw/momo": { "body": { "amountFcfa": "integer > 0" } },
+  "POST /payments/deposit/bridge": { "body": { "amountFcfa": "integer > 0" } },
+  "GET /payments/deposit/momo/:referenceId/status": {},
+  "GET /payments/withdraw/momo/:referenceId/status": {}
+}
+```
+
+## Contrat — KYC (JWT)
+
+```json
+{
+  "POST /kyc/start": {},
+  "POST /kyc/biometric/upload-url": {},
+  "POST /kyc/biometric/upload-zip": {},
+  "POST /kyc/document-verification/upload-url": { "country": "CG only" },
+  "POST /kyc/smartselfie/auth/upload-url": {},
+  "POST /kyc/smartselfie/confirm": {},
+  "POST /kyc/utils/job-status": { "jobType": "1|2|4|11" }
+}
+```
+
+## Contrat — Wallets & Cartes
+
+```json
+{
+  "GET /wallets": {},
+  "GET /wallets/:walletId": {},
+  "GET /wallets/:walletId/transactions": {},
+  "POST /virtual-cards": { "body": { "walletId": "string", "amountFcfa": "integer" } }
+}
+```
+
+## Montants exemple (tests)
+
+```json
+{
+  "momo_deposit_fcfa": 5000,
+  "momo_withdraw_fcfa": 1000,
+  "virtual_card_fcfa": 3000
+}
+```
+
+## Voir aussi
+
+- [Webhooks](../20-backend-api/input-boundaries/webhook-security.md)
+- [Use cases](../35-business-flows/)
+
+--- END FILE: 30-system-integrations/api-endpoints.md ---
+
+--- START FILE: 30-system-integrations/async-reconciliation-patterns.md ---
+# Async Reconciliation — Machine à états Mobile Money
+
+> **Couche** : `30-system-integrations` · **Expert MoE** : asynchronisme FinTech (≠ REST sync type Stripe)  
+> **Source** : `src/payments/payments.service.ts`, `src/webhooks/webhooks.service.ts`, `src/providers/mtn.service.ts`
+
+## Contexte — le piège des LLM génériques
+
+Un **RequestToPay** MTN renvoie `HTTP 202 Accepted` — **pas** un succès financier. Le wallet reste inchangé jusqu'à preuve `SUCCESSFUL`/`SUCCESS` via **webhook** ou **polling de secours**. Confondre 202 avec 200 = double crédit ou solde fantôme.
+
+```
+[SYNC FAUX — Stripe-like]     POST → 200 → wallet crédité     
+[ASYNC AfriWallet — MoMo]     POST → 202 → PENDING → webhook → SUCCESS → crédit  
+```
+
+---
+
+## Machine à états — Transaction MoMo
+
+```json
+{
+  "states": {
+    "INIT": "Validation KYC + montant > 0",
+    "PENDING": "Transaction créée, providerTxId = UUID MTN",
+    "SUCCESS": "Webhook/poll confirme SUCCESSFUL — mutation wallet finalisée",
+    "FAILED": "Webhook/poll FAILED/REJECTED — compensation si CASH_OUT"
+  },
+  "transitions": {
+    "CASH_IN": {
+      "INIT→PENDING": "MTN RequestToPay 202, pas de crédit wallet",
+      "PENDING→SUCCESS": "increment balanceFcfa",
+      "PENDING→FAILED": "tx FAILED, wallet inchangé (jamais crédité)"
+    },
+    "CASH_OUT": {
+      "INIT→PENDING": "decrement balanceFcfa IMMÉDIAT (réservation)",
+      "PENDING→SUCCESS": "tx SUCCESS, solde déjà débité",
+      "PENDING→FAILED": "COMPENSATION increment balanceFcfa + tx FAILED"
+    }
+  }
+}
+```
+
+---
+
+## Phase 1 — Création & réservation
+
+### Cash-in (pas de débit/crédit avant SUCCESS)
+
+```typescript
+// src/payments/payments.service.ts — initiateMomoDeposit()
+const { referenceId, status } = await this.mtn.initiateRequestToPay({ phoneNumber, amountFcfa });
+// HTTP 202 côté MTN — status souvent PENDING
+
+await this.prisma.transaction.create({
+  data: {
+    amountFcfa: BigInt(amountFcfa),
+    type: TransactionType.CASH_IN_MOMO,
+    status: TransactionStatus.PENDING,
+    providerTxId: referenceId, // clé corrélation webhook
+  },
+});
+// wallet.balanceFcfa INCHANGÉ jusqu'à SUCCESS
+```
+
+### Cash-out (réservation immédiate)
+
+```typescript
+const amountBigInt = BigInt(amountFcfa);
+await this.prisma.$transaction([
+  this.prisma.wallet.update({
+    data: { balanceFcfa: { decrement: amountBigInt } },
+  }),
+  this.prisma.transaction.create({
+    data: { amountFcfa: amountBigInt, type: CASH_OUT_MOMO, status: PENDING, providerTxId: referenceId },
+  }),
+]);
+```
+
+---
+
+## Phase 2 — Réconciliation webhook (chemin nominal)
+
+Ordre strict dans `handleMtnRequestToPayCallback()` :
+
+1. Résoudre tx par `providerTxId === referenceId`
+2. `WebhookEvent.create({ eventKey: 'mtn:r2p:{referenceId}' })` — catch P2002 → stop
+3. Si tx déjà SUCCESS/FAILED → idempotent return
+4. Appliquer transition selon `providerStatus`
+
+Voir golden snippets complets : `../20-backend-api/input-boundaries/webhook-security.md`
+
+---
+
+## Phase 3 — Polling de secours (callback manquant)
+
+Si MTN ne rappelle pas dans le délai UX :
+
+```json
+{
+  "intervals_ms": { "CREA": 2000, "PENDING": 10000, "default": 30000 },
+  "endpoints": {
+    "deposit": "GET /payments/deposit/momo/:referenceId/status",
+    "withdraw": "GET /payments/withdraw/momo/:referenceId/status"
+  },
+  "rule": "Ne jamais supposer succès sur seul 202 Accepted — GET status obligatoire"
+}
+```
+
+Compensation polling cash-out (même logique que webhook) :
+
+```typescript
+// src/payments/payments.service.ts — syncMomoWithdrawStatus()
+if (providerStatus === 'FAILED' || providerStatus === 'REJECTED') {
+  if (tx.status === TransactionStatus.PENDING) {
+    await this.prisma.$transaction([
+      this.prisma.wallet.update({ data: { balanceFcfa: { increment: tx.amountFcfa } } }),
+      this.prisma.transaction.update({ data: { status: TransactionStatus.FAILED } }),
+    ]);
+  }
+}
+```
+
+---
+
+## Phase 4 — Edge cases & idempotence
+
+| Scénario | Comportement AfriWallet |
+|----------|-------------------------|
+| Webhook dupliqué | `eventKey` unique → P2002 → 200 silencieux |
+| Webhook après poll SUCCESS | tx déjà finalisée → skip mutation |
+| referenceId inconnu | log warn + 200 (éviter retry storm MTN) |
+| Timeout MTN > 5 min | `COULD_NOT_PERFORM_TRANSACTION` → FAILED + compensation cash-out |
+| Cash-in FAILED | wallet jamais crédité — tx FAILED only |
+
+---
+
+## Statuts provider normalisés
+
+```json
+{
+  "success": ["SUCCESSFUL", "SUCCESS", "ACSC"],
+  "failed": ["FAILED", "REJECTED", "RJCT", "CANC", "CANCELLED"],
+  "pending": ["CREA", "ACTC", "PDNG", "PENDING", "UNKNOWN"]
+}
+```
+
+## Voir aussi
+
+- `provider-error-codes.md` — codes MTN/Airtel pour blocs catch TypeScript
+- `provider-specs.md` — headers & endpoints
+- `../20-backend-api/error-resilience/error-boundaries.md` — compensation détaillée
+- `../35-business-flows/afriwallet-business-flows.md` — flux métier utilisateur
+
+--- END FILE: 30-system-integrations/async-reconciliation-patterns.md ---
+
+--- START FILE: 30-system-integrations/domain-knowledge.md ---
+﻿# Domain Knowledge — Vocabulaire, Zones & Structures MoMo
+
+> **Couche** : `30-system-integrations` · **Fichier fusionné** (ex-glossary, geographic-zones, mobile-money-structures)  
+> **Expert MoE** : vocabulaire transversal + géographie + objets MoMo génériques
+
+---
+
+## 1. Glossaire Fintech Africaine
+
+| Terme | Définition | Piège LLM occidental |
+|-------|------------|----------------------|
+| **FCFA / XAF** | Franc CFA CEMAC, montants **BigInt entiers** | Centimes EUR/USD |
+| **MoMo** | MTN Mobile Money via MSISDN | Paiement sync Stripe |
+| **RequestToPay** | Collection MTN cash-in async HTTP 202 | SUCCESS immédiat |
+| **Disbursement** | Transfer cash-out + réservation solde | Oublier compensation |
+| **KYC légal** | `kycStatus` VERIFIED/REJECTED | Confondre SmartSelfie |
+| **SmartSelfie** | Step-up biométrique décorrélé | Remplace KYC |
+| **OpCo** | `mtncameroon`, `mtnnigeria`, etc. | `sandbox` en prod |
+| **Idempotence** | `providerTxId`, `eventKey` | Double crédit webhook |
+
+```json
+{
+  "PaymentProvider": {
+    "coded_in_src": ["MTN_MOMO", "BRIDGE", "ONAFRIQ", "SMILE_ID"],
+    "schema_only": ["AIRTEL"]
+  },
+  "TransactionType": {
+    "CASH_IN_MOMO": "coded",
+    "CASH_OUT_MOMO": "coded",
+    "CARD_ISSUANCE_FEE": "coded",
+    "ADJUSTMENT": "coded",
+    "CASH_IN_AIRTEL": "schema_only",
+    "CARD_PAYMENT": "schema_only",
+    "CARD_REFUND": "schema_only"
+  }
+}
+```
+
+---
+
+## 2. Zones Géographiques
+
+| Zone | ISO | Régulateur | Pays corpus |
+|------|-----|------------|-------------|
+| CEMAC | XAF | BEAC, COBAC | CM, CG |
+| UEMOA | XOF | BCEAO | CI, SN, BF… |
+
+```json
+{
+  "biometric_kyc_countries": ["CI", "GH", "KE", "NG", "ZA", "UG", "ZM", "ZW"],
+  "document_verification_only": { "CG": true },
+  "not_in_biometric_registry": { "CM": "Onafriq defaults +237 Douala XAF" },
+  "mtn_opcos_prod": ["mtnnigeria", "mtncameroon", "mtncongo"],
+  "sandbox_currency": "EUR",
+  "prod_currency": "XAF"
+}
+```
+
+---
+
+## 3. Structures Mobile Money Génériques
+
+### Objets domaine
+
+- `account_holder`, `wallet`, `transaction`, `party` (payer/payee)
+- `api_user`, `api_key`, `subscription_key`, `callback`, `consent_record`
+
+### Transaction shape générique
+
+```json
+{
+  "amount": 5000,
+  "currency": "XOF",
+  "payer": {"partyIdType": "MSISDN", "partyId": "22500000000"},
+  "reference": "invoice-001",
+  "callbackUrl": "https://example.test/callback"
+}
+```
+
+### Party ID types
+
+`MSISDN` · `EMAIL` · `PARTY_CODE` · `ACCOUNT_ID`
+
+### Lifecycle states
+
+`PENDING` · `SUCCESSFUL` · `FAILED` · `REJECTED` · `EXPIRED` · `ONGOING`
+
+### Patterns use-case
+
+- `RequestToPay` — collect payment
+- `Transfer` — disburse to payee
+- `Preapproval` — recurring MoMo PIN authorization
+- `Notify` — SMS post-transaction
+
+## Voir aussi
+
+- `../40-compliance-rules/kyc-id-rules-by-country.md` — regex ID par pays
+- `provider-specs.md` — intégrations AfriWallet
+- `../40-compliance-rules/` — régulation marché (COBAC, fraude)
+
+--- END FILE: 30-system-integrations/domain-knowledge.md ---
+
+--- START FILE: 30-system-integrations/provider-error-codes.md ---
+# Fintech Error Codes and Routing Matrix
+
+## 1. MTN Common Error Codes
+| HTTP | Response Code | Description | Action |
+|------|---------------|-------------|--------|
+| `409` | `RESOURCE_ALREADY_EXIST` | Duplicated Reference ID. Every request must use a unique UUID V4. | Generate new `X-Reference-Id` |
+| `401` | `ACCESS DENIED DUE TO INVALID SUBSCRIPTION KEY` | Invalid `Ocp-Apim-Subscription-Key`. Collection, Disbursement, Remittance have different keys. | Verify profile key; try secondary key; contact MTN support |
+| `404` | `RESOURCE NOT FOUND` | Reference ID not found in Get Status. Original request may have failed. | Verify original POST returned `202 Accepted` |
+| `400` | `REQUEST REJECTED/ BAD REQUEST` | Headers/body violate spec. | Validate UUID v4, currency, no unsupported chars, note <=160 chars, correct URL |
+| `403` | `FORBIDDEN IP` | IP not authorized for Disbursement API. | Whitelist public IP with MTN Account Manager |
+| `500` | `NOT_ALLOWED` | Token/user lacks permission. | Contact MTN Account Manager |
+| `500` | `NOT_ALLOWED_TARGET_ENVIRONMENT` | Wrong `X-Target-Environment` for country. | Use correct env (see matrix §2) |
+| `500` | `INVALID_CALLBACK_URL_HOST` | Callback host mismatch vs API user config. | Use hostname not IP; match portal config |
+| `500` | `INVALID_CURRENCY` | Currency unsupported for target account. | Use country-specific currency code |
+| `503` | `SERVICE_UNAVAILABLE` | Platform temporarily unavailable. | Retry later or escalate to MTN |
+
+## 2. MTN Target Environment Matrix
+| Pays | X-Target-Environment |
+|------|---------------------|
+| MTN Uganda | `mtnuganda` |
+| MTN Ghana | `mtnghana` |
+| MTN Ivory Coast | `mtnivorycoast` |
+| MTN Zambia | `mtnzambia` |
+| MTN Cameroon | `mtncameroon` |
+| MTN Benin | `mtnbenin` |
+| MTN Congo | `mtncongo` |
+| MTN Swaziland | `mtnswaziland` |
+| MTN GuineaConakry | `mtnguineaconakry` |
+| MTN SouthAfrica | `mtnsouthafrica` |
+| MTN Liberia | `mtnliberia` |
+| MTN SouthSudan | `mtnsouthsudan` |
+| MTN Nigeria | `mtnnigeria` |
+| MTN Rwanda | `mtnrwanda` |
+| Sandbox | `sandbox` |
+
+## 3. MTN Common Error Responses (business layer)
+| Type | Description | Action |
+|------|-------------|--------|
+| `INTERNAL_PROCESSING_ERROR` | Generic failure; often insufficient funds or wallet unreachable. | Customer retries with sufficient funds; escalate if persists |
+| `PAYEE_NOT_FOUND` | Payee MSISDN invalid or not registered. | MSISDN must include country code |
+| `PAYER_NOT_FOUND` | Payer MSISDN invalid or not registered. | MSISDN must include country code |
+| `COULD_NOT_PERFORM_TRANSACTION` | Timeout; approval delay beyond 5 minutes. | Retry and approve within 5 min window |
+
+## 4. MTN Sandbox test value routing (extrait)
+| Use Case | Test Value | Expected Error |
+|----------|------------|----------------|
+| RequestToPayPayerNotFound | `46733123455` | Payer not found |
+| RequestToPayPayerNotAllowedTargetEnvironment | `46733123458` | Wrong target env |
+| RequestToPayPayerInvalidCallbackUrlHost | `46733123459` | Callback host invalid |
+| RequestToPayPayerInvalidCurrency | `46733123460` | Invalid currency |
+| RequestToPayPayerInternalProcessingError | `46733123461` | Internal processing |
+| RequestToPayPayerCouldNotPerformTransaction | `46733123463` | Timeout |
+| TransferPayeeNotEnoughFunds | `46733123455` | Insufficient funds |
+| TransferPayeeNotFound | `46733123457` | Payee not found |
+| PaymentAmountFailed | `2000` | Payment failed |
+| PaymentAmountSuccess | `1000` | Payment success |
+
+## 5. Airtel Common Error Codes (ROUTER)
+| Code | Description | Handling |
+|------|-------------|----------|
+| `ROUTER001` | Wallet is not configured - Application Wallet not configured. | Configure wallet in dev portal before API calls |
+| `ROUTER003` | Missing header/body params - mandatory field absent. | Validate all required headers and body fields |
+| `ROUTER005` | Country route not configured. | Contact Airtel customer support |
+| `ROUTER006` | Invalid Country - incorrect country code. | Use `CG` for Congo-Brazzaville |
+| `ROUTER007` | User Not authorized for provided country. | Verify account country permissions |
+| `ROUTER112` | Invalid Currency - incorrect currency code. | Use `XAF` for Congo-Brazzaville |
+| `ROUTER114` | Error while Validating Pin. | Check PIN encryption (RSA 2048 OAEP) |
+| `ROUTER115` | Incorrect Pin. | Re-prompt user for correct PIN |
+| `ROUTER116` | Incorrect Encrypted Pin - encryption mechanism error. | Review RSA encryption implementation |
+| `ROUTER117` | Request Timeout - ambiguous for payments/refund. | Perform transaction enquiry |
+| `ROUTER119` | Invalid/Missing Currency in request parameters. | Inject `X-Currency: XAF` |
+
+## 6. Airtel Product Specific Error Codes (ESB)
+| Code | Description | Handling |
+|------|-------------|----------|
+| `ESB000001` | Something went wrong - ambiguous state. | Transaction enquiry |
+| `ESB000004` | Error initiating payment - ambiguous state. | Transaction enquiry |
+| `ESB000008` | Field validation error - ambiguous state. | Fix input + transaction enquiry |
+| `ESB000010` | Request was Success. | Proceed |
+| `ESB000011` | Request was Failed. | Fail workflow, log payload |
+| `ESB000014` | Error fetching transaction status - ambiguous. | Retry enquiry after delay |
+| `ESB000033` | Invalid MSISDN Length. | Fix MSISDN format |
+| `ESB000034` | Invalid Country Name. | Use `CG` |
+| `ESB000035` | Invalid Currency Code. | Use `XAF` |
+| `ESB000036` | Invalid MSISDN length or doesn't start with 0. | Fix MSISDN local format |
+| `ESB000039` | Vendor not configured for country. | Contact Airtel support |
+| `ESB000041` | External Transaction ID already exists. | Generate new unique transaction id |
+| `ESB000045` | No Transaction Found With Provided Transaction Id. | Verify id, re-enquire |
+| `0000900` | Transaction might be in ambiguous state. | Check `response_code` or perform enquiry |
+
+## 7. Airtel HTTP Error Codes
+| HTTP | Description | Handling |
+|------|-------------|----------|
+| `400` | Bad Request - invalid request. | Fix input |
+| `401` | Unauthorized - API key or bearer token incorrect. | Refresh OAuth2 token |
+| `403` | Forbidden. | Check permissions |
+| `404` | Not Found - path not found. | Verify endpoint URL |
+| `405` | Method Not Allowed. | Use correct HTTP verb |
+| `408` | Read Timeout - ambiguous for payments/refund. | Transaction enquiry |
+| `429` | Too Many Requests. | Apply backoff |
+| `500` | Internal Server Error. | Retry later |
+| `502` | Bad Gateway - ambiguous for payments/refund. | Transaction enquiry |
+| `503` | Service Unavailable. | Retry later |
+| `504` | Gateway Timeout - ambiguous for payments/refund. | Transaction enquiry |
+
+## 8. Airtel Cash-In Error Codes (DP01*)
+| Code | Reason | Description |
+|------|--------|-------------|
+| `DP01000001000` | Ambiguous | Still processing - perform enquiry |
+| `DP01000001001` | Success | Transaction successful |
+| `DP01000001002` | Incorrect Pin | Wrong PIN entered |
+| `DP01000001003` | Limit exceeded | Wallet transaction limit exceeded |
+| `DP01000001004` | Invalid Amount | Below minimum amount |
+| `DP01000001005` | Failed | Transaction failed |
+| `DP01000001006` | In Process | Pending - check later |
+| `DP01000001007` | Insufficient Funds | Wallet balance too low |
+| `DP01000001008` | User Not Allowed | Payer not permitted |
+| `DP01000001009` | Initiatee Invalid | Invalid initiatee |
+| `DP01000001010` | Not Permitted | User not allowed as payer |
+| `DP01000001011` | Do Not Honour | Transaction already completed |
+| `DP01000001012` | Invalid Mobile Number | MSISDN incorrect or unregistered |
+| `DP01000001013` | Failed/Refused | Transaction failed or refused |
+| `DP01000001014` | Transaction Timed Out | Ambiguous - perform enquiry |
+
+## 9. Airtel Bank-to-Wallet Error Codes (DP02*)
+| Code | Reason | Description |
+|------|--------|-------------|
+| `DP02100001000` | Ambiguous | Processing or ambiguous - perform enquiry |
+| `DP02100001001` | Success | Transaction successful |
+| `DP02100001002` | Duplicate Transaction ID | Use unique transaction id |
+| `DP02100001003` | Transaction Time Out | Perform enquiry |
+| `DP02100001004` | Transaction Not Found | Verify transaction id |
+| `DP02100001005` | Failed | Transaction failed or refused |
+| `DP02100001006` | Transaction In Progress | Perform enquiry |
+| `DP02100001007` | Invalid Input | One input field is invalid |
+
+## 10. Airtel Remittance Refund - response_code mapping
+| response_code | transaction.status | Signification |
+|---------------|-------------------|---------------|
+| `DP03520001001` | `TR` | Transaction Reversed - remboursement réussi |
+
+## 11. Airtel Transaction Status Codes
+| Code | Signification | airtel_money_id généré ? |
+|------|---------------|---------------------------|
+| `TS` | Transaction Success | Oui |
+| `TF` | Transaction Failed | Non |
+| `TIP` | Transaction in Progress | Non |
+| `TA` | Transaction Ambiguous | Non |
+| `TR` | Transaction Reversed | Oui (refund) |
+
+## 12. Country / Currency Reference Matrix (Airtel Africa)
+| Country | Currency | Country Code | Currency Code |
+|---------|----------|--------------|---------------|
+| UGANDA | Ugandan shilling | `UG` | `UGX` |
+| NIGERIA | Nigerian naira | `NG` | `NGN` |
+| TANZANIA | Tanzanian shilling | `TZ` | `TZS` |
+| KENYA | Kenyan shilling | `KE` | `KES` |
+| RWANDA | Rwandan franc | `RW` | `RWF` |
+| ZAMBIA | Zambian kwacha | `ZM` | `ZMW` |
+| GABON | CFA franc BEAC | `GA` | `CFA` |
+| NIGER | CFA franc BCEAO | `NE` | `XOF` |
+| **CONGO-BRAZZAVILLE** | **CFA franc BCEA** | **`CG`** | **`XAF`** |
+| DR CONGO | Congolese franc | `CD` | `CDF` |
+| DR CONGO | United States dollar | `CD` | `USD` |
+| CHAD | CFA franc BEAC | `TD` | `XAF` |
+| SEYCHELLES | Seychelles rupee | `SC` | `SCR` |
+| MADAGASCAR | Malagasy ariary | `MG` | `MGA` |
+| MALAWI | Malawian kwacha | `MW` | `MWK` |
+
+## 13. Cross-provider error harmonization
+### Wallet operations
+| Symptom | MTN | Airtel |
+|---------|-----|--------|
+| Duplicate reference | `409 RESOURCE_ALREADY_EXIST` | `ESB000041` |
+| Invalid subscription/key | `401 ACCESS DENIED...` | `401 Unauthorized` |
+| Wrong country env | `500 NOT_ALLOWED_TARGET_ENVIRONMENT` | `ROUTER006` / `ROUTER007` |
+| Wrong currency | `500 INVALID_CURRENCY` | `ROUTER112` / `ROUTER119` |
+| Insufficient funds | `INTERNAL_PROCESSING_ERROR` | `DP01000001007` |
+| Invalid MSISDN | `PAYEE_NOT_FOUND` / `PAYER_NOT_FOUND` | `DP01000001012` / `ESB000033` |
+| Timeout / ambiguous | `COULD_NOT_PERFORM_TRANSACTION` | `ROUTER117` / `0000900` / `DP*10000` |
+| Callback host mismatch | `500 INVALID_CALLBACK_URL_HOST` | N/A (config portal) |
+
+### Bank-to-Wallet
+| Symptom | Airtel code | Action |
+|---------|-------------|--------|
+| Duplicate txn id | `DP02100001002` | New unique id |
+| Ambiguous state | `DP02100001000` / `DP02100001006` | Transaction enquiry |
+| Timeout | `DP02100001003` | Transaction enquiry |
+
+## 14. Error handling patterns (intégration)
+- Valider body/headers avant appel API.
+- `400` / `422` -> corriger input ou rejeter côté client.
+- `401` / `403` -> rotation token ou alerte équipe intégration.
+- `409` / `ESB000041` -> générer nouveau reference/transaction id.
+- `429` -> backoff exponentiel.
+- `500` / `502` / `504` -> retry si idempotent, sinon alerte ops.
+- `202` + `PENDING` / `TIP` -> poll status ou attendre callback.
+- Toujours logger: `request_id`, `X-Reference-Id`, `transaction.id`, `response_code`, `provider_message`, `route_country`.
+
+## 15. Token-efficient troubleshooting guide
+1. Vérifier `X-Reference-Id` (MTN) ou `transaction.id` (Airtel) - unicité.
+2. Vérifier headers géo: `X-Country: CG` + `X-Currency: XAF` (Airtel Congo) ou `X-Target-Environment: mtncongo` (MTN Congo prod).
+3. Si `duplicate_request` -> retourner résultat stocké, ne pas re-débiter.
+4. Si `timeout` + appel idempotent -> une seule retry puis enquiry.
+5. Si `business_rule` failure -> message utilisateur friendly (PIN incorrect, fonds insuffisants).
+6. Si `ambiguous` (`TA`, `TIP`, `0000900`, `DP*10000`) -> transaction enquiry obligatoire avant toute action corrective.
+7. Si callback manquant -> GET status; ne jamais supposer succès sur seul `202 Accepted`.
+8. `DP03520001001` + `TR` = renversement confirmé côté Airtel remittance.
+
+--- END FILE: 30-system-integrations/provider-error-codes.md ---
+
+--- START FILE: 30-system-integrations/provider-specs.md ---
+﻿# Configuration et Intégrations des Providers — AfriWallet
+
+> **Couche** : `30-system-integrations` · **Expert MoE** : spécifications API / plomberie technique  
+> **Source** : `src/providers/*.ts`, `.env.example`
+
+## Contexte
+
+Ce fichier indexe les **contrats d'intégration** avec les providers externes. Détails complets MTN Developer → `providers/mtn-momo-api-reference.md`.
+
+---
+
+## 1. MTN Mobile Money (MTN_MOMO)
+
+* **Type** : Mobile Money Infrastructure  
+* **Fichiers source** : `src/providers/mtn.service.ts`, `src/payments/payments.service.ts`
+
+### Environnement production
+
+```json
+{
+  "production": {
+    "currency_default": "XAF",
+    "target_environments": ["mtnnigeria", "mtncameroon", "mtncongo"],
+    "note": "OpCo spécifique par pays MTN"
+  },
+  "sandbox": {
+    "base_url": "https://sandbox.momodeveloper.mtn.com",
+    "currency_default": "EUR",
+    "target_environment": "sandbox"
+  }
+}
+```
+
+### Headers requis
+
+```json
+{
+  "auth": "OAuth2 client credentials via Basic auth",
+  "headers": [
+    "Authorization: Bearer {token}",
+    "Ocp-Apim-Subscription-Key",
+    "X-Target-Environment",
+    "X-Reference-Id: UUID on POST",
+    "X-Callback-Url: optional HTTPS"
+  ]
+}
+```
+
+### APIs wallet
+
+```json
+{
+  "request_to_pay": "POST /collection/v1_0/requesttopay → HTTP 202",
+  "transfer": "POST /disbursement/v1_0/transfer",
+  "async_pattern": "Init PENDING → webhook or polling"
+}
+```
+
+### Webhook callback MTN
+
+```json
+{
+  "path": "POST /webhooks/mtn/requesttopay/{referenceId}",
+  "event_key": "mtn:r2p:{referenceId}",
+  "success_values": ["SUCCESSFUL", "SUCCESS"],
+  "failed_values": ["FAILED", "REJECTED"]
+}
+```
+
+→ Référence catalogue MTN Developer : [providers/mtn-momo-api-reference.md](./providers/mtn-momo-api-reference.md)
+
+---
+
+## 2. Smile Identity (SMILE_ID)
+
+* **Type** : KYC biométrique Afrique  
+* **Fichiers source** : `src/providers/smile-id.service.ts`, `src/kyc/`
+
+```json
+{
+  "sandbox_base_url": "https://testapi.smileidentity.com",
+  "job_types": {
+    "1": "Biometric KYC — updates kycStatus",
+    "2": "SmartSelfie Auth — step-up only",
+    "4": "SmartSelfie Register",
+    "11": "Document Verification CG only"
+  },
+  "rest_flow": ["upload-url", "ZIP base64", "upload-zip", "webhook"]
+}
+```
+
+### Webhook Smile ID
+
+```json
+{
+  "path": "POST /webhooks/smile-id",
+  "auth": "HMAC signature ±5 min anti-replay",
+  "event_key": "{job_id} or smile:{userId}:{timestamp}:{signature}",
+  "verified": "job_success true",
+  "rejected": "job_success false"
+}
+```
+
+---
+
+## 3. Onafriq (ONAFRIQ)
+
+* **Type** : Cartes virtuelles XAF  
+* **Fichiers source** : `src/providers/onafriq.service.ts`
+
+```json
+{
+  "auth": "OAuth2 client_credentials /idp/connect/token",
+  "defaults": { "country": "CM", "phone": "237", "city": "Douala", "currency": "XAF" },
+  "register": "POST /rest/api/v1/accounts/personalized"
+}
+```
+
+### Webhook Onafriq (statuts carte)
+
+```json
+{
+  "freeze": ["IA", "LC", "SC", "DEACTIVATED", "EX", "INACTIVE", "LOSTORSTOLEN"],
+  "active": ["AC"],
+  "http_resilience": { "timeout_ms": 10000, "retry_count": 2, "backoff_ms": 400 }
+}
+```
+
+---
+
+## 4. Bridge API (BRIDGE)
+
+* **Type** : Open Banking sandbox  
+* **Fichiers source** : `src/providers/bridge-payments.service.ts`
+
+```json
+{
+  "base_url": "https://api.bridgeapi.io",
+  "sandbox_bank_id": "574",
+  "currency": "EUR",
+  "success_status": "ACSC"
+}
+```
+
+### Webhook Bridge
+
+```json
+{
+  "path": "POST /webhooks/bridge/payments",
+  "auth": "bridgeapi-signature HMAC-SHA256",
+  "event_key": "bridge:payments:{type}:{paymentRequestId}:{status}",
+  "success": ["ACSC"],
+  "failed": ["RJCT", "CANC", "CANCELLED", "CANCELED"]
+}
+```
+
+---
+
+## 5. Airtel Money (AIRTEL) — NON IMPLÉMENTÉ
+
+```json
+{
+  "status": "schema_only",
+  "enum_exists": ["CASH_IN_AIRTEL", "PaymentProvider.AIRTEL"],
+  "service_in_src": false,
+  "warning": "Do NOT generate Airtel integration code — see project-roadmap.md"
+}
+```
+
+→ Spec marché (NON IMPLÉMENTÉ) : [airtel-money-specs-draft.md](../../90-codebase-constraints/airtel-money-specs-draft.md)
+
+---
+
+## 6. Twilio (SMS OTP)
+
+```json
+{
+  "production_required": true,
+  "message_template": "Votre code de verification est: {code}",
+  "otp_never_in_api_response_prod": true
+}
+```
+
+--- END FILE: 30-system-integrations/provider-specs.md ---
+
+--- START FILE: 30-system-integrations/providers/mtn-momo-api-reference.md ---
+﻿# MTN MoMo API Reference (Catalogue Developer)
+
+> **Couche** : `30-system-integrations` · **Type** : référence API MTN Developer (produits, provisioning, headers)  
+> **Complément** : [Intégration wallet platform](./mtn-momo.md) (RequestToPay, compensation, webhooks AfriWallet)
+
+## 1. Principes de conception
+- API REST JSON sur HTTPS.
+- Objets abstraits indépendants de l'implémentation wallet sous-jacente.
+- Types de transaction standardisés (RequestToPay, Transfer, Payment, Preapproval).
+- Codes ISO pour devises et pays.
+- Identifiants flexibles: `MSISDN`, `EMAIL`, `PARTY_CODE`, `ACCOUNT_ID`.
+
+## 2. Catalogue produits MoMo API
+| Produit | Usage |
+|---------|-------|
+| Collection | Collecter paiements (RequestToPay, Payment) |
+| Disbursement | Verser fonds (Transfer, Deposit) |
+| Remittance | Transferts transfrontaliers vers wallet MoMo |
+| Collection Widget | Checkout web via QR dynamique |
+| Distribute | Cash-in/cash-out/airtime pour agents |
+| Channel as a Service | Sous-menu USSD/App MoMo |
+| KYC / Account Validation | Onboarding simplifié |
+| Pre-approval | Débit auto via PIN MoMo |
+| Notify | SMS personnalisé post-transaction |
+
+## 3. Environnements & endpoints
+- `sandbox_base_url`: `https://sandbox.momodeveloper.mtn.com`
+- `production_base_url`: `https://momodeveloper.mtn.com`
+- `oauth2_token`: `POST /oauth2/v1_0/token`
+- `provision_api_user`: `POST /apiuser`
+- `provision_api_key`: `POST /apiuser/{APIUser}/apikey`
+- `get_api_user`: `GET /apiuser/{APIUser}`
+- `request_to_pay`: `POST /collection/v1_0/requesttopay`
+- `get_request_to_pay_status`: `GET /collection/v1_0/requesttopay/{referenceId}`
+- `transfer`: `POST /disbursement/v1_0/transfer`
+- `payment`: `POST /collection/v2_0/payment`
+- `preapproval`: `POST /collection/v1_0/preapproval`
+- `validate_account`: `GET /collection/v1_0/accountholder/{accountHolderIdType}/{accountHolderId}`
+- `get_balance`: `GET /collection/v1_0/account/balance`
+
+## 4. Cycle de vie développeur
+1. Signup sur `momodeveloper.mtn.com` (lien activation expire en 24h).
+2. Subscribe aux produits: Collection Widget, Collection, Remittances, Disbursements.
+3. Récupérer Primary Key + Secondary Key par produit (profil développeur).
+4. Provisionner API User + API Key via Sandbox Provisioning API.
+5. Obtenir OAuth2 token, puis appeler les APIs métier.
+
+## 5. Headers & authentication
+- `Ocp-Apim-Subscription-Key: <subscription_key>` (Primary ou Secondary)
+- `Content-Type: application/json`
+- `Accept: application/json`
+- `X-Target-Environment: sandbox` (test) ou env pays (prod)
+- `Authorization: Bearer <access_token>`
+- `X-Reference-Id: <uuid_v4>` (obligatoire sur POST)
+- `X-Callback-Url: <https_url>` (optionnel, même domaine que `providerCallbackHost`)
+
+### Provisioning API User
+```http
+POST /apiuser HTTP/1.1
+Host: sandbox.momodeveloper.mtn.com
+X-Reference-Id: c72025f5-5cd1-4630-99e4-8ba4722fad56
+Ocp-Apim-Subscription-Key: <subscription_key>
+Content-Type: application/json
+
+{"providerCallbackHost": "clinic.com"}
+```
+Réponse: `201 Created`
+
+### Provisioning API Key
+```http
+POST /apiuser/c72025f5-5cd1-4630-99e4-8ba4722fad56/apikey HTTP/1.1
+Host: sandbox.momodeveloper.mtn.com
+Ocp-Apim-Subscription-Key: <subscription_key>
+```
+Réponse: `201 Created` avec `{"apiKey": "..."}`
+
+### OAuth2 token
+- Grant: `client_credentials` (RFC 6749).
+- Auth: Basic `base64(api_user:api_key)`.
+- Token: Bearer (RFC 6750), réutilisable jusqu'à expiration.
+- Sandbox: provisioning API gère user/key. Production: Partner Portal.
+
+## 6. MTN country target environment mapping
+| Pays | X-Target-Environment |
+|------|---------------------|
+| MTN Congo | `mtncongo` |
+| MTN Uganda | `mtnuganda` |
+| MTN Ghana | `mtnghana` |
+| MTN Ivory Coast | `mtnivorycoast` |
+| MTN Zambia | `mtnzambia` |
+| MTN Cameroon | `mtncameroon` |
+| MTN Benin | `mtnbenin` |
+| MTN Swaziland | `mtnswaziland` |
+| MTN GuineaConakry | `mtnguineaconakry` |
+| MTN SouthAfrica | `mtnsouthafrica` |
+| MTN Liberia | `mtnliberia` |
+| MTN SouthSudan | `mtnsouthsudan` |
+| MTN Nigeria | `mtnnigeria` |
+| MTN Rwanda | `mtnrwanda` |
+| Sandbox test | `sandbox` |
+
+## 7. Sémantique async (POST)
+- `POST /requesttopay` et `POST /transfer` -> `202 Accepted` après validation.
+- Ressource créée en état `PENDING`.
+- État final: `SUCCESSFUL` ou `FAILED`.
+- Callback envoyé une seule fois (PUT ou POST selon config), pas de retry.
+- Fallback: `GET /requesttopay/{referenceId}` si callback manquant.
+- `X-Reference-Id` dupliqué -> `409 RESOURCE_ALREADY_EXIST`.
+
+## 8. États lifecycle
+- `PENDING`, `SUCCESSFUL`, `FAILED`, `REJECTED`, `EXPIRED`, `ONGOING`
+
+## 9. Aggregator API - transferType requis
+Sandbox values:
+- `CUSTOM_PAYMENT`
+- `CUSTOM_BANK_PAYMENT`
+- `CUSTOM_BANK_PAYMENT_FEE`
+
+Production: valeurs contractuelles fournies par l'onboarding team.
+
+### RequestToPay (Aggregator)
+```bash
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay' \
+--header 'Ocp-Apim-Subscription-Key: <key>' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer <token>' \
+--header 'X-Reference-Id: <uuid_v4>' \
+--data '{
+  "amount": "1000",
+  "currency": "EUR",
+  "externalId": "10001",
+  "payer": {"partyIdType": "MSISDN", "partyId": "123456789012"},
+  "payerMessage": "Order Payment",
+  "payeeNote": "Order Payment",
+  "transferType": "CUSTOM_PAYMENT"
+}'
+```
+
+### Transfer (Aggregator)
+```bash
+curl --location 'https://sandbox.momodeveloper.mtn.com/disbursement/v1_0/transfer' \
+--header 'Ocp-Apim-Subscription-Key: <key>' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer <token>' \
+--header 'X-Reference-Id: <uuid_v4>' \
+--data '{
+  "amount": "1000",
+  "currency": "EUR",
+  "externalId": "10001",
+  "payee": {"partyIdType": "MSISDN", "partyId": "123456789012"},
+  "payerMessage": "Order Payment",
+  "payeeNote": "Order Payment",
+  "transferType": "CUSTOM_PAYMENT"
+}'
+```
+
+### Payment (Aggregator)
+```bash
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v2_0/payment' \
+--header 'Ocp-Apim-Subscription-Key: <key>' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer <token>' \
+--header 'X-Reference-Id: <uuid_v4>' \
+--data '{
+  "externalTransactionId": "10001",
+  "money": {"amount": "1000", "currency": "EUR"},
+  "customerReference": "MSISDN",
+  "serviceProviderUserName": "TestSpUsername",
+  "transferType": "CUSTOM_PAYMENT"
+}'
+```
+
+## 10. Java / PHP client patterns
+
+### Java (RequestToPay)
+```java
+URL url = new URL("https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay");
+HttpURLConnection con = (HttpURLConnection) url.openConnection();
+con.setRequestMethod("POST");
+con.setRequestProperty("Content-Type", "application/json");
+con.setRequestProperty("Ocp-Apim-Subscription-Key", subscriptionKey);
+con.setRequestProperty("X-Target-Environment", "sandbox");
+con.setRequestProperty("Authorization", "Bearer " + accessToken);
+con.setRequestProperty("X-Reference-Id", referenceId);
+con.setDoOutput(true);
+try (OutputStream os = con.getOutputStream()) {
+  os.write(payload.getBytes("UTF-8"));
+}
+```
+
+### PHP (RequestToPay - GuzzleHttp)
+```php
+$client = new GuzzleHttp\Client();
+$response = $client->post('https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay', [
+  'headers' => [
+    'Content-Type' => 'application/json',
+    'Ocp-Apim-Subscription-Key' => $subscriptionKey,
+    'X-Target-Environment' => 'sandbox',
+    'Authorization' => 'Bearer ' . $accessToken,
+    'X-Reference-Id' => $referenceId
+  ],
+  'body' => json_encode($payload)
+]);
+```
+
+## 11. Callback rules
+### Sandbox
+- Enregistrer `providerCallbackHost` à la création API Key.
+- Callback URL dans header `X-Callback-Url` sur chaque POST.
+- HTTPS obligatoire.
+- Autoriser PUT et POST sur le listener callback.
+
+### Production
+- Callback host enregistré via Accounts Portal.
+- HTTPS obligatoire.
+- Callback envoyé une seule fois - implémenter polling GET en fallback.
+
+### CA intermédiaires approuvés (extrait)
+- Amazon Root CA 1/4, Amazon RSA 2048 M01/M02/M03
+- COMODO RSA Domain Validation Secure Server CA
+- Certum Domain Validation CA SHA2
+
+## 12. Sandbox test environment
+- `X-Target-Environment`: `sandbox`
+- Devise sandbox: `EUR`
+- Comptes Partner GUI existants ne fonctionnent PAS en sandbox - utiliser Provisioning API.
+- Tout MSISDN non listé -> succès par défaut.
+
+### Valeurs de test RequestToPay (extrait)
+| Scénario | MSISDN test |
+|----------|-------------|
+| PayerFailed | `46733123450` |
+| PayerRejected | `46733123451` |
+| PayerExpired | `46733123452` |
+| PayerNotFound | `46733123455` |
+| PayerNotAllowedTargetEnvironment | `46733123458` |
+| PayerInvalidCallbackUrlHost | `46733123459` |
+| PayerInvalidCurrency | `46733123460` |
+| PayerInternalProcessingError | `46733123461` |
+| PayerCouldNotPerformTransaction | `46733123463` |
+| PayerTransfertypeUnknown | `46733123464` |
+
+### Valeurs de test Transfer (extrait)
+| Scénario | MSISDN test |
+|----------|-------------|
+| PayeeFailed | `46733123450` |
+| PayeeNotEnoughFunds | `46733123455` |
+| PayeeNotFound | `46733123457` |
+| PayeeInternalProcessingError | `46733123462` |
+
+### Valeurs de test Payment (montant)
+| Scénario | Montant |
+|----------|---------|
+| PaymentAmountSuccess | `1000` |
+| PaymentAmountFailed | `2000` |
+| PaymentAmountPendingSuccess | `3000` |
+| PaymentTransfertypeUnknown | `7000` |
+
+## 13. Use cases séquentiels
+1. **RequestToPay**: POST -> 202 -> PENDING -> client approuve USSD/App -> SUCCESSFUL/FAILED -> callback.
+2. **Preapproval**: même flux, puis débits futurs sans re-autorisation.
+3. **Transfer**: POST -> 202 -> fonds provider->payee -> callback final.
+4. **Validate Account Holder**: GET -> 200 si actif (ne valide pas le montant).
+5. **Get Balance**: GET solde compte par défaut lié à l'API User.
+6. **Consent flows**: `POST /bc-authorize` -> `POST /oauth2/token/` -> API métier avec consent.
+
+## 14. Règles de validation request body
+- `X-Reference-Id` obligatoirement UUID v4 unique.
+- Notes/messages max 160 caractères (utiliser Notify API au-delà).
+- Pas de caractères spéciaux non supportés (ex: apostrophe `'`).
+- Devise doit correspondre au pays cible.
+- URL callback: hostname, pas IP.
+- Collection, Disbursement, Remittance ont des subscription keys distinctes.
+
+## 15. MTN Congo - note d'intégration
+- Production Congo: `X-Target-Environment: mtncongo`
+- Devise: XAF (Franc CFA CEA)
+- Sandbox: toujours `sandbox` + EUR pour les tests documentés.
+
+--- END FILE: 30-system-integrations/providers/mtn-momo-api-reference.md ---
+
+--- START FILE: 35-business-flows/afriwallet-business-flows.md ---
+﻿# AfriWallet — Flux métier (Business Flows)
+
+> **Couche** : `35-business-flows` · **Fichier fusionné** (ex-use-cases v3)  
+> **Expert MoE** : cinématiques transactionnelles OTP → KYC → MoMo → cartes  
+> **Distinction** : ≠ `15-mobile-ux-studies/` (exemples UI) — ce dossier = orchestration backend/métier  
+> **Source** : `src/auth/`, `src/payments/`, `src/kyc/`, `src/virtual-cards/`
+
+---
+
+## 1. Onboarding OTP + PIN
+
+MSISDN-first. OTP SMS 6 chiffres + PIN bcrypt + JWT 15m.
+
+**Flux** : `/auth/otp/request` → `/auth/otp/verify` → User + Wallet(0) + JWT → `/auth/pin/verify` daily.
+
+```json
+{
+  "otp": { "length": 6, "ttl_min": 5, "max_attempts": 3, "cooldown_s": 60, "max_hour": 5, "max_day": 10 },
+  "pin": { "hash": "bcrypt", "salt": 10 },
+  "prod_rule": "OTP never returned in API — Twilio SMS only"
+}
+```
+
+### Golden Snippet — émission OTP sécurisée
+
+En production, le code OTP part **uniquement par SMS** ; l'API renvoie `{ sent: true }` sans exposer le code. Rate limits anti-abus : cooldown 60s, 5/h, 10/j.
+
+```typescript
+// src/auth/auth.service.ts — issueOtp()
+const code = (Math.floor(100000 + Math.random() * 900000)).toString();
+
+// Cooldown 60s + quotas 5/h et 10/j (voir contrat JSON ci-dessus)
+// ...
+
+const isProd = process.env.NODE_ENV === 'production';
+
+if (isProd && !this.sms.isConfigured()) {
+  throw new InternalServerErrorException('SMS provider is required in production');
+}
+
+if (this.sms.isConfigured()) {
+  await this.sms.sendSms({
+    to: phoneNumber,
+    body: `Votre code de verification est: ${code}`,
+  });
+}
+
+// En prod : jamais le code dans la réponse HTTP
+return isProd ? { phoneNumber, sent: true } : { phoneNumber, otp: code };
+```
+
+---
+
+## 2. KYC Biométrique (REST)
+
+Met à jour `kycStatus`. **Obligatoire** avant paiements et cartes.
+
+**Flux** : `/kyc/start` → `/kyc/biometric/upload-url` → ZIP (selfie + liveness) → `/kyc/biometric/upload-zip` → webhook Smile.
+
+```json
+{
+  "kycStatus_flow": { "PENDING": "open", "VERIFIED": "job_success true", "REJECTED": "job_success false" },
+  "NG_example": { "country": "NG", "idType": "NIN_V2", "idNumber": "11 digits" },
+  "CM_note": "no biometric registry — document CG or Onafriq defaults only"
+}
+```
+
+---
+
+## 3. SmartSelfie Step-Up
+
+**Ne modifie pas** `kycStatus`. Raisons : `large_withdrawal`, `pin_reset`, `high_risk_device`, `wallet_recovery`.
+
+**Flux** : `/kyc/smartselfie/auth/upload-url` → upload → `/kyc/smartselfie/confirm`.
+
+---
+
+## 4. MoMo Cash-In / Cash-Out
+
+**Prérequis** : KYC VERIFIED. **Async** : HTTP 202 PENDING → webhook/polling.
+
+**Cash-in** : `/payments/deposit/momo` → RequestToPay → SUCCESS crédite wallet.
+
+**Cash-out** : décrément immédiat → Disbursement → FAILED = **compensation recrédit**.
+
+```json
+{
+  "success_statuses": ["SUCCESSFUL", "SUCCESS", "ACSC"],
+  "failed_statuses": ["FAILED", "REJECTED", "RJCT"],
+  "polling_ms": { "CREA": 2000, "PENDING": 10000, "default": 30000 }
+}
+```
+
+---
+
+## 5. Émission Carte Virtuelle Onafriq
+
+**Prérequis** : KYC VERIFIED + solde ≥ amountFcfa.
+
+**Flux** : `POST /virtual-cards` → OAuth2 Onafriq → register → `CARD_ISSUANCE_FEE` SUCCESS → webhooks freeze/unfreeze.
+
+```json
+{
+  "response": { "cardToken": "Onafriq accountId", "lastFour": "4 digits", "isFrozen": "via webhook cardStatus" }
+}
+```
+
+## Voir aussi
+
+- `../20-backend-api/execution-lifecycle/async-pipeline-jobs.md`
+- `../40-compliance-rules/kyc-id-rules-by-country.md`
+- `../90-codebase-constraints/project-roadmap.md`
+
+--- END FILE: 35-business-flows/afriwallet-business-flows.md ---
+
+--- START FILE: 40-compliance-rules/cbn-nigeria.md ---
+# Nigeria — CBN, NIMC & KYC Tier (NG)
+
+> **Couche** : `40-compliance-rules` · **Zone** : Nigeria · **Devise** : NGN (KYC) / sandbox MoMo EUR  
+> **Expert MoE** : identité NIN/BVN — **ne jamais appliquer sur CM, CG ou CI**
+
+## Régulateurs & identité
+
+| Autorité | Rôle |
+|----------|------|
+| CBN | Régulation paiements, KYC tiers |
+| NIMC | National Identification Number (NIN) |
+
+```json
+{
+  "country": "NG",
+  "regulators": ["CBN", "NIMC"],
+  "mtn_opco_prod": "mtnnigeria",
+  "id_formats": {
+    "NIN": "^\\d{11}$",
+    "NIN_V2": "^\\d{11}$",
+    "BVN": "^\\d{11}$",
+    "V_NIN": "^[A-Za-z0-9]{16}$"
+  },
+  "anti_cross_zone": {
+    "rule": "Toute validation idNumber 11 digits NG est EXCLUSIVE au pays NG",
+    "forbidden": "Rejeter ou accepter un NIN camerounais avec regex NG"
+  }
+}
+```
+
+## KYC biométrique Nigeria (AfriWallet)
+
+- Template par défaut Smile : `NIN_V2` + 11 digits.
+- Images : selfie (type 0) + 8 frames liveness (type 4).
+- Webhook Smile met à jour `kycStatus` — distinct de SmartSelfie step-up.
+
+## MoMo MTN Nigeria
+
+- Prod : `X-Target-Environment: mtnnigeria`.
+- Sandbox MTN Developer : currency `EUR`, env `sandbox` — **ne pas confondre** avec prod NGN/XAF wallet AfriWallet.
+- Codes erreur MTN spécifiques : `provider-error-codes.md` §2 matrix.
+
+## Compliance hints
+
+- KYC tiering CBN : vérification registre via Smile ID avant cash-in/out significatif.
+- Fraude : velocity + SIM swap cooling (voir `fraud-vectors-security.md`).
+
+## Voir aussi
+
+- `kyc-id-rules-by-country.md` — contrat JSON complet NG
+- `cemac-cobac.md` / `uemoa-bceao.md` — autres zones
+- `../30-system-integrations/provider-error-codes.md` — MTN mtnnigeria errors
+
+--- END FILE: 40-compliance-rules/cbn-nigeria.md ---
+
+--- START FILE: 40-compliance-rules/cemac-cobac.md ---
+# CEMAC — BEAC, COBAC & Mobile Money (CM, CG)
+
+> **Couche** : `40-compliance-rules` · **Zone** : CEMAC · **Devise** : XAF  
+> **Expert MoE** : régulation Cameroun + Congo — **ne pas mélanger avec Nigeria (NG) ni UEMOA (XOF)**
+
+## Périmètre AfriWallet
+
+| Pays | ISO | Devise | OpCo MTN prod | KYC AfriWallet |
+|------|-----|--------|---------------|----------------|
+| Cameroun | CM | XAF | `mtncameroon` | **Pas** de registre biométrique Smile — defaults Onafriq |
+| Congo-Brazzaville | CG | XAF | `mtncongo` | Document verification job_type 11 **uniquement** |
+
+```json
+{
+  "regulators": ["BEAC", "COBAC"],
+  "currency_rule": "BigInt entiers XAF — jamais centimes EUR",
+  "anti_cross_zone": {
+    "forbidden": "Appliquer NIN/BVN nigérian (11 digits) sur flux CM/CG",
+    "forbidden_2": "Utiliser devise XOF ou headers UEMOA sur wallet XAF"
+  }
+}
+```
+
+## Cameroun (CM)
+
+- Onboarding cartes Onafriq : defaults `country=CM`, `phone=237`, `city=Douala`, `currency=XAF`.
+- KYC biométrique Smile ID : **CM absent** du registre `smile-id-id-rules.ts` — ne pas générer de flux NIN/selfie pour CM.
+- MoMo MTN : `X-Target-Environment: mtncameroon`, currency prod `XAF`.
+
+## Congo (CG)
+
+- KYC : **document verification only** (pas biometric registry standard).
+- Smile job_type `11`, id_types : `IDENTITY_CARD`, `PASSPORT`, `DRIVERS_LICENSE`, etc.
+- MoMo MTN : `X-Target-Environment: mtncongo`.
+
+## Plafonds & conformité (hints non-juridiques)
+
+- COBAC encadre établissements de paiement CEMAC — KYC avant mouvements significatifs.
+- Fraude agent / SIM swap : appliquer velocity limits (voir `fraud-vectors-security.md`).
+- Interprétation juridique définitive : consulter BEAC/COBAC local.
+
+## Voir aussi
+
+- `kyc-id-rules-by-country.md` — section CG document verification
+- `../30-system-integrations/provider-specs.md` — MTN + Onafriq
+- `../90-codebase-constraints/project-roadmap.md` — KYC_BIOMETRIC_CM non supporté
+
+--- END FILE: 40-compliance-rules/cemac-cobac.md ---
+
+--- START FILE: 40-compliance-rules/compliance-kyc-aml.md ---
+﻿# Policies — Compliance et Sécurité
+
+> **Couche** : `40-compliance-rules` · **Contraintes non-négociables**  
+> **Source** : `auth.service.ts`, `webhooks.service.ts`, `payments.service.ts`
+
+## Règles compliance
+
+### KYC avant mouvement d'argent
+
+```json
+{
+  "rule": "kycStatus must be VERIFIED",
+  "applies_to": [
+    "POST /payments/deposit/momo",
+    "POST /payments/withdraw/momo",
+    "POST /payments/deposit/bridge",
+    "POST /virtual-cards"
+  ]
+}
+```
+
+### Journal immuable
+
+Les transactions ne sont pas supprimées — seul `status` et `metadata` évoluent.
+
+### Compensation cash-out
+
+Obligatoire si Disbursement FAILED après réservation solde.
+
+## Contrat — OTP rate limiting
+
+```json
+{
+  "cooldown_seconds": 60,
+  "max_per_hour": 5,
+  "max_per_day": 10,
+  "max_attempts": 3,
+  "ttl_minutes": 5,
+  "production_sms_required": true
+}
+```
+
+## Contrat — Rétention données
+
+```json
+{
+  "otp_expired_days": 7,
+  "webhooks_processed_days": 30,
+  "cron": "every 2 hours"
+}
+```
+
+## Hints réglementaires (non-juridiques)
+
+| Zone | Régulateur | Contexte corpus |
+|------|------------|-----------------|
+| CEMAC | BEAC, COBAC | XAF, CM defaults |
+| UEMOA | BCEAO | CI KYC |
+| Nigeria | CBN, NIMC | NIN/BVN |
+
+> Interprétation juridique définitive : consulter régulateur local.
+
+## Voir aussi
+
+- [Flux metier AfriWallet](../35-business-flows/afriwallet-business-flows.md)
+- [Webhooks](../20-backend-api/input-boundaries/webhook-security.md)
+
+--- END FILE: 40-compliance-rules/compliance-kyc-aml.md ---
+
+--- START FILE: 40-compliance-rules/fraud-vectors-security.md ---
+# Fraud Vectors, Security Threat Modeling & Structural Risks
+
+## Identified Threat Landscape & Vulnerabilities
+* **Primary Threat Vectors**: Identity theft, Internal fraud (insider threats), Cyber-fraud, Agent-level fraud.
+* **Technical Attack Typologies**: Social Engineering, Man-in-the-Middle (MitM) attacks, Malware deployment.
+* **GSM Signaling Weakness**: USSD data transmissions over GSM signaling channels lack native end-to-end encryption (E2EE). Payloads pass through Mobile Network Operator (MNO) infrastructure in cleartext.
+
+## Attack Vector Profile: SIM Swap Fraud
+* **Mechanism**: Attackers hijack a subscriber's MSISDN by social engineering an MNO agent into issuing a replacement SIM card, thereby intercepting the USSD session validation path.
+* **Mitigation Triggers**:
+  * Implement a 24-72 hour cooling period/temporary hold on high-value transactions post SIM swap event flag.
+  * Implement strict transaction velocity limits.
+  * Mandatory out-of-band SMS notifications for all state-changing actions.
+
+## Session UX Security Implementation Rules
+* **PIN Authentication Placement**: Enforce PIN entry strictly at the final confirmation step, never at session initiation (prevents PIN harvest via abandoned sessions).
+* **PIN Complexity Policy**: Hard rejection of sequential data (`1234`) or repetitive arrays (`0000`).
+* **Menu Masking Rule**: Mask all sensitive data strings (e.g., account numbers, balances) except the last 4 characters within the 160-character menu display.
+* **Inactivity Session Drop**: Force automatic state termination after 60 seconds of idle time (network-level timeout maximum is 180 seconds).
+* **Two-Factor Authentication (2FA)**: For transactions exceeding defined risk velocity thresholds, process the USSD flow then trigger an out-of-band numeric SMS confirmation token prior to final settlement.
+* **B2B / Merchant Security**: Merchant operations require strict verification mapping. Transition to static or dynamic QR Code generation to mitigate errors in recipient input (`Merchant ID` + `Merchant Name` matching array).
+* **Cross-Channel Consistency**: Transactions validation sequences must bind across client agents (`MoMo App`, `Merchant App`, `Agent App`) and offline interfaces (`USSD Protocol`).
+
+## MoMo Documentation Security Mapping
+* **Access Control**: The provided documentation frames Subscription Key, API User, and API Key as the core access-control mechanism for the MoMo API surface.
+* **Provisioning Control**: API user and API key creation is positioned as a formal provisioning step after onboarding and subscription.
+* **Consent & Authorization**: Pre-approval is explicitly tied to the MoMo PIN and acceptance of terms and conditions, making user authorization a first-class control.
+* **Validation Loop**: Transaction status, balance checks, and user-status validation are treated as asynchronous verification steps rather than blind execution.
+* **Callback Discipline**: The documented lifecycle expects callback-based state updates, which should be treated as a security-sensitive integration boundary.
+
+## Institutional Governance Friction
+* **Supplier Perspective**: >70% of Mobile Money providers rate law enforcement agencies as ineffective.
+* **Root Causes**: Lack of technical/forensic skills, insufficient resources, corruption.
+* **Authentication Gap**: ~50% of active mobile money users in Sub-Saharan Africa do not have a password or PIN protecting their account assets (World Bank Global Findex 2025).
+
+## Regulatory Charging & Clearing Models (Nigeria Case Study)
+* **Pricing Resolution (February 2026)**: Resolution of the N300 billion bank-telco access fee dispute.
+* **Regulated Session Cost**: End-user access fee fixed at N6.98 per 120-second USSD session (ALTON / Central Bank regulations).
+
+## Financial Inclusion Fault-lines (Ecosystem & Usage Gaps)
+```json
+{
+  "gender_gap_stagnation": {
+    "senegal": {
+      "male_account_penetration": "Nearly universal",
+      "female_exclusion_rate": 0.25
+    },
+    "nigeria": {
+      "gender_gap_2023": 0.46,
+      "gender_gap_2024": 0.41
+    }
+  },
+  "advanced_transaction_disparities": {
+    "senegal_salary_receive_rate": { "male": 0.16, "female": 0.05 },
+    "nigeria_client_payment_receive_rate": { "male": 0.41, "female": 0.25 },
+    "kenya_merchant_payment_usage": { "male": 0.66, "female": 0.50 }
+  }
+}
+
+--- END FILE: 40-compliance-rules/fraud-vectors-security.md ---
+
+--- START FILE: 40-compliance-rules/kyc-id-rules-by-country.md ---
+﻿# Domaine — Règles KYC par Pays (Smile ID)
+
+> **Couche** : `40-compliance-rules` · **Bounded context** : identité africaine  
+> **Source** : `src/kyc/smile-id-id-rules.ts`
+
+## Contexte
+
+Les LLM occidentaux ignorent les formats d'identité africains. **Avant** d'appliquer une regex pays, consulter la matrice régionale :
+
+- `cemac-cobac.md` — CM, CG (XAF) — **CM sans biometric**
+- `uemoa-bceao.md` — CI (XOF)
+- `cbn-nigeria.md` — NG (NIN/BVN) — **ne pas appliquer sur CM/CG/CI**
+
+## Validations globales
+
+Tous les pays biometric exigent :
+- `country` : ISO alpha-2 (`^[A-Z]{2}$`)
+- `dob` : `yyyy-mm-dd`
+- `idNumber` : max 32 caractères
+
+## Contrat — Pays supportés (biometric registry)
+
+```json
+{
+  "supported_countries": ["CI", "GH", "KE", "NG", "ZA", "UG", "ZM", "ZW"],
+  "global_validations": {
+    "country": { "regex": "^[A-Z]{2}$" },
+    "dob": { "regex": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "idNumber": { "max_length": 32 }
+  }
+}
+```
+
+## Contrat — Nigeria (NG) — priorité Afrique de l'Ouest
+
+```json
+{
+  "NG": {
+    "regulators": ["CBN", "NIMC"],
+    "id_types": {
+      "NIN": { "regex": "^\\d{11}$" },
+      "NIN_V2": { "regex": "^\\d{11}$", "default_template": true },
+      "NIN_SLIP": { "regex": "^\\d{11}$" },
+      "BVN": { "regex": "^\\d{11}$" },
+      "V_NIN": { "regex": "^[A-Za-z0-9]{16}$" },
+      "BANK_ACCOUNT": { "regex": "^\\d{10}$", "required_fields": ["bankCode"] },
+      "PHONE_NUMBER": { "regex": "^\\d{11}$" },
+      "VOTER_ID": { "regex": "^[A-Za-z0-9 ]{9,29}$", "case_insensitive": true }
+    },
+    "biometric_images": {
+      "selfie": { "image_type_id": 0, "file": "selfie.jpg" },
+      "liveness": { "image_type_id": 4, "files": "liveness_1.jpg … liveness_8.jpg" }
+    }
+  }
+}
+```
+
+## Contrat — Ghana (GH)
+
+```json
+{
+  "GH": {
+    "GHANA_CARD": { "regex": "^[A-Z]{3}-?\\d{9}-?\\d$", "example": "GHA-123456789-0" },
+    "PASSPORT": { "regex": "^[A-Z0-9]{7,9}$" },
+    "VOTER_ID": { "regex": "^\\d{10}$" }
+  }
+}
+```
+
+## Contrat — Ouganda (UG) — champs extra obligatoires
+
+```json
+{
+  "UG": {
+    "NATIONAL_ID_NO_PHOTO": {
+      "regex": "^[A-Z0-9]{14}$",
+      "required_fields": ["secondaryIdNumber", "dob"]
+    }
+  }
+}
+```
+
+## Contrat — Afrique du Sud (ZA)
+
+```json
+{
+  "ZA": {
+    "NATIONAL_ID": { "regex": "^\\d{13}$" },
+    "PHONE_NUMBER": { "regex": "^\\d{10}$" },
+    "REFUGEE_ID": { "regex": "^[A-Za-z]{3,6}\\d{9,12}$" }
+  }
+}
+```
+
+## Contrat — Autres pays (CI, KE, ZM, ZW)
+
+```json
+{
+  "CI": {
+    "NATIONAL_ID_NO_PHOTO": { "regex": "^(?:\\d{11}|[A-Za-z]\\d{10})$" }
+  },
+  "KE": {
+    "KRA_PIN": { "regex": "^\\d{1,9}$" },
+    "TAX_INFORMATION": { "regex": "^[Aa]\\d{9}[A-Za-z]$" }
+  },
+  "ZM": {
+    "BANK_ACCOUNT": { "regex": "^\\d{13}$", "required_fields": ["bankCode"] },
+    "TPIN": { "regex": "^\\d{10}$" }
+  },
+  "ZW": {
+    "NATIONAL_ID_NO_PHOTO": { "regex": "^[0-9]{8,9}[A-Za-z]\\d{2}$" }
+  }
+}
+```
+
+## Contrat — Document verification Congo (CG)
+
+```json
+{
+  "document_verification_CG": {
+    "job_type": 11,
+    "country": "CG",
+    "id_types": ["DRIVERS_LICENSE", "IDENTITY_CARD", "PASSPORT", "RESIDENT_ID", "TAX_ID", "TRAVEL_DOC"],
+    "images": { "selfie": 0, "id_front": 1, "id_back": 5 }
+  }
+}
+```
+
+## Contrat — Smile ID job types
+
+```json
+{
+  "job_types": {
+    "1": { "name": "Biometric KYC", "prefix": "kyc_", "updates_kyc_status": true },
+    "2": { "name": "SmartSelfie Auth", "prefix": "ssauth_", "updates_kyc_status": false },
+    "4": { "name": "SmartSelfie Register", "prefix": "ssreg_", "updates_kyc_status": false },
+    "11": { "name": "Document Verification", "prefix": "doc_", "updates_kyc_status": true }
+  },
+  "error_codes": {
+    "2215": "job_id duplicate",
+    "2209": "job type incompatible",
+    "2304": "job not found"
+  }
+}
+```
+
+## Voir aussi
+
+- [Flux metier AfriWallet](../35-business-flows/afriwallet-business-flows.md)
+- [Provider specs Smile ID](../provider-specs.md)
+
+--- END FILE: 40-compliance-rules/kyc-id-rules-by-country.md ---
+
+--- START FILE: 40-compliance-rules/macro-metrics.md ---
+# Mobile Money Macro Metrics & Regional Stats (2024-2026)
+
+## Global Market Share & Volumes (Africa vs Global)
+* **Total Registered Accounts (Africa)**: 1,100,000,000 (53% of global share)
+* **Total Transactions (Africa)**: 81,000,000,000
+* **Total Transaction Value (Africa)**: $1,105,000,000,000 USD (Ref: GSMA SOTIR 2025 / Arkesel 2026)
+* **Adult Penetration Rate (Sub-Saharan Africa)**: 40% of adults hold an active MoMo account (Findex 2025 - up from 27% baseline).
+* **Global Agent Network Growth**: 28,000,000 registered agents globally (77% of net growth located in Sub-Saharan Africa).
+* **MTN Group Operational Throughput**: > 900,000,000 transactions processed monthly across 16 African countries (Ref: MTN MoMo Official 2026).
+* **MTN Group Active Base**: > 50,000,000 active users (Platform metric footprint).
+
+## Instant Payment Systems (IPS / SPI) Benchmarks
+* **Volume (Historical 2021 Reference)**: 16,000,000,000 individual transactions.
+* **Value (Historical 2021 Reference)**: $930,000,000,000 USD.
+* **Growth Rates (CAGR 2018-2021)**: Transaction volume grew +32% YoY; total value grew +40% YoY.
+* **Active Infrastructure (AfricaNenda)**: 29 active Instant Payment Systems (26 national, 3 regional).
+* **Multi-system Countries Breakdown**: Nigeria (3), Ghana (2), Egypt (2), Kenya (2), Tanzania (2).
+
+## USSD Protocol Market Share & Dominance
+* **Continental Average**: USSD powers over 70% of all mobile money interactions.
+* **Instant Payment Systems (IPS) Integration**: 62% of active instant payment systems in Africa natively utilize USSD protocols as a delivery channel.
+* **Regional Peak (WAEMU / UEMOA)**: USSD handles 89% of all mobile money transaction volumes (Source: BCEAO).
+* **Device / Connectivity Driver**: < 48% of mobile connections in Sub-Saharan Africa are smartphones; only 28% have mobile internet access. USSD acts as the mandatory fallback layer.
+
+## Regional Breakdown Matrix (2024 Performance)
+
+| Region | Active Services | Registered Accounts | 30d Active Accounts | Transactions Volume | Transaction Value (USD) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Sub-Saharan Africa** | N/A | 1.1B (+19%) | 286M (+12%) | 81B (+22%) | 1.1T (+15%) |
+| **East Africa** | 57 | 459M (+15%) | 149M (+12%) | 52B (+25%) | 649B (+23%) |
+| **West Africa** | 74 | 485M (+21%) | 97M (+13%) | 22B (+15%) | 357B (+5%) |
+| **Central Africa** | 19 | 104M (+24%) | 32M (+13%) | 7B (+22%) | 83B (+7%) |
+| **North Africa** | 13 | 25M (+24%) | 3M (+44%) | 262M (+63%) | 10B (+53%) |
+| **Southern Africa** | 15 | 27M (+19%) | 4M (-20%) | 543M (-9%) | 6B (+4%) |
+
+## GDP Contribution Thresholds by Country Group
+```json
+{
+  "impact_gt_5_percent": {
+    "west_africa": ["Benin", "Cote d'Ivoire", "Ghana", "Guinea", "Guinea-Bissau", "Senegal", "Liberia"],
+    "east_africa": ["Kenya", "Rwanda", "Uganda", "Tanzania"]
+  },
+  "impact_between_5_and_8_percent": {
+    "central_africa": ["Cameroon", "Congo", "Gabon"]
+  },
+  "impact_lt_5_percent": {
+    "southern_africa": ["General Integration"]
+  }
+}
+
+--- END FILE: 40-compliance-rules/macro-metrics.md ---
+
+--- START FILE: 40-compliance-rules/operator-specifications.md ---
+# Telecom Operator Specifications & Financial Volumes (2024-2026)
+
+## Protocol Layer Specifications
+* **Core Transport Protocols**: USSD (Unstructured Supplementary Service Data), STK (SIM Toolkit technology).
+* **Network Execution Property**: Session-oriented, real-time GSM signaling channel connection. Internet connectivity/data balance not required (Zero Data Cost delivery).
+* **Interface Limits**: Maximum payload length per menu string is 160 characters. Session hardware timeout hard limit: 180 seconds. Target transaction flow completion limit: < 5 steps, < 30 seconds execution window.
+
+## 1. Safaricom / Vodacom Group (M-PESA)
+* **Shortcode Interface**: Dial `*334#` (Kenya Core).
+* **Footprint**: 7 African markets (Kenya, Tanzania, Mozambique, DRC, Ghana, Egypt, Ethiopia).
+* **Total Scale**: 66,200,000 active users.
+* **Annual Throughput**: 28,000,000,000 individual transactions processing KES 40 trillion (~$309B to $314B USD annual value).
+* **Agent Infrastructure**: 381,000 registered physical cash-in/cash-out nodes in Kenya.
+
+## 2. MTN Group (MTN MoMo)
+* **Shortcode Interface (Ghana Example)**: Dial `*170#`.
+* **Footprint**: 14 out of 16 African markets.
+* **Fintech Organization Matrix**: Managed by MTN Fintech / FinCos (Unified workforce of > 900 specialized fintech professionals).
+* **Legal status / Compliance**: Operates via MTN (PTY) LTD, an authorized Financial Service Provider (FSP License: 44774).
+* **Ecosystem Segmentation**:
+  * **Consumer**: Airtime/bundles, bill payments (municipal, schools, DStv), savings, short-term loans, online shopping via MoMoPay.
+  * **Business**: Bulk disbursements (payroll, suppliers), QR Code collection, remote invoice collection.
+  * **Agents**: Cash-In / Cash-Out routing, cash-to-digital facilitation, multi-tier commission architecture.
+
+## 3. MoMo API Product Catalog (from the provided documentation)
+* **Remittance**: secure cross-border money transfers directly to a recipient's MoMo wallet.
+* **Distribute**: enable businesses to distribute MTN and MoMo services, including cash-in, cash-out, and airtime sales.
+* **Channel as a Service**: expose a sub-menu inside MoMo USSD and app channels for partner services.
+* **KYC / Account Validation**: provide KYC information to simplify customer onboarding.
+* **Pre-approval**: use the MoMo PIN to contract with customers and accept terms and conditions.
+* **Notify**: send customized SMS notifications within payment or collection flows.
+
+## 4. MoMo API Access Lifecycle
+1. `Create Sandbox User` (initial verification stub)
+2. `Generate API Key` (bearer credential generation)
+3. `Request To Pay` (inbound collection push)
+4. `Get Transaction Status` and `Get Account Balance` (asynchronous validation loop)
+5. `Check User Status` (KYC compliance and wallet validation check)
+
+## 5. Authentication & Key Management
+* **Credentials**: Subscription Key plus API User and API Key.
+* **Key Model**: each product can expose a Primary Key and a Secondary Key.
+* **Provisioning**: API user and API key are provisioned through the Sandbox Provisioning API.
+* **Subscription State**: subscriptions are stored under the developer profile and remain available until changed.
+
+## 6. Integration Stack Blueprint
+```json
+{
+  "api_integration_type": "REST_API_over_HTTPS",
+  "mtn_momo_api_modules": {
+    "collection": { "use_case": "Remote automatic collection of bills, fees, taxes" },
+    "disbursement": { "use_case": "Automated multi-wallet deposit for payroll or suppliers" },
+    "collection_widget": { "use_case": "Web-based checkout via dynamic QR code scanning" },
+    "remittances": { "use_case": "Diaspora-to-local automated cross-border fund distribution" }
+  },
+  "supported_use_cases": {
+    "P2P_transfer": { "typical_flow": "*shortcode# -> select_recipient -> input_amount -> pin_auth" },
+    "merchant_payment": { "global_volume_2024_usd": 105000000000 },
+    "bill_payment": { "global_volume_2024_usd": 93000000000 },
+    "bulk_disbursement": { "global_volume_2024_usd": 97000000000 },
+    "micro_loans": { "execution": "instant_credit_scoring_and_wallet_deposit" },
+    "savings_deposits": { "execution": "microfinance_group_wallets" }
+  }
+}
+```
+
+## 7. Equity Bank
+* **Shortcode Interface**: Dial `*247#` (Cross-network routing: Safaricom, Airtel, Telkom, Equitel).
+* **Operational Velocity**: Migrated 4,000,000+ customers to mobile USSD banking in under 20 days via EazzyPay platform infrastructure. Onboarded 60,000+ active merchants.
+
+## 8. Airtel Africa (Airtel Money)
+* **Footprint**: 14 African markets.
+* **Active Users**: 38,000,000 clients (+20.7%).
+* **Revenue**: $837,000,000 USD in 2024.
+
+### Airtel Money — Congo (extraits opérationnels)
+* **USSD Banking / Bank-to-Wallet**: `*128*4#` (menu guidé) — point d'entrée principal.
+* **Menu générique**: `*128#` pour accès général aux services Airtel Money et retrait GAB.
+* **Flux supportés**:
+  - `1` : Virement Airtel Money vers la banque (wallet -> bank)
+  - `2` : Virement Banque vers Airtel Money (bank -> wallet)
+  - `3` : Consultation de solde bancaire
+  - `4` : Mini-relevé
+* **Processus de virement banque -> Airtel**:
+  1. Composer `*128*4#`
+  2. Choisir la banque partenaire
+  3. Saisir le montant à transférer
+  4. Saisir le mot de passe ou code PIN
+* **Banques partenaires**: UBA BANK, LCB Bank, ECOBANK, BSCA, BGFIBank, BCI, MUCODEC, BCH, CREDIT DU CONGO.
+
+### Tarification Airtel Money (extrait)
+| Type d'opération | Coût |
+|---|---:|
+| Banque vers Airtel | 0 F CFA |
+| Airtel Money vers la Banque | 1% |
+| Consultation Solde | 0 F CFA |
+| Consultation Mini relevé | 0 F CFA |
+
+### Retrait via GAB MUCODEC
+* **Disponibilité**: 24h/24, 7j/7
+* **Contraintes**: montants strictement multiples de 5 000 (5 000 ; 10 000 ; 15 000 ; 20 000 ...).
+* **Procédure**:
+  1. Composer `*128#`
+  2. Choisir option 6
+  3. Choisir option 2
+  4. Saisir le montant (multiple de 5 000)
+  5. Recevoir un SMS contenant le code de retrait valide 15 minutes
+  6. Au guichet Mucodec: sélectionner `Service sans carte` -> `Airtel Money` -> saisir MSISDN, code SMS, montant -> valider
+
+### Support opérationnel
+* Centre d'appels : `121` (24/24)
+* Tarification d'appel : 24 F CFA/appel
+* Email support : Serviceclients@cg.airtel.com
+
+### Remarques de structuration
+* Ce bloc Airtel Money doit rester focalisé sur les flux USSD, les partenaires bancaires, la tarification et les contraintes de retrait.
+* Les contenus marketing généraux d'Airtel sont exclus de cette section pour conserver un corpus technique token-efficient.
+
+## 9. Cross-Border & Interoperability Architecture
+* **Cross-Border Clearing Rails**: PAPSS (Pan-African Payment and Settlement System) connecting over 160 commercial banks for local-currency instant settlement.
+* **Regional Integrations**: 2026 Pesalink-PAPSS partnership enabling real-time local currency routing across 80+ banks, fintechs, and SACCO networks in East Africa.
+* **Ghana Interoperability (MMI)**: Interoperable transactions grew +87% (from GHS 3.1B to GHS 5.8B). Total Ghana ecosystem scale reached 74,100,000 registered accounts for 34,000,000 population (multi-SIM density).
+--- END FILE: 40-compliance-rules/operator-specifications.md ---
+
+--- START FILE: 40-compliance-rules/regional-regulations.md ---
+# Regional Governance — Index Multi-Zone
+
+> **Couche** : `40-compliance-rules` · **Ne pas fusionner les zones** — le modèle hallucine si NG, CM et CI sont mélangés.
+
+## Matrice réglementaire (sectorisation v4)
+
+| Fichier | Zone | Devise | Pays clés |
+|---------|------|--------|-----------|
+| [cemac-cobac.md](./cemac-cobac.md) | CEMAC / BEAC / COBAC | XAF | CM, CG |
+| [uemoa-bceao.md](./uemoa-bceao.md) | UEMOA / BCEAO | XOF | CI |
+| [cbn-nigeria.md](./cbn-nigeria.md) | Nigeria / CBN / NIMC | NGN | NG |
+
+```json
+{
+  "rule": "Toujours résoudre ISO pays + devise AVANT d'appliquer regex KYC ou OpCo MTN",
+  "kyc_detail": "kyc-id-rules-by-country.md",
+  "async_flows": "../30-system-integrations/async-reconciliation-patterns.md"
+}
+```
+
+## Product Governance Model (MTN Developer)
+- The provided MoMo documentation organizes the platform around distinct products: Remittance, Distribute, Channel as a Service, KYC/Account Validation, Pre-approval, and Notify.
+- Each product is presented as a separate capability surface, which makes it suitable for a modular training corpus.
+
+## 2. Onboarding & Access Management
+- Developers must sign up for an account before accessing the MoMo API ecosystem.
+- Account activation is delivered by email and has a limited validity window.
+- Developers subscribe to products through the developer portal.
+- Each product subscription can expose a Primary Key and a Secondary Key.
+- API User and API Key are provisioned as a separate step after subscription.
+
+## 3. Identity, Consent & Customer Controls
+- KYC information can be requested to simplify customer onboarding.
+- Pre-approval is explicitly tied to the MoMo PIN and customer acceptance of terms and conditions.
+- Consent and authorization should be treated as explicit business controls rather than implicit workflow steps.
+
+## 4. Operational Lifecycle
+- Sandbox provisioning is the documented path for initial API user and key creation.
+- Transaction lifecycle checks include status retrieval, balance retrieval, and user-status validation.
+- Callback-based state updates are part of the expected integration flow.
+
+## 5. Structured Representation
+```json
+{
+  "onboarding": ["signup", "product_subscription", "subscription_key_management"],
+  "access_control": ["api_user", "api_key", "primary_key", "secondary_key"],
+  "customer_controls": ["kyc_validation", "pin_preapproval", "terms_acceptance"],
+  "integration_flow": ["sandbox_provisioning", "transaction_status_check", "balance_check", "callback_handling"]
+}
+```
+
+## 6. Operator-specific USSD Integrations (Airtel example)
+- **USSD entrypoints** are operator-specific and must be modeled as integration parameters (`ussd_code`, `menu_path`, `timeout_seconds`).
+- **Bank partnerships & interconnect**: model partner lists and fee matrices per country and per bank to avoid hardcoding rules in training data.
+- **Cash-out constraints**: include withdrawal constraints (e.g., multiples of 5 000, SMS code expiry) as structured fields rather than prose to save tokens.
+- **Support & escalation metadata**: include `support_number`, `support_email`, and `call_tariff` for operational playbooks.
+--- END FILE: 40-compliance-rules/regional-regulations.md ---
+
+--- START FILE: 40-compliance-rules/uemoa-bceao.md ---
+# UEMOA — BCEAO & Mobile Money (CI, XOF)
+
+> **Couche** : `40-compliance-rules` · **Zone** : UEMOA · **Devise** : XOF  
+> **Expert MoE** : Côte d'Ivoire et pays BCEAO — **distinct de CEMAC (XAF) et Nigeria (NGN)**
+
+## Périmètre
+
+| Élément | Valeur corpus AfriWallet |
+|---------|--------------------------|
+| Pays KYC biometric | CI (Côte d'Ivoire) dans registre Smile |
+| Devise zone | XOF (Franc CFA BCEAO) |
+| Régulateur | BCEAO |
+| Canal dominant | USSD ~89% volumes MoMo (BCEAO) |
+
+```json
+{
+  "regulators": ["BCEAO"],
+  "currency": "XOF",
+  "anti_cross_zone": {
+    "forbidden": "Appliquer règles CEMAC/COBAC (XAF, mtncameroon) sur onboarding CI",
+    "forbidden_2": "Confondre ISO CI (UEMOA) avec CG (CEMAC) — acronymes proches, zones différentes"
+  }
+}
+```
+
+## KYC Côte d'Ivoire (CI)
+
+- Smile ID biometric : `NATIONAL_ID_NO_PHOTO` regex `^(?:\d{11}|[A-Za-z]\d{10})$`.
+- Flux REST : upload-url → ZIP selfie + liveness → webhook `job_success`.
+- **Obligatoire** `kycStatus=VERIFIED` avant MoMo ou cartes (règle globale AfriWallet).
+
+## Mobile Money UEMOA
+
+- MTN OpCo exemple : `mtnivorycoast` (voir matrice env dans `provider-error-codes.md`).
+- Même pattern **async** que CEMAC : HTTP 202 → PENDING → webhook/polling.
+- Headers géo doivent refléter le pays cible — pas de `mtncameroon` pour un MSISDN CI.
+
+## Macro marché (contexte modèle)
+
+- USSD reste couche fallback obligatoire (< 48% smartphones en Afrique subsaharienne).
+- Volumes MoMo UEMOA : voir `macro-metrics.md`.
+
+## Voir aussi
+
+- `kyc-id-rules-by-country.md` — section CI
+- `../35-business-flows/afriwallet-business-flows.md` — cinématique MoMo
+- `cemac-cobac.md` — zone XAF (ne pas fusionner)
+
+--- END FILE: 40-compliance-rules/uemoa-bceao.md ---
+
+--- START FILE: 90-codebase-constraints/airtel-money-specs-draft.md ---
 # Airtel Money Specifications (Congo-Brazzaville)
+
+> **STATUT : NON IMPLÉMENTÉ** · Dossier `90-codebase-constraints` · Enum Prisma seulement  
+> **Protocole migration** : quand `src/providers/airtel.service.ts` existe → déplacer vers `30-system-integrations/airtel-money-specs.md` et retirer de `project-roadmap.md`
 
 ## 1. Environnements & onboarding
 - `staging_base_url`: `https://openapiuat.airtel.cg`
@@ -302,1225 +3454,109 @@ Champs clés: `first_name`, `last_name`, `is_barred`, `is_pin_set`, `registratio
 - PIN toujours chiffré RSA avant envoi.
 - Support: `121` (24/24), `Serviceclients@cg.airtel.com`.
 
---- END FILE: 02-fintech-local\airtel-money-specifications.md ---
+--- END FILE: 90-codebase-constraints/airtel-money-specs-draft.md ---
 
---- START FILE: 02-fintech-local\fintech-error-codes.md ---
-# Fintech Error Codes and Routing Matrix
+--- START FILE: 90-codebase-constraints/project-roadmap.md ---
+﻿# Codebase Constraints — Project Roadmap (Savoir Négatif)
 
-## 1. MTN Common Error Codes
-| HTTP | Response Code | Description | Action |
-|------|---------------|-------------|--------|
-| `409` | `RESOURCE_ALREADY_EXIST` | Duplicated Reference ID. Every request must use a unique UUID V4. | Generate new `X-Reference-Id` |
-| `401` | `ACCESS DENIED DUE TO INVALID SUBSCRIPTION KEY` | Invalid `Ocp-Apim-Subscription-Key`. Collection, Disbursement, Remittance have different keys. | Verify profile key; try secondary key; contact MTN support |
-| `404` | `RESOURCE NOT FOUND` | Reference ID not found in Get Status. Original request may have failed. | Verify original POST returned `202 Accepted` |
-| `400` | `REQUEST REJECTED/ BAD REQUEST` | Headers/body violate spec. | Validate UUID v4, currency, no unsupported chars, note <=160 chars, correct URL |
-| `403` | `FORBIDDEN IP` | IP not authorized for Disbursement API. | Whitelist public IP with MTN Account Manager |
-| `500` | `NOT_ALLOWED` | Token/user lacks permission. | Contact MTN Account Manager |
-| `500` | `NOT_ALLOWED_TARGET_ENVIRONMENT` | Wrong `X-Target-Environment` for country. | Use correct env (see matrix §2) |
-| `500` | `INVALID_CALLBACK_URL_HOST` | Callback host mismatch vs API user config. | Use hostname not IP; match portal config |
-| `500` | `INVALID_CURRENCY` | Currency unsupported for target account. | Use country-specific currency code |
-| `503` | `SERVICE_UNAVAILABLE` | Platform temporarily unavailable. | Retry later or escalate to MTN |
+> **Couche** : `90-codebase-constraints` · **Expert MoE** : anti-hallucination **uniquement**  
+> **Source** : `prisma/schema.prisma` vs `src/`  
+> **Règle** : ce dossier = limites, enums fantômes, features absentes — **pas** les codes erreur providers (→ `30-system-integrations/provider-error-codes.md`)
 
-## 2. MTN Target Environment Matrix
-| Pays | X-Target-Environment |
-|------|---------------------|
-| MTN Uganda | `mtnuganda` |
-| MTN Ghana | `mtnghana` |
-| MTN Ivory Coast | `mtnivorycoast` |
-| MTN Zambia | `mtnzambia` |
-| MTN Cameroon | `mtncameroon` |
-| MTN Benin | `mtnbenin` |
-| MTN Congo | `mtncongo` |
-| MTN Swaziland | `mtnswaziland` |
-| MTN GuineaConakry | `mtnguineaconakry` |
-| MTN SouthAfrica | `mtnsouthafrica` |
-| MTN Liberia | `mtnliberia` |
-| MTN SouthSudan | `mtnsouthsudan` |
-| MTN Nigeria | `mtnnigeria` |
-| MTN Rwanda | `mtnrwanda` |
-| Sandbox | `sandbox` |
+## Contexte
 
-## 3. MTN Common Error Responses (business layer)
-| Type | Description | Action |
-|------|-------------|--------|
-| `INTERNAL_PROCESSING_ERROR` | Generic failure; often insufficient funds or wallet unreachable. | Customer retries with sufficient funds; escalate if persists |
-| `PAYEE_NOT_FOUND` | Payee MSISDN invalid or not registered. | MSISDN must include country code |
-| `PAYER_NOT_FOUND` | Payer MSISDN invalid or not registered. | MSISDN must include country code |
-| `COULD_NOT_PERFORM_TRANSACTION` | Timeout; approval delay beyond 5 minutes. | Retry and approve within 5 min window |
+Le modèle **NE DOIT PAS** générer de code ou confirmer des features listées ci-dessous comme `schema_only`. Les enums Prisma existent ; les services **non**.
 
-## 4. MTN Sandbox test value routing (extrait)
-| Use Case | Test Value | Expected Error |
-|----------|------------|----------------|
-| RequestToPayPayerNotFound | `46733123455` | Payer not found |
-| RequestToPayPayerNotAllowedTargetEnvironment | `46733123458` | Wrong target env |
-| RequestToPayPayerInvalidCallbackUrlHost | `46733123459` | Callback host invalid |
-| RequestToPayPayerInvalidCurrency | `46733123460` | Invalid currency |
-| RequestToPayPayerInternalProcessingError | `46733123461` | Internal processing |
-| RequestToPayPayerCouldNotPerformTransaction | `46733123463` | Timeout |
-| TransferPayeeNotEnoughFunds | `46733123455` | Insufficient funds |
-| TransferPayeeNotFound | `46733123457` | Payee not found |
-| PaymentAmountFailed | `2000` | Payment failed |
-| PaymentAmountSuccess | `1000` | Payment success |
+---
 
-## 5. Airtel Common Error Codes (ROUTER)
-| Code | Description | Handling |
-|------|-------------|----------|
-| `ROUTER001` | Wallet is not configured - Application Wallet not configured. | Configure wallet in dev portal before API calls |
-| `ROUTER003` | Missing header/body params - mandatory field absent. | Validate all required headers and body fields |
-| `ROUTER005` | Country route not configured. | Contact Airtel customer support |
-| `ROUTER006` | Invalid Country - incorrect country code. | Use `CG` for Congo-Brazzaville |
-| `ROUTER007` | User Not authorized for provided country. | Verify account country permissions |
-| `ROUTER112` | Invalid Currency - incorrect currency code. | Use `XAF` for Congo-Brazzaville |
-| `ROUTER114` | Error while Validating Pin. | Check PIN encryption (RSA 2048 OAEP) |
-| `ROUTER115` | Incorrect Pin. | Re-prompt user for correct PIN |
-| `ROUTER116` | Incorrect Encrypted Pin - encryption mechanism error. | Review RSA encryption implementation |
-| `ROUTER117` | Request Timeout - ambiguous for payments/refund. | Perform transaction enquiry |
-| `ROUTER119` | Invalid/Missing Currency in request parameters. | Inject `X-Currency: XAF` |
+## Protocole migration 90 → 30 (features fantômes)
 
-## 6. Airtel Product Specific Error Codes (ESB)
-| Code | Description | Handling |
-|------|-------------|----------|
-| `ESB000001` | Something went wrong - ambiguous state. | Transaction enquiry |
-| `ESB000004` | Error initiating payment - ambiguous state. | Transaction enquiry |
-| `ESB000008` | Field validation error - ambiguous state. | Fix input + transaction enquiry |
-| `ESB000010` | Request was Success. | Proceed |
-| `ESB000011` | Request was Failed. | Fail workflow, log payload |
-| `ESB000014` | Error fetching transaction status - ambiguous. | Retry enquiry after delay |
-| `ESB000033` | Invalid MSISDN Length. | Fix MSISDN format |
-| `ESB000034` | Invalid Country Name. | Use `CG` |
-| `ESB000035` | Invalid Currency Code. | Use `XAF` |
-| `ESB000036` | Invalid MSISDN length or doesn't start with 0. | Fix MSISDN local format |
-| `ESB000039` | Vendor not configured for country. | Contact Airtel support |
-| `ESB000041` | External Transaction ID already exists. | Generate new unique transaction id |
-| `ESB000045` | No Transaction Found With Provided Transaction Id. | Verify id, re-enquire |
-| `0000900` | Transaction might be in ambiguous state. | Check `response_code` or perform enquiry |
+Quand l'équipe **implémente** un provider ou flux :
 
-## 7. Airtel HTTP Error Codes
-| HTTP | Description | Handling |
-|------|-------------|----------|
-| `400` | Bad Request - invalid request. | Fix input |
-| `401` | Unauthorized - API key or bearer token incorrect. | Refresh OAuth2 token |
-| `403` | Forbidden. | Check permissions |
-| `404` | Not Found - path not found. | Verify endpoint URL |
-| `405` | Method Not Allowed. | Use correct HTTP verb |
-| `408` | Read Timeout - ambiguous for payments/refund. | Transaction enquiry |
-| `429` | Too Many Requests. | Apply backoff |
-| `500` | Internal Server Error. | Retry later |
-| `502` | Bad Gateway - ambiguous for payments/refund. | Transaction enquiry |
-| `503` | Service Unavailable. | Retry later |
-| `504` | Gateway Timeout - ambiguous for payments/refund. | Transaction enquiry |
+| Étape | Action |
+|-------|--------|
+| 1 | Créer le service dans `src/providers/` ou `src/payments/` |
+| 2 | Retirer l'entrée `NON IMPLÉMENTÉ` de ce fichier |
+| 3 | Déplacer la spec draft `90-…/xxx-specs-draft.md` → `30-system-integrations/xxx-specs.md` |
+| 4 | Mettre à jour `25-database-storage/prisma-patterns.md` si enum passe à `implemented` |
+| 5 | Régénérer corpus : `python generate_corpus.py` (linter inclus) |
 
-## 8. Airtel Cash-In Error Codes (DP01*)
-| Code | Reason | Description |
-|------|--------|-------------|
-| `DP01000001000` | Ambiguous | Still processing - perform enquiry |
-| `DP01000001001` | Success | Transaction successful |
-| `DP01000001002` | Incorrect Pin | Wrong PIN entered |
-| `DP01000001003` | Limit exceeded | Wallet transaction limit exceeded |
-| `DP01000001004` | Invalid Amount | Below minimum amount |
-| `DP01000001005` | Failed | Transaction failed |
-| `DP01000001006` | In Process | Pending - check later |
-| `DP01000001007` | Insufficient Funds | Wallet balance too low |
-| `DP01000001008` | User Not Allowed | Payer not permitted |
-| `DP01000001009` | Initiatee Invalid | Invalid initiatee |
-| `DP01000001010` | Not Permitted | User not allowed as payer |
-| `DP01000001011` | Do Not Honour | Transaction already completed |
-| `DP01000001012` | Invalid Mobile Number | MSISDN incorrect or unregistered |
-| `DP01000001013` | Failed/Refused | Transaction failed or refused |
-| `DP01000001014` | Transaction Timed Out | Ambiguous - perform enquiry |
+**Tant que non codé** : spec marché reste en `90-codebase-constraints/` (ex. `airtel-money-specs-draft.md`).
 
-## 9. Airtel Bank-to-Wallet Error Codes (DP02*)
-| Code | Reason | Description |
-|------|--------|-------------|
-| `DP02100001000` | Ambiguous | Processing or ambiguous - perform enquiry |
-| `DP02100001001` | Success | Transaction successful |
-| `DP02100001002` | Duplicate Transaction ID | Use unique transaction id |
-| `DP02100001003` | Transaction Time Out | Perform enquiry |
-| `DP02100001004` | Transaction Not Found | Verify transaction id |
-| `DP02100001005` | Failed | Transaction failed or refused |
-| `DP02100001006` | Transaction In Progress | Perform enquiry |
-| `DP02100001007` | Invalid Input | One input field is invalid |
+---
 
-## 10. Airtel Remittance Refund - response_code mapping
-| response_code | transaction.status | Signification |
-|---------------|-------------------|---------------|
-| `DP03520001001` | `TR` | Transaction Reversed - remboursement réussi |
+## Contrat — Planifié NON implémenté (interdit de coder)
 
-## 11. Airtel Transaction Status Codes
-| Code | Signification | airtel_money_id généré ? |
-|------|---------------|---------------------------|
-| `TS` | Transaction Success | Oui |
-| `TF` | Transaction Failed | Non |
-| `TIP` | Transaction in Progress | Non |
-| `TA` | Transaction Ambiguous | Non |
-| `TR` | Transaction Reversed | Oui (refund) |
-
-## 12. Country / Currency Reference Matrix (Airtel Africa)
-| Country | Currency | Country Code | Currency Code |
-|---------|----------|--------------|---------------|
-| UGANDA | Ugandan shilling | `UG` | `UGX` |
-| NIGERIA | Nigerian naira | `NG` | `NGN` |
-| TANZANIA | Tanzanian shilling | `TZ` | `TZS` |
-| KENYA | Kenyan shilling | `KE` | `KES` |
-| RWANDA | Rwandan franc | `RW` | `RWF` |
-| ZAMBIA | Zambian kwacha | `ZM` | `ZMW` |
-| GABON | CFA franc BEAC | `GA` | `CFA` |
-| NIGER | CFA franc BCEAO | `NE` | `XOF` |
-| **CONGO-BRAZZAVILLE** | **CFA franc BCEA** | **`CG`** | **`XAF`** |
-| DR CONGO | Congolese franc | `CD` | `CDF` |
-| DR CONGO | United States dollar | `CD` | `USD` |
-| CHAD | CFA franc BEAC | `TD` | `XAF` |
-| SEYCHELLES | Seychelles rupee | `SC` | `SCR` |
-| MADAGASCAR | Malagasy ariary | `MG` | `MGA` |
-| MALAWI | Malawian kwacha | `MW` | `MWK` |
-
-## 13. Cross-provider error harmonization
-### Wallet operations
-| Symptom | MTN | Airtel |
-|---------|-----|--------|
-| Duplicate reference | `409 RESOURCE_ALREADY_EXIST` | `ESB000041` |
-| Invalid subscription/key | `401 ACCESS DENIED...` | `401 Unauthorized` |
-| Wrong country env | `500 NOT_ALLOWED_TARGET_ENVIRONMENT` | `ROUTER006` / `ROUTER007` |
-| Wrong currency | `500 INVALID_CURRENCY` | `ROUTER112` / `ROUTER119` |
-| Insufficient funds | `INTERNAL_PROCESSING_ERROR` | `DP01000001007` |
-| Invalid MSISDN | `PAYEE_NOT_FOUND` / `PAYER_NOT_FOUND` | `DP01000001012` / `ESB000033` |
-| Timeout / ambiguous | `COULD_NOT_PERFORM_TRANSACTION` | `ROUTER117` / `0000900` / `DP*10000` |
-| Callback host mismatch | `500 INVALID_CALLBACK_URL_HOST` | N/A (config portal) |
-
-### Bank-to-Wallet
-| Symptom | Airtel code | Action |
-|---------|-------------|--------|
-| Duplicate txn id | `DP02100001002` | New unique id |
-| Ambiguous state | `DP02100001000` / `DP02100001006` | Transaction enquiry |
-| Timeout | `DP02100001003` | Transaction enquiry |
-
-## 14. Error handling patterns (intégration)
-- Valider body/headers avant appel API.
-- `400` / `422` -> corriger input ou rejeter côté client.
-- `401` / `403` -> rotation token ou alerte équipe intégration.
-- `409` / `ESB000041` -> générer nouveau reference/transaction id.
-- `429` -> backoff exponentiel.
-- `500` / `502` / `504` -> retry si idempotent, sinon alerte ops.
-- `202` + `PENDING` / `TIP` -> poll status ou attendre callback.
-- Toujours logger: `request_id`, `X-Reference-Id`, `transaction.id`, `response_code`, `provider_message`, `route_country`.
-
-## 15. Token-efficient troubleshooting guide
-1. Vérifier `X-Reference-Id` (MTN) ou `transaction.id` (Airtel) - unicité.
-2. Vérifier headers géo: `X-Country: CG` + `X-Currency: XAF` (Airtel Congo) ou `X-Target-Environment: mtncongo` (MTN Congo prod).
-3. Si `duplicate_request` -> retourner résultat stocké, ne pas re-débiter.
-4. Si `timeout` + appel idempotent -> une seule retry puis enquiry.
-5. Si `business_rule` failure -> message utilisateur friendly (PIN incorrect, fonds insuffisants).
-6. Si `ambiguous` (`TA`, `TIP`, `0000900`, `DP*10000`) -> transaction enquiry obligatoire avant toute action corrective.
-7. Si callback manquant -> GET status; ne jamais supposer succès sur seul `202 Accepted`.
-8. `DP03520001001` + `TR` = renversement confirmé côté Airtel remittance.
-
---- END FILE: 02-fintech-local\fintech-error-codes.md ---
-
---- START FILE: 02-fintech-local\fraud-vectors-security.md ---
-# Fraud Vectors, Security Threat Modeling & Structural Risks
-
-## Identified Threat Landscape & Vulnerabilities
-* **Primary Threat Vectors**: Identity theft, Internal fraud (insider threats), Cyber-fraud, Agent-level fraud.
-* **Technical Attack Typologies**: Social Engineering, Man-in-the-Middle (MitM) attacks, Malware deployment.
-* **GSM Signaling Weakness**: USSD data transmissions over GSM signaling channels lack native end-to-end encryption (E2EE). Payloads pass through Mobile Network Operator (MNO) infrastructure in cleartext.
-
-## Attack Vector Profile: SIM Swap Fraud
-* **Mechanism**: Attackers hijack a subscriber's MSISDN by social engineering an MNO agent into issuing a replacement SIM card, thereby intercepting the USSD session validation path.
-* **Mitigation Triggers**:
-  * Implement a 24-72 hour cooling period/temporary hold on high-value transactions post SIM swap event flag.
-  * Implement strict transaction velocity limits.
-  * Mandatory out-of-band SMS notifications for all state-changing actions.
-
-## Session UX Security Implementation Rules
-* **PIN Authentication Placement**: Enforce PIN entry strictly at the final confirmation step, never at session initiation (prevents PIN harvest via abandoned sessions).
-* **PIN Complexity Policy**: Hard rejection of sequential data (`1234`) or repetitive arrays (`0000`).
-* **Menu Masking Rule**: Mask all sensitive data strings (e.g., account numbers, balances) except the last 4 characters within the 160-character menu display.
-* **Inactivity Session Drop**: Force automatic state termination after 60 seconds of idle time (network-level timeout maximum is 180 seconds).
-* **Two-Factor Authentication (2FA)**: For transactions exceeding defined risk velocity thresholds, process the USSD flow then trigger an out-of-band numeric SMS confirmation token prior to final settlement.
-* **B2B / Merchant Security**: Merchant operations require strict verification mapping. Transition to static or dynamic QR Code generation to mitigate errors in recipient input (`Merchant ID` + `Merchant Name` matching array).
-* **Cross-Channel Consistency**: Transactions validation sequences must bind across client agents (`MoMo App`, `Merchant App`, `Agent App`) and offline interfaces (`USSD Protocol`).
-
-## MoMo Documentation Security Mapping
-* **Access Control**: The provided documentation frames Subscription Key, API User, and API Key as the core access-control mechanism for the MoMo API surface.
-* **Provisioning Control**: API user and API key creation is positioned as a formal provisioning step after onboarding and subscription.
-* **Consent & Authorization**: Pre-approval is explicitly tied to the MoMo PIN and acceptance of terms and conditions, making user authorization a first-class control.
-* **Validation Loop**: Transaction status, balance checks, and user-status validation are treated as asynchronous verification steps rather than blind execution.
-* **Callback Discipline**: The documented lifecycle expects callback-based state updates, which should be treated as a security-sensitive integration boundary.
-
-## Institutional Governance Friction
-* **Supplier Perspective**: >70% of Mobile Money providers rate law enforcement agencies as ineffective.
-* **Root Causes**: Lack of technical/forensic skills, insufficient resources, corruption.
-* **Authentication Gap**: ~50% of active mobile money users in Sub-Saharan Africa do not have a password or PIN protecting their account assets (World Bank Global Findex 2025).
-
-## Regulatory Charging & Clearing Models (Nigeria Case Study)
-* **Pricing Resolution (February 2026)**: Resolution of the N300 billion bank-telco access fee dispute.
-* **Regulated Session Cost**: End-user access fee fixed at N6.98 per 120-second USSD session (ALTON / Central Bank regulations).
-
-## Financial Inclusion Fault-lines (Ecosystem & Usage Gaps)
 ```json
 {
-  "gender_gap_stagnation": {
-    "senegal": {
-      "male_account_penetration": "Nearly universal",
-      "female_exclusion_rate": 0.25
-    },
-    "nigeria": {
-      "gender_gap_2023": 0.46,
-      "gender_gap_2024": 0.41
-    }
+  "AIRTEL_MOMO": {
+    "evidence": ["TransactionType.CASH_IN_AIRTEL", "PaymentProvider.AIRTEL"],
+    "status": "schema_only",
+    "has_service": false,
+    "has_webhook": false,
+    "spec_draft": "90-codebase-constraints/airtel-money-specs-draft.md",
+    "error_codes_reference": "30-system-integrations/provider-error-codes.md §5-12 (marché only)",
+    "model_must_say": "Non implemente — enum Prisma uniquement"
   },
-  "advanced_transaction_disparities": {
-    "senegal_salary_receive_rate": { "male": 0.16, "female": 0.05 },
-    "nigeria_client_payment_receive_rate": { "male": 0.41, "female": 0.25 },
-    "kenya_merchant_payment_usage": { "male": 0.66, "female": 0.50 }
+  "CARD_PAYMENT": {
+    "evidence": "TransactionType.CARD_PAYMENT",
+    "status": "schema_only"
+  },
+  "CARD_REFUND": {
+    "evidence": "TransactionType.CARD_REFUND",
+    "status": "schema_only"
+  },
+  "KYC_BIOMETRIC_CM": {
+    "evidence": "CM absent de smile-id-id-rules.ts",
+    "workaround": "Onafriq defaults CM, document verification CG only — voir cemac-cobac.md"
+  },
+  "DYNAMIC_FEES": {
+    "field": "feeFcfa",
+    "current": "always 0 in all services"
+  },
+  "MULTI_WALLET": {
+    "constraint": "Wallet.userId @unique",
+    "current": "1 wallet per user"
   }
 }
+```
 
---- END FILE: 02-fintech-local\fraud-vectors-security.md ---
+## Contrat — Implémenté et sûr à documenter
 
---- START FILE: 02-fintech-local\macro-metrics.md ---
-# Mobile Money Macro Metrics & Regional Stats (2024-2026)
-
-## Global Market Share & Volumes (Africa vs Global)
-* **Total Registered Accounts (Africa)**: 1,100,000,000 (53% of global share)
-* **Total Transactions (Africa)**: 81,000,000,000
-* **Total Transaction Value (Africa)**: $1,105,000,000,000 USD (Ref: GSMA SOTIR 2025 / Arkesel 2026)
-* **Adult Penetration Rate (Sub-Saharan Africa)**: 40% of adults hold an active MoMo account (Findex 2025 - up from 27% baseline).
-* **Global Agent Network Growth**: 28,000,000 registered agents globally (77% of net growth located in Sub-Saharan Africa).
-* **MTN Group Operational Throughput**: > 900,000,000 transactions processed monthly across 16 African countries (Ref: MTN MoMo Official 2026).
-* **MTN Group Active Base**: > 50,000,000 active users (Platform metric footprint).
-
-## Instant Payment Systems (IPS / SPI) Benchmarks
-* **Volume (Historical 2021 Reference)**: 16,000,000,000 individual transactions.
-* **Value (Historical 2021 Reference)**: $930,000,000,000 USD.
-* **Growth Rates (CAGR 2018-2021)**: Transaction volume grew +32% YoY; total value grew +40% YoY.
-* **Active Infrastructure (AfricaNenda)**: 29 active Instant Payment Systems (26 national, 3 regional).
-* **Multi-system Countries Breakdown**: Nigeria (3), Ghana (2), Egypt (2), Kenya (2), Tanzania (2).
-
-## USSD Protocol Market Share & Dominance
-* **Continental Average**: USSD powers over 70% of all mobile money interactions.
-* **Instant Payment Systems (IPS) Integration**: 62% of active instant payment systems in Africa natively utilize USSD protocols as a delivery channel.
-* **Regional Peak (WAEMU / UEMOA)**: USSD handles 89% of all mobile money transaction volumes (Source: BCEAO).
-* **Device / Connectivity Driver**: < 48% of mobile connections in Sub-Saharan Africa are smartphones; only 28% have mobile internet access. USSD acts as the mandatory fallback layer.
-
-## Regional Breakdown Matrix (2024 Performance)
-
-| Region | Active Services | Registered Accounts | 30d Active Accounts | Transactions Volume | Transaction Value (USD) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sub-Saharan Africa** | N/A | 1.1B (+19%) | 286M (+12%) | 81B (+22%) | 1.1T (+15%) |
-| **East Africa** | 57 | 459M (+15%) | 149M (+12%) | 52B (+25%) | 649B (+23%) |
-| **West Africa** | 74 | 485M (+21%) | 97M (+13%) | 22B (+15%) | 357B (+5%) |
-| **Central Africa** | 19 | 104M (+24%) | 32M (+13%) | 7B (+22%) | 83B (+7%) |
-| **North Africa** | 13 | 25M (+24%) | 3M (+44%) | 262M (+63%) | 10B (+53%) |
-| **Southern Africa** | 15 | 27M (+19%) | 4M (-20%) | 543M (-9%) | 6B (+4%) |
-
-## GDP Contribution Thresholds by Country Group
 ```json
 {
-  "impact_gt_5_percent": {
-    "west_africa": ["Benin", "Cote d'Ivoire", "Ghana", "Guinea", "Guinea-Bissau", "Senegal", "Liberia"],
-    "east_africa": ["Kenya", "Rwanda", "Uganda", "Tanzania"]
-  },
-  "impact_between_5_and_8_percent": {
-    "central_africa": ["Cameroon", "Congo", "Gabon"]
-  },
-  "impact_lt_5_percent": {
-    "southern_africa": ["General Integration"]
-  }
-}
-
---- END FILE: 02-fintech-local\macro-metrics.md ---
-
---- START FILE: 02-fintech-local\mtn-money-specifications.md ---
-# MTN MoMo Specifications
-
-## 1. Principes de conception
-- API REST JSON sur HTTPS.
-- Objets abstraits indépendants de l'implémentation wallet sous-jacente.
-- Types de transaction standardisés (RequestToPay, Transfer, Payment, Preapproval).
-- Codes ISO pour devises et pays.
-- Identifiants flexibles: `MSISDN`, `EMAIL`, `PARTY_CODE`, `ACCOUNT_ID`.
-
-## 2. Catalogue produits MoMo API
-| Produit | Usage |
-|---------|-------|
-| Collection | Collecter paiements (RequestToPay, Payment) |
-| Disbursement | Verser fonds (Transfer, Deposit) |
-| Remittance | Transferts transfrontaliers vers wallet MoMo |
-| Collection Widget | Checkout web via QR dynamique |
-| Distribute | Cash-in/cash-out/airtime pour agents |
-| Channel as a Service | Sous-menu USSD/App MoMo |
-| KYC / Account Validation | Onboarding simplifié |
-| Pre-approval | Débit auto via PIN MoMo |
-| Notify | SMS personnalisé post-transaction |
-
-## 3. Environnements & endpoints
-- `sandbox_base_url`: `https://sandbox.momodeveloper.mtn.com`
-- `production_base_url`: `https://momodeveloper.mtn.com`
-- `oauth2_token`: `POST /oauth2/v1_0/token`
-- `provision_api_user`: `POST /apiuser`
-- `provision_api_key`: `POST /apiuser/{APIUser}/apikey`
-- `get_api_user`: `GET /apiuser/{APIUser}`
-- `request_to_pay`: `POST /collection/v1_0/requesttopay`
-- `get_request_to_pay_status`: `GET /collection/v1_0/requesttopay/{referenceId}`
-- `transfer`: `POST /disbursement/v1_0/transfer`
-- `payment`: `POST /collection/v2_0/payment`
-- `preapproval`: `POST /collection/v1_0/preapproval`
-- `validate_account`: `GET /collection/v1_0/accountholder/{accountHolderIdType}/{accountHolderId}`
-- `get_balance`: `GET /collection/v1_0/account/balance`
-
-## 4. Cycle de vie développeur
-1. Signup sur `momodeveloper.mtn.com` (lien activation expire en 24h).
-2. Subscribe aux produits: Collection Widget, Collection, Remittances, Disbursements.
-3. Récupérer Primary Key + Secondary Key par produit (profil développeur).
-4. Provisionner API User + API Key via Sandbox Provisioning API.
-5. Obtenir OAuth2 token, puis appeler les APIs métier.
-
-## 5. Headers & authentication
-- `Ocp-Apim-Subscription-Key: <subscription_key>` (Primary ou Secondary)
-- `Content-Type: application/json`
-- `Accept: application/json`
-- `X-Target-Environment: sandbox` (test) ou env pays (prod)
-- `Authorization: Bearer <access_token>`
-- `X-Reference-Id: <uuid_v4>` (obligatoire sur POST)
-- `X-Callback-Url: <https_url>` (optionnel, même domaine que `providerCallbackHost`)
-
-### Provisioning API User
-```http
-POST /apiuser HTTP/1.1
-Host: sandbox.momodeveloper.mtn.com
-X-Reference-Id: c72025f5-5cd1-4630-99e4-8ba4722fad56
-Ocp-Apim-Subscription-Key: <subscription_key>
-Content-Type: application/json
-
-{"providerCallbackHost": "clinic.com"}
-```
-Réponse: `201 Created`
-
-### Provisioning API Key
-```http
-POST /apiuser/c72025f5-5cd1-4630-99e4-8ba4722fad56/apikey HTTP/1.1
-Host: sandbox.momodeveloper.mtn.com
-Ocp-Apim-Subscription-Key: <subscription_key>
-```
-Réponse: `201 Created` avec `{"apiKey": "..."}`
-
-### OAuth2 token
-- Grant: `client_credentials` (RFC 6749).
-- Auth: Basic `base64(api_user:api_key)`.
-- Token: Bearer (RFC 6750), réutilisable jusqu'à expiration.
-- Sandbox: provisioning API gère user/key. Production: Partner Portal.
-
-## 6. MTN country target environment mapping
-| Pays | X-Target-Environment |
-|------|---------------------|
-| MTN Congo | `mtncongo` |
-| MTN Uganda | `mtnuganda` |
-| MTN Ghana | `mtnghana` |
-| MTN Ivory Coast | `mtnivorycoast` |
-| MTN Zambia | `mtnzambia` |
-| MTN Cameroon | `mtncameroon` |
-| MTN Benin | `mtnbenin` |
-| MTN Swaziland | `mtnswaziland` |
-| MTN GuineaConakry | `mtnguineaconakry` |
-| MTN SouthAfrica | `mtnsouthafrica` |
-| MTN Liberia | `mtnliberia` |
-| MTN SouthSudan | `mtnsouthsudan` |
-| MTN Nigeria | `mtnnigeria` |
-| MTN Rwanda | `mtnrwanda` |
-| Sandbox test | `sandbox` |
-
-## 7. Sémantique async (POST)
-- `POST /requesttopay` et `POST /transfer` -> `202 Accepted` après validation.
-- Ressource créée en état `PENDING`.
-- État final: `SUCCESSFUL` ou `FAILED`.
-- Callback envoyé une seule fois (PUT ou POST selon config), pas de retry.
-- Fallback: `GET /requesttopay/{referenceId}` si callback manquant.
-- `X-Reference-Id` dupliqué -> `409 RESOURCE_ALREADY_EXIST`.
-
-## 8. États lifecycle
-- `PENDING`, `SUCCESSFUL`, `FAILED`, `REJECTED`, `EXPIRED`, `ONGOING`
-
-## 9. Aggregator API - transferType requis
-Sandbox values:
-- `CUSTOM_PAYMENT`
-- `CUSTOM_BANK_PAYMENT`
-- `CUSTOM_BANK_PAYMENT_FEE`
-
-Production: valeurs contractuelles fournies par l'onboarding team.
-
-### RequestToPay (Aggregator)
-```bash
-curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay' \
---header 'Ocp-Apim-Subscription-Key: <key>' \
---header 'Content-Type: application/json' \
---header 'X-Target-Environment: sandbox' \
---header 'Authorization: Bearer <token>' \
---header 'X-Reference-Id: <uuid_v4>' \
---data '{
-  "amount": "1000",
-  "currency": "EUR",
-  "externalId": "10001",
-  "payer": {"partyIdType": "MSISDN", "partyId": "123456789012"},
-  "payerMessage": "Order Payment",
-  "payeeNote": "Order Payment",
-  "transferType": "CUSTOM_PAYMENT"
-}'
-```
-
-### Transfer (Aggregator)
-```bash
-curl --location 'https://sandbox.momodeveloper.mtn.com/disbursement/v1_0/transfer' \
---header 'Ocp-Apim-Subscription-Key: <key>' \
---header 'Content-Type: application/json' \
---header 'X-Target-Environment: sandbox' \
---header 'Authorization: Bearer <token>' \
---header 'X-Reference-Id: <uuid_v4>' \
---data '{
-  "amount": "1000",
-  "currency": "EUR",
-  "externalId": "10001",
-  "payee": {"partyIdType": "MSISDN", "partyId": "123456789012"},
-  "payerMessage": "Order Payment",
-  "payeeNote": "Order Payment",
-  "transferType": "CUSTOM_PAYMENT"
-}'
-```
-
-### Payment (Aggregator)
-```bash
-curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v2_0/payment' \
---header 'Ocp-Apim-Subscription-Key: <key>' \
---header 'Content-Type: application/json' \
---header 'X-Target-Environment: sandbox' \
---header 'Authorization: Bearer <token>' \
---header 'X-Reference-Id: <uuid_v4>' \
---data '{
-  "externalTransactionId": "10001",
-  "money": {"amount": "1000", "currency": "EUR"},
-  "customerReference": "MSISDN",
-  "serviceProviderUserName": "TestSpUsername",
-  "transferType": "CUSTOM_PAYMENT"
-}'
-```
-
-## 10. Java / PHP client patterns
-
-### Java (RequestToPay)
-```java
-URL url = new URL("https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay");
-HttpURLConnection con = (HttpURLConnection) url.openConnection();
-con.setRequestMethod("POST");
-con.setRequestProperty("Content-Type", "application/json");
-con.setRequestProperty("Ocp-Apim-Subscription-Key", subscriptionKey);
-con.setRequestProperty("X-Target-Environment", "sandbox");
-con.setRequestProperty("Authorization", "Bearer " + accessToken);
-con.setRequestProperty("X-Reference-Id", referenceId);
-con.setDoOutput(true);
-try (OutputStream os = con.getOutputStream()) {
-  os.write(payload.getBytes("UTF-8"));
+  "implemented": [
+    "OTP SMS + PIN bcrypt + JWT",
+    "Wallet FCFA BigInt",
+    "KYC biometric 8 countries + document CG",
+    "SmartSelfie step-up (decorrelated from legal KYC)",
+    "MTN MoMo cash-in/out with cash-out compensation",
+    "Bridge sandbox deposit",
+    "Onafriq virtual cards + freeze webhooks",
+    "Webhooks idempotent: MTN, Smile, Onafriq, Bridge"
+  ]
 }
 ```
 
-### PHP (RequestToPay - GuzzleHttp)
-```php
-$client = new GuzzleHttp\Client();
-$response = $client->post('https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay', [
-  'headers' => [
-    'Content-Type' => 'application/json',
-    'Ocp-Apim-Subscription-Key' => $subscriptionKey,
-    'X-Target-Environment' => 'sandbox',
-    'Authorization' => 'Bearer ' . $accessToken,
-    'X-Reference-Id' => $referenceId
-  ],
-  'body' => json_encode($payload)
-]);
-```
+## Phrases types pour le modèle
 
-## 11. Callback rules
-### Sandbox
-- Enregistrer `providerCallbackHost` à la création API Key.
-- Callback URL dans header `X-Callback-Url` sur chaque POST.
-- HTTPS obligatoire.
-- Autoriser PUT et POST sur le listener callback.
+| Question utilisateur | Réponse correcte |
+|---------------------|------------------|
+| "Implémente Airtel cash-in" | Enum existe, aucun service — voir spec draft 90, pas de routes |
+| "Paiement par carte CARD_PAYMENT" | TransactionType existe, non implémenté |
+| "KYC biométrique Cameroun CM" | Pas dans Smile ID rules — voir `cemac-cobac.md` |
+| "Frais dynamiques feeFcfa" | Champ existe, toujours 0 |
+| "Code erreur MTN 409" | Voir `30-system-integrations/provider-error-codes.md` (pas ici) |
 
-### Production
-- Callback host enregistré via Accounts Portal.
-- HTTPS obligatoire.
-- Callback envoyé une seule fois - implémenter polling GET en fallback.
+## Enrichissement externe requis
 
-### CA intermédiaires approuvés (extrait)
-- Amazon Root CA 1/4, Amazon RSA 2048 M01/M02/M03
-- COMODO RSA Domain Validation Secure Server CA
-- Certum Domain Validation CA SHA2
+- Textes BEAC, BCEAO, CBN officiels (hors codebase)
+- Orange Money, Wave, M-Pesa (absents)
 
-## 12. Sandbox test environment
-- `X-Target-Environment`: `sandbox`
-- Devise sandbox: `EUR`
-- Comptes Partner GUI existants ne fonctionnent PAS en sandbox - utiliser Provisioning API.
-- Tout MSISDN non listé -> succès par défaut.
+## Voir aussi
 
-### Valeurs de test RequestToPay (extrait)
-| Scénario | MSISDN test |
-|----------|-------------|
-| PayerFailed | `46733123450` |
-| PayerRejected | `46733123451` |
-| PayerExpired | `46733123452` |
-| PayerNotFound | `46733123455` |
-| PayerNotAllowedTargetEnvironment | `46733123458` |
-| PayerInvalidCallbackUrlHost | `46733123459` |
-| PayerInvalidCurrency | `46733123460` |
-| PayerInternalProcessingError | `46733123461` |
-| PayerCouldNotPerformTransaction | `46733123463` |
-| PayerTransfertypeUnknown | `46733123464` |
+- `25-database-storage/prisma-patterns.md`
+- `40-compliance-rules/cemac-cobac.md` · `uemoa-bceao.md` · `cbn-nigeria.md`
+- `30-system-integrations/async-reconciliation-patterns.md`
 
-### Valeurs de test Transfer (extrait)
-| Scénario | MSISDN test |
-|----------|-------------|
-| PayeeFailed | `46733123450` |
-| PayeeNotEnoughFunds | `46733123455` |
-| PayeeNotFound | `46733123457` |
-| PayeeInternalProcessingError | `46733123462` |
-
-### Valeurs de test Payment (montant)
-| Scénario | Montant |
-|----------|---------|
-| PaymentAmountSuccess | `1000` |
-| PaymentAmountFailed | `2000` |
-| PaymentAmountPendingSuccess | `3000` |
-| PaymentTransfertypeUnknown | `7000` |
-
-## 13. Use cases séquentiels
-1. **RequestToPay**: POST -> 202 -> PENDING -> client approuve USSD/App -> SUCCESSFUL/FAILED -> callback.
-2. **Preapproval**: même flux, puis débits futurs sans re-autorisation.
-3. **Transfer**: POST -> 202 -> fonds provider->payee -> callback final.
-4. **Validate Account Holder**: GET -> 200 si actif (ne valide pas le montant).
-5. **Get Balance**: GET solde compte par défaut lié à l'API User.
-6. **Consent flows**: `POST /bc-authorize` -> `POST /oauth2/token/` -> API métier avec consent.
-
-## 14. Règles de validation request body
-- `X-Reference-Id` obligatoirement UUID v4 unique.
-- Notes/messages max 160 caractères (utiliser Notify API au-delà).
-- Pas de caractères spéciaux non supportés (ex: apostrophe `'`).
-- Devise doit correspondre au pays cible.
-- URL callback: hostname, pas IP.
-- Collection, Disbursement, Remittance ont des subscription keys distinctes.
-
-## 15. MTN Congo - note d'intégration
-- Production Congo: `X-Target-Environment: mtncongo`
-- Devise: XAF (Franc CFA CEA)
-- Sandbox: toujours `sandbox` + EUR pour les tests documentés.
-
---- END FILE: 02-fintech-local\mtn-money-specifications.md ---
-
---- START FILE: 02-fintech-local\operator-specifications.md ---
-# Telecom Operator Specifications & Financial Volumes (2024-2026)
-
-## Protocol Layer Specifications
-* **Core Transport Protocols**: USSD (Unstructured Supplementary Service Data), STK (SIM Toolkit technology).
-* **Network Execution Property**: Session-oriented, real-time GSM signaling channel connection. Internet connectivity/data balance not required (Zero Data Cost delivery).
-* **Interface Limits**: Maximum payload length per menu string is 160 characters. Session hardware timeout hard limit: 180 seconds. Target transaction flow completion limit: < 5 steps, < 30 seconds execution window.
-
-## 1. Safaricom / Vodacom Group (M-PESA)
-* **Shortcode Interface**: Dial `*334#` (Kenya Core).
-* **Footprint**: 7 African markets (Kenya, Tanzania, Mozambique, DRC, Ghana, Egypt, Ethiopia).
-* **Total Scale**: 66,200,000 active users.
-* **Annual Throughput**: 28,000,000,000 individual transactions processing KES 40 trillion (~$309B to $314B USD annual value).
-* **Agent Infrastructure**: 381,000 registered physical cash-in/cash-out nodes in Kenya.
-
-## 2. MTN Group (MTN MoMo)
-* **Shortcode Interface (Ghana Example)**: Dial `*170#`.
-* **Footprint**: 14 out of 16 African markets.
-* **Fintech Organization Matrix**: Managed by MTN Fintech / FinCos (Unified workforce of > 900 specialized fintech professionals).
-* **Legal status / Compliance**: Operates via MTN (PTY) LTD, an authorized Financial Service Provider (FSP License: 44774).
-* **Ecosystem Segmentation**:
-  * **Consumer**: Airtime/bundles, bill payments (municipal, schools, DStv), savings, short-term loans, online shopping via MoMoPay.
-  * **Business**: Bulk disbursements (payroll, suppliers), QR Code collection, remote invoice collection.
-  * **Agents**: Cash-In / Cash-Out routing, cash-to-digital facilitation, multi-tier commission architecture.
-
-## 3. MoMo API Product Catalog (from the provided documentation)
-* **Remittance**: secure cross-border money transfers directly to a recipient's MoMo wallet.
-* **Distribute**: enable businesses to distribute MTN and MoMo services, including cash-in, cash-out, and airtime sales.
-* **Channel as a Service**: expose a sub-menu inside MoMo USSD and app channels for partner services.
-* **KYC / Account Validation**: provide KYC information to simplify customer onboarding.
-* **Pre-approval**: use the MoMo PIN to contract with customers and accept terms and conditions.
-* **Notify**: send customized SMS notifications within payment or collection flows.
-
-## 4. MoMo API Access Lifecycle
-1. `Create Sandbox User` (initial verification stub)
-2. `Generate API Key` (bearer credential generation)
-3. `Request To Pay` (inbound collection push)
-4. `Get Transaction Status` and `Get Account Balance` (asynchronous validation loop)
-5. `Check User Status` (KYC compliance and wallet validation check)
-
-## 5. Authentication & Key Management
-* **Credentials**: Subscription Key plus API User and API Key.
-* **Key Model**: each product can expose a Primary Key and a Secondary Key.
-* **Provisioning**: API user and API key are provisioned through the Sandbox Provisioning API.
-* **Subscription State**: subscriptions are stored under the developer profile and remain available until changed.
-
-## 6. Integration Stack Blueprint
-```json
-{
-  "api_integration_type": "REST_API_over_HTTPS",
-  "mtn_momo_api_modules": {
-    "collection": { "use_case": "Remote automatic collection of bills, fees, taxes" },
-    "disbursement": { "use_case": "Automated multi-wallet deposit for payroll or suppliers" },
-    "collection_widget": { "use_case": "Web-based checkout via dynamic QR code scanning" },
-    "remittances": { "use_case": "Diaspora-to-local automated cross-border fund distribution" }
-  },
-  "supported_use_cases": {
-    "P2P_transfer": { "typical_flow": "*shortcode# -> select_recipient -> input_amount -> pin_auth" },
-    "merchant_payment": { "global_volume_2024_usd": 105000000000 },
-    "bill_payment": { "global_volume_2024_usd": 93000000000 },
-    "bulk_disbursement": { "global_volume_2024_usd": 97000000000 },
-    "micro_loans": { "execution": "instant_credit_scoring_and_wallet_deposit" },
-    "savings_deposits": { "execution": "microfinance_group_wallets" }
-  }
-}
-```
-
-## 7. Equity Bank
-* **Shortcode Interface**: Dial `*247#` (Cross-network routing: Safaricom, Airtel, Telkom, Equitel).
-* **Operational Velocity**: Migrated 4,000,000+ customers to mobile USSD banking in under 20 days via EazzyPay platform infrastructure. Onboarded 60,000+ active merchants.
-
-## 8. Airtel Africa (Airtel Money)
-* **Footprint**: 14 African markets.
-* **Active Users**: 38,000,000 clients (+20.7%).
-* **Revenue**: $837,000,000 USD in 2024.
-
-### Airtel Money — Congo (extraits opérationnels)
-* **USSD Banking / Bank-to-Wallet**: `*128*4#` (menu guidé) — point d'entrée principal.
-* **Menu générique**: `*128#` pour accès général aux services Airtel Money et retrait GAB.
-* **Flux supportés**:
-  - `1` : Virement Airtel Money vers la banque (wallet -> bank)
-  - `2` : Virement Banque vers Airtel Money (bank -> wallet)
-  - `3` : Consultation de solde bancaire
-  - `4` : Mini-relevé
-* **Processus de virement banque -> Airtel**:
-  1. Composer `*128*4#`
-  2. Choisir la banque partenaire
-  3. Saisir le montant à transférer
-  4. Saisir le mot de passe ou code PIN
-* **Banques partenaires**: UBA BANK, LCB Bank, ECOBANK, BSCA, BGFIBank, BCI, MUCODEC, BCH, CREDIT DU CONGO.
-
-### Tarification Airtel Money (extrait)
-| Type d'opération | Coût |
-|---|---:|
-| Banque vers Airtel | 0 F CFA |
-| Airtel Money vers la Banque | 1% |
-| Consultation Solde | 0 F CFA |
-| Consultation Mini relevé | 0 F CFA |
-
-### Retrait via GAB MUCODEC
-* **Disponibilité**: 24h/24, 7j/7
-* **Contraintes**: montants strictement multiples de 5 000 (5 000 ; 10 000 ; 15 000 ; 20 000 ...).
-* **Procédure**:
-  1. Composer `*128#`
-  2. Choisir option 6
-  3. Choisir option 2
-  4. Saisir le montant (multiple de 5 000)
-  5. Recevoir un SMS contenant le code de retrait valide 15 minutes
-  6. Au guichet Mucodec: sélectionner `Service sans carte` -> `Airtel Money` -> saisir MSISDN, code SMS, montant -> valider
-
-### Support opérationnel
-* Centre d'appels : `121` (24/24)
-* Tarification d'appel : 24 F CFA/appel
-* Email support : Serviceclients@cg.airtel.com
-
-### Remarques de structuration
-* Ce bloc Airtel Money doit rester focalisé sur les flux USSD, les partenaires bancaires, la tarification et les contraintes de retrait.
-* Les contenus marketing généraux d'Airtel sont exclus de cette section pour conserver un corpus technique token-efficient.
-
-## 9. Cross-Border & Interoperability Architecture
-* **Cross-Border Clearing Rails**: PAPSS (Pan-African Payment and Settlement System) connecting over 160 commercial banks for local-currency instant settlement.
-* **Regional Integrations**: 2026 Pesalink-PAPSS partnership enabling real-time local currency routing across 80+ banks, fintechs, and SACCO networks in East Africa.
-* **Ghana Interoperability (MMI)**: Interoperable transactions grew +87% (from GHS 3.1B to GHS 5.8B). Total Ghana ecosystem scale reached 74,100,000 registered accounts for 34,000,000 population (multi-SIM density).
---- END FILE: 02-fintech-local\operator-specifications.md ---
-
---- START FILE: 02-fintech-local\regional-regulations.md ---
-# Regional Governance, Onboarding & Compliance Patterns
-
-## 1. Product Governance Model
-- The provided MoMo documentation organizes the platform around distinct products: Remittance, Distribute, Channel as a Service, KYC/Account Validation, Pre-approval, and Notify.
-- Each product is presented as a separate capability surface, which makes it suitable for a modular training corpus.
-
-## 2. Onboarding & Access Management
-- Developers must sign up for an account before accessing the MoMo API ecosystem.
-- Account activation is delivered by email and has a limited validity window.
-- Developers subscribe to products through the developer portal.
-- Each product subscription can expose a Primary Key and a Secondary Key.
-- API User and API Key are provisioned as a separate step after subscription.
-
-## 3. Identity, Consent & Customer Controls
-- KYC information can be requested to simplify customer onboarding.
-- Pre-approval is explicitly tied to the MoMo PIN and customer acceptance of terms and conditions.
-- Consent and authorization should be treated as explicit business controls rather than implicit workflow steps.
-
-## 4. Operational Lifecycle
-- Sandbox provisioning is the documented path for initial API user and key creation.
-- Transaction lifecycle checks include status retrieval, balance retrieval, and user-status validation.
-- Callback-based state updates are part of the expected integration flow.
-
-## 5. Structured Representation
-```json
-{
-  "onboarding": ["signup", "product_subscription", "subscription_key_management"],
-  "access_control": ["api_user", "api_key", "primary_key", "secondary_key"],
-  "customer_controls": ["kyc_validation", "pin_preapproval", "terms_acceptance"],
-  "integration_flow": ["sandbox_provisioning", "transaction_status_check", "balance_check", "callback_handling"]
-}
-```
-
-## 6. Operator-specific USSD Integrations (Airtel example)
-- **USSD entrypoints** are operator-specific and must be modeled as integration parameters (`ussd_code`, `menu_path`, `timeout_seconds`).
-- **Bank partnerships & interconnect**: model partner lists and fee matrices per country and per bank to avoid hardcoding rules in training data.
-- **Cash-out constraints**: include withdrawal constraints (e.g., multiples of 5 000, SMS code expiry) as structured fields rather than prose to save tokens.
-- **Support & escalation metadata**: include `support_number`, `support_email`, and `call_tariff` for operational playbooks.
---- END FILE: 02-fintech-local\regional-regulations.md ---
-
---- START FILE: 10-case-studies\case-ui-001\input.tsx ---
-import React, { memo } from 'react';
-import { motion } from 'framer-motion';
-import type { Variants } from 'framer-motion';
-import { Target, Zap, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import CustomActionButton from '../ui/CustomActionButton';
-
-// 1. Constantes typées et gelées pour éviter la ré-allocation mémoire
-const TEAM_AVATARS = [
-  '/IMG_5174.webp',
-  '/IMG_5182.webp', 
-  '/IMG_5199.webp',
-  '/IMG_5216.webp'
-] as const;
-
-// 2. Variants optimisés (Utilisation de hardware acceleration via transform)
-const fadeInDown: Variants = {
-  hidden: { opacity: 0, y: 20 }, // Réduit de 40 à 20 pour éviter les grands sauts de layout sur mobile
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
-      duration: 0.5, // 0.8 est trop lent sur mobile (sensation de lourdeur)
-      ease: [0.215, 0.610, 0.355, 1.000] // Cubic-bezier optimisé pour l'UI (EaseOutCubic)
-    } 
-  }
-};
-
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { 
-      staggerChildren: 0.1, 
-      delayChildren: 0.1 
-    }
-  }
-};
-
-// Option de viewport globale pour économiser la batterie (Exécuté une seule fois)
-const VIEWPORT_CONFIG = { once: true, margin: "-10%" };
-
-const AboutSection: React.FC = () => {
-  const navigate = useNavigate();
-
-  return (
-    <section className="relative w-full py-16 md:py-24 lg:py-32 overflow-hidden bg-[var(--color-brand-light)] font-sans contain-intrinsic-size">
-      
-      {/* --- ÉLÉMENTS DÉCORATIFS (Désactivés ou simplifiés sur mobile pour économiser le GPU) --- */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 0.05 }}
-        viewport={VIEWPORT_CONFIG}
-        transition={{ duration: 1 }}
-        className="absolute top-0 right-0 w-1/3 h-full bg-[var(--color-brand-lavender)] z-0 pointer-events-none will-change-opacity hidden sm:block" 
-      />
-      
-      {/* Background Text : purement décoratif, masqué sur mobile pour éviter la surcharge de layout textuel */}
-      <div className="absolute top-1/2 left-6 -translate-y-1/2 opacity-[0.02] pointer-events-none hidden xl:block z-0">
-        <motion.h2 
-          initial={{ x: -50, opacity: 0 }}
-          whileInView={{ x: 0, opacity: 1 }}
-          viewport={VIEWPORT_CONFIG}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="text-[12vw] font-black text-[var(--color-brand-dark)] leading-none uppercase select-none tracking-tighter will-change-transform"
-        >
-          Corporate
-        </motion.h2>
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center">
-          
-          {/* --- COLONNE GAUCHE : VISUEL (Optimisé Desktop vs Mobile) --- */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={VIEWPORT_CONFIG}
-            transition={{ duration: 0.6 }}
-            className="col-span-1 lg:col-span-5 relative group"
-          >
-            {/* Cadre de structure : animation désactivée au hover sur mobile (no-hover query) */}
-            <div className="absolute -top-4 -right-4 md:-top-6 md:-right-6 w-full h-full border-2 border-[var(--color-brand-blue)] z-0 transform transition-transform duration-500 group-hover:translate-x-2 group-hover:-translate-y-2 motion-reduce:transition-none" />
-
-            {/* Container Image Principal avec Ratio strict pour éviter le CLS */}
-            <div className="relative z-10 w-full aspect-[3/4] bg-[var(--color-brand-dark)] overflow-hidden border border-[var(--color-brand-dark)] shadow-sm">
-              <img 
-                src="/hero-display.jpg" 
-                alt="L'équipe" 
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover grayscale transition-transform duration-700 ease-out md:group-hover:scale-105 md:group-hover:grayscale-0 will-change-transform"
-              />
-              <div className="absolute inset-0 bg-[var(--color-brand-blue)] mix-blend-multiply opacity-0 md:group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
-            </div>
-
-            {/* Badge d'Impact (Style Brutaliste) */}
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              viewport={VIEWPORT_CONFIG}
-              transition={{ delay: 0.2, type: "spring", damping: 20 }}
-              className="absolute -bottom-6 -left-2 sm:-bottom-10 sm:left-4 lg:-left-10 z-20 bg-[var(--color-brand-lime)] p-4 sm:p-6 lg:p-8 shadow-[8px_8px_0px_rgba(21,22,50,1)] sm:shadow-[15px_15px_0px_rgba(21,22,50,1)]"
-            >
-              <div className="flex flex-col gap-1">
-                <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--color-brand-dark)] leading-none">08+</span>
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand-dark)] leading-tight">
-                  Ans d'Expertise <br/> Radicales
-                </span>
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* --- COLONNE DROITE : CONTENU CONTRAINT --- */}
-          <motion.div 
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={VIEWPORT_CONFIG}
-            className="col-span-1 lg:col-span-7 mt-8 lg:mt-0"
-          >
-            {/* Label */}
-            <motion.div variants={fadeInDown} className="flex items-center gap-4 mb-4 sm:mb-6">
-              <div className="h-[2px] w-8 sm:w-12 bg-[var(--color-brand-blue)]" />
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[var(--color-brand-blue)]">
-                Qui nous sommes
-              </span>
-            </motion.div>
-
-            {/* Titre Fluide */}
-            <motion.h2 variants={fadeInDown} className="text-3xl sm:text-5xl lg:text-7xl font-black text-[var(--color-brand-dark)] leading-[0.95] uppercase mb-6 sm:mb-8 tracking-tighter">
-              Stratégie, Contenu <span className="block sm:inline lg:block">Et Influence</span>
-              <span className="block text-transparent style-stroke" style={{ WebkitTextStroke: '1px var(--color-brand-dark)' }}>
-                Au Service De Votre Image
-              </span>
-            </motion.h2>
-
-            {/* Paragraphes avec Surlignage Performance-First */}
-            <motion.p variants={fadeInDown} className="text-lg sm:text-xl lg:text-2xl text-[var(--color-brand-dark)] font-medium leading-tight mb-8 max-w-xl">
-              Notre collectif accompagne les marques dans la construction d’une{' '}
-              <span className="relative inline-block isolate">
-                <span className="relative z-10 italic pr-1">communication claire</span>
-                <motion.span 
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  viewport={VIEWPORT_CONFIG}
-                  transition={{ delay: 0.5, duration: 0.4 }}
-                  className="absolute bottom-0.5 left-0 w-full h-2 sm:h-3 bg-[var(--color-brand-lime)] -z-10 origin-left will-change-transform"
-                />
-              </span>{' '}
-              forte et durable.
-            </motion.p>
-
-            {/* Stats Grille */}
-            <motion.div variants={fadeInDown} className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12 border-y border-[var(--color-brand-dark)]/10 py-6 sm:py-10">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-[var(--color-brand-lavender)]/20 border border-[var(--color-brand-blue)]/10 flex-shrink-0" aria-hidden="true">
-                  <Target size={20} className="text-[var(--color-brand-blue)]" />
-                </div>
-                <div>
-                  <h3 className="font-black uppercase text-[10px] sm:text-[11px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Cible</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Entreprises, institutions et marques</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-[var(--color-brand-lime)]/20 border border-[var(--color-brand-dark)]/5 flex-shrink-0" aria-hidden="true">
-                  <Zap size={20} className="text-[var(--color-brand-dark)]" />
-                </div>
-                <div>
-                  <h3 className="font-black uppercase text-[10px] sm:text-[11px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Force</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Expertise stratégique & créativité audacieuse</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* CTA & Team Avatars */}
-            <motion.div variants={fadeInDown} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 sm:gap-8">
-              <div className="flex-grow-0">
-                <CustomActionButton
-                  label={
-                    <span className="flex items-center justify-center gap-2 font-bold text-xs sm:text-sm tracking-wider">
-                      EXPLORER LE MANIFESTO <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </span>
-                  }
-                  backgroundColor={'var(--color-brand-dark)'}
-                  borderColor={'var(--color-brand-dark)'}
-                  textColor={'var(--color-brand-lime)'}
-                  onClick={() => navigate('/#manifesto')}
-                />
-              </div>
-              
-              <div className="flex items-center gap-4 justify-start sm:justify-auto mt-2 sm:mt-0">
-                <div className="flex -space-x-2.5 sm:-space-x-3">
-                  {TEAM_AVATARS.map((avatarSrc, i) => (
-                    <div 
-                      key={avatarSrc}
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[var(--color-brand-light)] bg-gray-100 overflow-hidden shadow-sm transition-transform duration-300 md:hover:-translate-y-1 md:hover:z-30 cursor-pointer"
-                    >
-                      <img
-                        src={avatarSrc}
-                        alt={`Membre de l'équipe ${i + 1}`}
-                        width={48}
-                        height={48}
-                        loading="lazy"
-                        decoding="async"
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-tighter leading-tight text-[var(--color-brand-dark)]">
-                  Expertise <br/> Collective
-                </span>
-              </div>
-            </motion.div>
-
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// 3. Memoization inutile (Anti-pattern sans props fluctuantes)
-export default memo(AboutSection);
---- END FILE: 10-case-studies\case-ui-001\input.tsx ---
-
---- START FILE: 10-case-studies\case-ui-001\output.tsx ---
-import React from 'react';
-import { motion } from 'framer-motion';
-import type { Variants } from 'framer-motion';
-import { Target, Zap, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import CustomActionButton from '../ui/CustomActionButton';
-
-// 1. Constantes typées et gelées pour éviter la ré-allocation mémoire à chaque render
-const TEAM_AVATARS = [
-  '/IMG_5174.webp',
-  '/IMG_5182.webp', 
-  '/IMG_5199.webp',
-  '/IMG_5216.webp'
-] as const;
-
-// 2. Configuration globale du Viewport pour économiser la batterie (exécutée une seule fois)
-const VIEWPORT_CONFIG = { once: true, margin: "-10%" };
-
-// 3. Variants optimisés pour Mobile (Transitions fluides, amplitude d'atténuation y réduite)
-const fadeInDown: Variants = {
-  hidden: { opacity: 0, y: 15 }, 
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
-      duration: 0.4, // Timing resserré pour une sensation de réactivité accrue
-      ease: [0.215, 0.610, 0.355, 1.000] // EaseOutCubic : Décélération naturelle de l'interface
-    } 
-  }
-};
-
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { 
-      staggerChildren: 0.08, // Staggering légèrement accéléré pour le mobile
-      delayChildren: 0.05 
-    }
-  }
-};
-
-const AboutSection: React.FC = () => {
-  const navigate = useNavigate();
-
-  return (
-    // Suppression du contain-intrinsic-size sauvage qui cassait le calcul initial de la boîte
-    <section className="relative w-full py-16 md:py-24 lg:py-32 overflow-hidden bg-[var(--color-brand-light)] font-sans">
-      
-      {/* --- ÉLÉMENTS DÉCORATIFS (Optimisés ou supprimés sur mobile pour limiter les couches GPU) --- */}
-      {/* On utilise un div standard statique au lieu d'un composant motion sur mobile, basculé en CSS pur */}
-      <div 
-        className="absolute top-0 right-0 w-1/3 h-full bg-[var(--color-brand-lavender)] opacity-[0.05] z-0 pointer-events-none hidden sm:block" 
-      />
-      
-      {/* Background Text : Purement décoratif -> Masqué par défaut, affiché uniquement sur écrans ultra-larges */}
-      <div className="absolute top-1/2 left-6 -translate-y-1/2 opacity-[0.02] pointer-events-none hidden xl:block z-0">
-        <motion.h2 
-          initial={{ x: -30, opacity: 0 }}
-          whileInView={{ x: 0, opacity: 1 }}
-          viewport={VIEWPORT_CONFIG}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-[12vw] font-black text-[var(--color-brand-dark)] leading-none uppercase select-none tracking-tighter"
-        >
-          Corporate
-        </motion.h2>
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center">
-          
-          {/* --- COLONNE GAUCHE : VISUEL (Gestion stricte du CLS) --- */}
-          <div className="col-span-1 lg:col-span-5 relative group">
-            {/* Effet brutaliste de bordure : Les animations au hover sont limitées aux devices Desktop uniquement (md:hover) */}
-            <div className="absolute -top-4 -right-4 md:-top-6 md:-right-6 w-full h-full border-2 border-[var(--color-brand-blue)] z-0 transform transition-transform duration-500 md:group-hover:translate-x-2 md:group-hover:-translate-y-2 motion-reduce:transition-none" />
-
-            {/* Container Image avec Aspect Ratio strict pour empêcher les sauts de layout (Cumulative Layout Shift) */}
-            <div className="relative z-10 w-full aspect-[3/4] bg-[var(--color-brand-dark)] overflow-hidden border border-[var(--color-brand-dark)] shadow-sm">
-              <img 
-                src="/hero-display.jpg" 
-                alt="L'équipe de l'agence" 
-                loading="lazy"          // Chargement différé hors-écran natif
-                decoding="async"        // Décodage parallélisé pour ne pas bloquer le thread principal UI
-                className="w-full h-full object-cover grayscale transition-transform duration-700 ease-out md:group-hover:scale-105 md:group-hover:grayscale-0"
-              />
-              <div className="absolute inset-0 bg-[var(--color-brand-blue)] mix-blend-multiply opacity-0 md:group-hover:opacity-20 transition-opacity duration-500 pointer-events-none" />
-            </div>
-
-            {/* Badge d'Impact Brutaliste */}
-            <div 
-              className="absolute -bottom-6 -left-2 sm:-bottom-10 sm:left-4 lg:-left-10 z-20 bg-[var(--color-brand-lime)] p-4 sm:p-6 lg:p-8 shadow-[6px_6px_0px_rgba(21,22,50,1)] sm:shadow-[12px_12px_0px_rgba(21,22,50,1)]"
-            >
-              <div className="flex flex-col gap-1">
-                <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--color-brand-dark)] leading-none">08+</span>
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand-dark)] leading-tight">
-                  Ans d'Expertise <br/> Radicales
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* --- COLONNE DROITE : CONTENU FLUIDE ET CONTRAINT --- */}
-          <motion.div 
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={VIEWPORT_CONFIG}
-            className="col-span-1 lg:col-span-7 mt-4 lg:mt-0"
-          >
-            {/* Label de section */}
-            <motion.div variants={fadeInDown} className="flex items-center gap-4 mb-4">
-              <div className="h-[2px] w-8 sm:w-12 bg-[var(--color-brand-blue)]" />
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[var(--color-brand-blue)]">
-                Qui nous sommes
-              </span>
-            </motion.div>
-
-            {/* Titre Typographique */}
-            <motion.h2 variants={fadeInDown} className="text-3xl sm:text-5xl lg:text-7xl font-black text-[var(--color-brand-dark)] leading-[0.95] uppercase mb-6 tracking-tighter">
-              Stratégie, Contenu <span className="block sm:inline lg:block">Et Influence</span>
-              <span className="block text-transparent style-stroke" style={{ WebkitTextStroke: '1px var(--color-brand-dark)' }}>
-                Au Service De Votre Image
-              </span>
-            </motion.h2>
-
-            {/* Paragraphe avec animation scaleX d'arrière-plan optimisée */}
-            <motion.p variants={fadeInDown} className="text-lg sm:text-xl lg:text-2xl text-[var(--color-brand-dark)] font-medium leading-tight mb-8 max-w-xl">
-              Notre collectif accompagne les marques dans la construction d’une{' '}
-              <span className="relative inline-block isolate">
-                <span className="relative z-10 italic pr-1">communication claire</span>
-                <motion.span 
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  viewport={VIEWPORT_CONFIG}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                  className="absolute bottom-0.5 left-0 w-full h-2 sm:h-3 bg-[var(--color-brand-lime)] -z-10 origin-left"
-                />
-              </span>{' '}
-              forte et durable.
-            </motion.p>
-
-            {/* Grille de statistiques */}
-            <motion.div variants={fadeInDown} className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 border-y border-[var(--color-brand-dark)]/10 py-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-[var(--color-brand-lavender)]/20 border border-[var(--color-brand-blue)]/10 flex-shrink-0" aria-hidden="true">
-                  <Target size={20} className="text-[var(--color-brand-blue)]" />
-                </div>
-                <div>
-                  <h3 className="font-black uppercase text-[10px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Cible</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Entreprises, institutions et marques</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-[var(--color-brand-lime)]/20 border border-[var(--color-brand-dark)]/5 flex-shrink-0" aria-hidden="true">
-                  <Zap size={20} className="text-[var(--color-brand-dark)]" />
-                </div>
-                <div>
-                  <h3 className="font-black uppercase text-[10px] tracking-widest text-[var(--color-brand-dark)] mb-1">Notre Force</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 font-medium leading-snug">Expertise stratégique & créativité audacieuse</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* CTAs & Avatars d'équipe */}
-            <motion.div variants={fadeInDown} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6">
-              <div className="flex-shrink-0">
-                <CustomActionButton
-                  label={
-                    <span className="flex items-center justify-center gap-2 font-bold text-xs sm:text-sm tracking-wider">
-                      EXPLORER LE MANIFESTO <Plus className="w-4 h-4" />
-                    </span>
-                  }
-                  backgroundColor={'var(--color-brand-dark)'}
-                  borderColor={'var(--color-brand-dark)'}
-                  textColor={'var(--color-brand-lime)'}
-                  onClick={() => navigate('/#manifesto')}
-                />
-              </div>
-              
-              <div className="flex items-center gap-4 justify-start mt-2 sm:mt-0">
-                <div className="flex -space-x-2.5 sm:-space-x-3">
-                  {TEAM_AVATARS.map((avatarSrc, i) => (
-                    <div 
-                      key={avatarSrc}
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[var(--color-brand-light)] bg-gray-100 overflow-hidden shadow-sm transition-transform duration-300 md:hover:-translate-y-1 md:hover:z-30 cursor-pointer"
-                    >
-                      <img
-                        src={avatarSrc}
-                        alt={`Membre de l'équipe ${i + 1}`}
-                        width={48}
-                        height={48}
-                        loading="lazy"
-                        decoding="async"
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-tighter leading-tight text-[var(--color-brand-dark)]">
-                  Expertise <br/> Collective
-                </span>
-              </div>
-            </motion.div>
-
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// Suppression du wrapper `memo()` inutile qui forçait une comparaison de props superflue à chaque cycle
-export default AboutSection;
---- END FILE: 10-case-studies\case-ui-001\output.tsx ---
+--- END FILE: 90-codebase-constraints/project-roadmap.md ---
