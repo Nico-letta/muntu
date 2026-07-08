@@ -1,7 +1,7 @@
 # RULE: MOBILE-FIRST-AFRICA
 En Afrique, le canal principal est le **téléphone mobile** (MSISDN), pas l'email ni le desktop.
 
-Principes immuables pour AfriWallet et apps associées :
+Principes immuables pour AfriWallet (application) — conditionnes par les standards MUNTU (`muntu-engineering-identity.md`) :
 - L'identité utilisateur = numéro international (`+237…`, `+234…`).
 - OTP SMS remplace l'email de vérification en production.
 - PIN court (4+ chiffres) hashé bcrypt — pas de mot de passe complexe occidental.

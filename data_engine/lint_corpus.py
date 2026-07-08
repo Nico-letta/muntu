@@ -9,7 +9,19 @@ from pathlib import Path
 
 DATA_ENGINE = Path(__file__).resolve().parent
 CORPUS_RAW = DATA_ENGINE / "corpus_raw"
-PRISMA_SCHEMA = Path("D:/zeno/prisma/schema.prisma")
+MANIFEST = CORPUS_RAW / "manifest.json"
+
+
+def _load_prisma_schema_path() -> Path:
+    if MANIFEST.exists():
+        import json
+        repos = json.loads(MANIFEST.read_text(encoding="utf-8")).get("source_repos", {})
+        codebase = Path(repos.get("afriwallet_codebase", "D:/zeno"))
+        return codebase / "prisma" / "schema.prisma"
+    return Path("D:/zeno/prisma/schema.prisma")
+
+
+PRISMA_SCHEMA = _load_prisma_schema_path()
 
 # Modèles Prisma canoniques (source de vérité)
 PRISMA_MODELS = {

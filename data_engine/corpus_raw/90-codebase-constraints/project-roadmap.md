@@ -6,7 +6,10 @@
 
 ## Contexte
 
-Le modèle **NE DOIT PAS** générer de code ou confirmer des features listées ci-dessous comme `schema_only`. Les enums Prisma existent ; les services **non**.
+Le modele MUNTU **NE DOIT PAS** generer de code ou confirmer des features listees ci-dessous comme `schema_only`.
+Les enums Prisma AfriWallet existent ; les services **non**.
+
+> Identite MUNTU vs AfriWallet : `00-core-principles/muntu-engineering-identity.md`
 
 ---
 

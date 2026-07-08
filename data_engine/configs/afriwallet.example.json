@@ -1,0 +1,182 @@
+{
+  "project_id": "afriwallet",
+  "project_name": "AfriWallet",
+  "engine_name": "MUNTU",
+  "codebase_ref": "afriwallet_codebase",
+  "repo_root": "../..",
+  "source_path": "D:/zeno",
+  "corpus_staging": "D:/zeno/fintech-corpus",
+  "corpus_output": "data_engine/corpus_raw",
+  "branding": {
+    "path_aliases": [
+      { "from": "D:/zeno/", "to": "afriwallet_codebase/" },
+      { "from": "D:\\zeno\\", "to": "afriwallet_codebase/" },
+      { "from": "D:/zeno", "to": "afriwallet_codebase" }
+    ],
+    "text_replacements": [
+      { "pattern": "\\bZENO\\b", "repl": "AfriWallet", "regex": true },
+      { "pattern": "\\bZeno\\b", "repl": "AfriWallet", "regex": true },
+      { "pattern": "zeno_", "repl": "afw_", "regex": true },
+      { "pattern": "@zeno.local", "repl": "@afriwallet.local", "regex": false },
+      { "pattern": "zeno-backend-local", "repl": "afriwallet-backend-local", "regex": false }
+    ]
+  },
+  "cleanup_legacy_artifacts": [
+    "20-backend-api/golden-snippets/zeno-complete-src-bundle.md",
+    "20-backend-api/golden-snippets/zeno-e2e-tests.md",
+    "30-system-integrations/postman-zeno-api-reference.md",
+    "30-system-integrations/source-docs/zeno-env-example.txt",
+    "30-system-integrations/source-docs/ZENO.postman_collection.json",
+    "30-system-integrations/source-docs/ZENO.postman_environment.json"
+  ],
+  "features": {
+    "provider_docs": {
+      "enabled": true,
+      "output_dir": "30-system-integrations/source-docs",
+      "documents": [
+        {
+          "source": "Momo documentation.txt",
+          "outputs": [
+            { "type": "copy", "file": "momo-api-documentation.txt" },
+            { "type": "mtn_sandbox_matrix", "file": "30-system-integrations/mtn-sandbox-test-matrix-full.md" }
+          ]
+        },
+        {
+          "source": "Airtel.txt",
+          "outputs": [
+            { "type": "copy", "file": "airtel-full-source.txt" },
+            { "type": "airtel_split", "file": "airtel-api-documentation.txt", "ussd_lines": 60, "api_start_line": 853 }
+          ]
+        }
+      ]
+    },
+    "extract_prisma": {
+      "enabled": true,
+      "path": "prisma/schema.prisma",
+      "output": "25-database-storage/schema-prisma-full.md"
+    },
+    "extract_src_bundle": {
+      "enabled": true,
+      "src_subdir": "src",
+      "extensions": [".ts"],
+      "exclude_dirs": ["node_modules", "dist", ".next"],
+      "output": "20-backend-api/golden-snippets/afriwallet-complete-src-bundle.md",
+      "title": "AfriWallet Backend — Source TypeScript Complete Bundle",
+      "fence_lang": "typescript"
+    },
+    "golden_snippets_md": {
+      "enabled": true,
+      "items": [
+        { "name": "payments-service", "source": "src/payments/payments.service.ts", "layer": "20-backend-api", "description": "Orchestration cash-in/cash-out MoMo, Bridge, polling et compensation." },
+        { "name": "auth-service", "source": "src/auth/auth.service.ts", "layer": "20-backend-api", "description": "OTP SMS, rate limits, PIN bcrypt, JWT." },
+        { "name": "webhooks-service", "source": "src/webhooks/webhooks.service.ts", "layer": "20-backend-api", "description": "Callbacks MTN, Smile, Onafriq, Bridge avec idempotence eventKey." },
+        { "name": "webhooks-controller", "source": "src/webhooks/webhooks.controller.ts", "layer": "20-backend-api", "description": "Surface HTTP webhooks, signatures, throttling." },
+        { "name": "payments-controller", "source": "src/payments/payments.controller.ts", "layer": "20-backend-api", "description": "Routes REST deposit/withdraw et polling status." },
+        { "name": "mtn-service", "source": "src/providers/mtn.service.ts", "layer": "30-system-integrations", "description": "Client MTN MoMo: OAuth, RequestToPay, Transfer, polling status." },
+        { "name": "onafriq-service", "source": "src/providers/onafriq.service.ts", "layer": "30-system-integrations", "description": "Client Onafriq cartes: OAuth, retry HTTP, registration." },
+        { "name": "smile-id-id-rules", "source": "src/kyc/smile-id-id-rules.ts", "layer": "30-system-integrations", "description": "Validation regex ID par pays africain pour KYC Smile ID." },
+        { "name": "virtual-cards-service", "source": "src/virtual-cards/virtual-cards.service.ts", "layer": "30-system-integrations", "description": "Emission carte virtuelle Onafriq avec debit wallet atomique." },
+        { "name": "bridge-payments-service", "source": "src/providers/bridge-payments.service.ts", "layer": "30-system-integrations", "description": "Depot bancaire sandbox Bridge API." },
+        { "name": "kyc-service", "source": "src/kyc/kyc.service.ts", "layer": "30-system-integrations", "description": "Sessions KYC, mark verified/rejected, SmartSelfie." },
+        { "name": "smile-id-service", "source": "src/providers/smile-id.service.ts", "layer": "30-system-integrations", "description": "Client Smile ID: biometric, document, SmartSelfie." },
+        { "name": "onafriq-webhook-service", "source": "src/providers/onafriq-webhook.service.ts", "layer": "30-system-integrations", "description": "Verification signature webhook Onafriq AES256." }
+      ]
+    },
+    "golden_snippets_ts": {
+      "enabled": true,
+      "items": [
+        {
+          "output": "20-backend-api/golden-snippets/webhook-idempotence.ts",
+          "source": "src/webhooks/webhooks.service.ts",
+          "line_ranges": [[1, 30], [38, 198], [343, 375]],
+          "header": "/**\n * Golden Snippet — Webhook idempotence ({product_name})\n * Source: {source_ref}\n * Regles: eventKey unique (P2002 ignore), compensation cash-out FAILED.\n */\n\n"
+        },
+        {
+          "output": "20-backend-api/golden-snippets/momo-payments-financial-core.ts",
+          "source": "src/payments/payments.service.ts",
+          "line_ranges": [[1, 11], [55, 61], [63, 117], [119, 183], [247, 300], [422, 468]],
+          "header": "/**\n * Golden Snippet — MoMo payments BigInt + compensation ({product_name})\n * Source: {source_ref}\n */\n\n"
+        },
+        {
+          "output": "30-system-integrations/providers/mtn-momo.service.ts",
+          "source": "src/providers/mtn.service.ts",
+          "header": "/**\n * Golden Snippet — MTN MoMo client ({product_name})\n * Source: {source_ref}\n */\n\n"
+        },
+        {
+          "output": "25-database-storage/prisma-critical-models.ts",
+          "source": "prisma/schema.prisma",
+          "line_ranges": [[34, 137], [139, 180]],
+          "header": "/**\n * Golden Snippet — Modeles Prisma critiques ({product_name})\n * Source: {source_ref}\n */\n\n"
+        }
+      ]
+    },
+    "training_pairs": {
+      "enabled": true,
+      "path": "training/instruction-response.jsonl",
+      "output": "35-business-flows/instruction-response-pairs.md"
+    },
+    "multi_turn_scenarios": {
+      "enabled": true,
+      "path": "training/scenarios-multi-turn.jsonl",
+      "output": "35-business-flows/multi-turn-scenarios.md"
+    },
+    "legacy_knowledge": {
+      "enabled": true,
+      "path": "legacy/knowledge-json",
+      "output_dir": "40-compliance-rules/legacy-knowledge"
+    },
+    "postman": {
+      "enabled": true,
+      "output_dir": "30-system-integrations/source-docs",
+      "postman_files": [
+        { "source": "postman/ZENO.postman_collection.json", "output": "AfriWallet.postman_collection.json" },
+        { "source": "postman/ZENO.postman_environment.json", "output": "AfriWallet.postman_environment.json" }
+      ],
+      "env_example": ".env.example",
+      "env_output": "afriwallet-env-example.txt",
+      "narrative": {
+        "source": "postman/ZENO.postman_collection.json",
+        "output": "30-system-integrations/postman-afriwallet-api-reference.md",
+        "folders_description": "## Dossiers collection\n\n- **Health** — sante API\n- **Users** — register, lookup phone\n- **Auth** — OTP, PIN, reset PIN\n- **KYC** — Smile ID, SmartSelfie\n- **Wallets** — solde, transactions\n- **Payments** — MoMo, Bridge, polling\n- **Virtual Cards** — Onafriq\n- **Webhooks** — MTN, Smile, Onafriq, Bridge"
+      }
+    },
+    "test_specs": {
+      "enabled": true,
+      "test_dir": "test",
+      "extensions": [".ts"],
+      "output": "20-backend-api/golden-snippets/afriwallet-e2e-tests.md"
+    },
+    "smile_templates": {
+      "enabled": true,
+      "source": "docs/smile-id/templates",
+      "output_dir": "30-system-integrations/source-docs/smile-id-templates",
+      "glob": "*"
+    },
+    "knowledge_chunks": {
+      "enabled": true,
+      "path": "training/knowledge-chunks-rag.jsonl",
+      "output": "35-business-flows/knowledge-chunks-expanded.md"
+    },
+    "runbooks": {
+      "enabled": true,
+      "providers": ["mtn", "airtel"]
+    },
+    "synthetic_corpus": {
+      "enabled": true
+    },
+    "error_matrix_validation": {
+      "enabled": true,
+      "matrix_file": "30-system-integrations/provider-official-error-matrix-normalized.md",
+      "marker_checks": [
+        {
+          "source": "Momo documentation.txt",
+          "markers": ["RESOURCE_ALREADY_EXIST", "NOT_ALLOWED_TARGET_ENVIRONMENT", "INTERNAL_PROCESSING_ERROR"]
+        },
+        {
+          "source": "Airtel.txt",
+          "markers": ["ESB000041", "ROUTER001", "DP01000001001", "DP03520001001"]
+        }
+      ]
+    }
+  }
+}

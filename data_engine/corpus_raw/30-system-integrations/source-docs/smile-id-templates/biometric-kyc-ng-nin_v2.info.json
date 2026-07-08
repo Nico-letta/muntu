@@ -1,0 +1,57 @@
+{
+  "id_info": {
+    "country": "NG",
+    "id_type": "NIN_V2",
+    "id_number": "00000000000",
+    "first_name": "John",
+    "last_name": "Doe",
+    "middle_name": "",
+    "dob": "1990-01-01",
+    "entered": true
+  },
+  "images": [
+    {
+      "image_type_id": 0,
+      "file_name": "selfie.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_1.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_2.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_3.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_4.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_5.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_6.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_7.jpg"
+    },
+    {
+      "image_type_id": 4,
+      "file_name": "liveness_8.jpg"
+    }
+  ],
+  "package_information": {
+    "apiVersion": {
+      "majorVersion": 2,
+      "minorVersion": 0,
+      "buildNumber": 0
+    }
+  }
+}

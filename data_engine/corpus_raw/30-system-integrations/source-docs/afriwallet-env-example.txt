@@ -1,0 +1,99 @@
+# AfriWallet Environment Variables
+
+DATABASE_URL="postgresql://zeno:afw_password@localhost:5432/afw_db?schema=public"
+PORT=3000
+NODE_ENV="development"
+JWT_SECRET=""
+OTP_TTL_MINUTES="5"
+OTP_RETENTION_DAYS="7"
+WEBHOOK_RETENTION_DAYS="30"
+
+# MTN MoMo (sandbox)
+MTN_MOMO_BASE_URL="https://sandbox.momodeveloper.mtn.com"
+MTN_MOMO_SUBSCRIPTION_KEY=""
+MTN_MOMO_API_USER=""
+MTN_MOMO_API_KEY=""
+MTN_MOMO_TOKEN_PATH="/collection/token/"
+MTN_MOMO_REQUEST_TO_PAY_PATH="/collection/v1_0/requesttopay"
+MTN_MOMO_REQUEST_TO_PAY_STATUS_PATH="/collection/v1_0/requesttopay/{referenceId}"
+# sandbox | ou environnement prod (ex: mtnnigeria, mtncameroon, mtncongo, etc.)
+MTN_MOMO_TARGET_ENVIRONMENT="sandbox"
+# Note: en sandbox MTN la currency est souvent "EUR" (selon les use-cases). Mets la valeur exigée par ton opco/environnement.
+MTN_MOMO_CURRENCY="EUR"
+# Pour recevoir les callbacks MTN, configure cette base URL publique (https)
+# Exemple: https://xxxx.ngrok-free.app  (le callback complet sera /webhooks/mtn/requesttopay/{referenceId})
+MTN_MOMO_CALLBACK_BASE_URL=""
+# Hardening optionnel: allowlist IP (séparée par virgules) si tu connais les IPs du gateway MTN
+MTN_MOMO_WEBHOOK_IP_ALLOWLIST=""
+
+# MTN MoMo Disbursement (cash-out)
+MTN_MOMO_DISBURSEMENT_TOKEN_PATH="/disbursement/token/"
+MTN_MOMO_TRANSFER_PATH="/disbursement/v1_0/transfer"
+MTN_MOMO_TRANSFER_STATUS_PATH="/disbursement/v1_0/transfer/{referenceId}"
+
+# Onafriq Card Issuing (sandbox/prod)
+# OAuth2
+ONAFRIQ_IDP_BASE_URL="https://cards-sbx.onafriqservices.com"
+ONAFRIQ_API_BASE_URL="https://cards-sbx.onafriqservices.com"
+ONAFRIQ_TOKEN_PATH="/idp/connect/token"
+ONAFRIQ_CLIENT_USERNAME=""
+ONAFRIQ_CLIENT_PASSWORD=""
+ONAFRIQ_PROGRAM_ID=""
+ONAFRIQ_HTTP_TIMEOUT_MS="10000"
+ONAFRIQ_HTTP_RETRY_COUNT="2"
+ONAFRIQ_HTTP_RETRY_BACKOFF_MS="400"
+# Endpoints API
+ONAFRIQ_REGISTER_PERSONALIZED_PATH="/rest/api/v1/accounts/personalized"
+# Parametres programme (fournis par Onafriq onboarding)
+ONAFRIQ_SUB_COMPANY=""
+ONAFRIQ_REFERRED_BY=""
+ONAFRIQ_CARD_CURRENCY="XAF"
+# Defaults d'enregistrement carte (en attendant enrichissement profil utilisateur)
+ONAFRIQ_DEFAULT_COUNTRY_CODE="CM"
+ONAFRIQ_DEFAULT_PHONE_COUNTRY_CODE="237"
+ONAFRIQ_DEFAULT_STATE_REGION="CM"
+ONAFRIQ_DEFAULT_CITY="Douala"
+ONAFRIQ_DEFAULT_ADDRESS_LINE1="AfriWallet user"
+ONAFRIQ_DEFAULT_BIRTH_DATE="01-JAN-1990"
+ONAFRIQ_DEFAULT_ID_TYPE="4"
+ONAFRIQ_DEFAULT_ID_VALUE_PREFIX="AfriWallet"
+# Clés pour vérifier les webhooks Onafriq cards
+ONAFRIQ_SECRET_KEY=""
+ONAFRIQ_WEBHOOK_SECRET=""
+
+# Bridge API (payments sandbox)
+BRIDGE_API_BASE_URL="https://api.bridgeapi.io"
+BRIDGE_API_VERSION="2025-01-15"
+BRIDGE_CLIENT_ID=""
+BRIDGE_CLIENT_SECRET=""
+# Demo Bank provider_id pour tests sandbox (574)
+BRIDGE_SANDBOX_PROVIDER_ID="574"
+BRIDGE_PAYMENT_CURRENCY="EUR"
+# Callback public (optionnel). Si vide, utiliser polling status.
+BRIDGE_CALLBACK_BASE_URL=""
+BRIDGE_WEBHOOK_SECRET=""
+
+# Smile ID (sandbox)
+SMILE_ID_BASE_URL="https://testapi.smileidentity.com"
+SMILE_ID_PARTNER_ID=""
+SMILE_ID_API_KEY=""
+SMILE_ID_KYC_PATH="/v1/kyc"
+SMILE_ID_SIGNATURE_API_KEY=""
+SMILE_ID_CALLBACK_URL="https://your-ngrok-or-domain.com/webhooks/smile-id"
+
+# Twilio SMS (prod)
+TWILIO_ACCOUNT_SID=""
+TWILIO_AUTH_TOKEN=""
+TWILIO_FROM=""
+
+
+
+# $zipPath   = "C:\Users\HP-Pro\zeno\selfie.zip"
+# $uploadUrl = "https://smile-uploads-test-eu.s3-accelerate.amazonaws.com/videos/8386/8386-1000000064-h93uqq1743yoxhov7eujilqhevr2fh/upload.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIA4OAOFXPAEFJ6S2XO%2F20260415%2Feu-west-1%2Fs3%2Faws4_request&X-Amz-Date=20260415T163332Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEOH%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCWV1LXdlc3QtMSJIMEYCIQDPqLASxgxlB%2Bo4VcU6hu1CO1JBN%2F1Wt%2Bntb5mEhLs28QIhAJmTKkZS%2FgBltAA%2FrcpxrO5sFqCfLDgFu9mlJQyN4zzuKoYECKr%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQAxoMODU0NzI4MjI3Nzc2IgyXvqv9Uu9eFpd133cq2gMziKuTdZVG7FnRJ03422jwSMoEFPf70bVdio%2BkVOpKUoXdF2I4Ps5BSWaZff3xTluPJRLtV0R%2BDHNMFN76Wii%2FROI2qdKg5pPPDalB%2FGoFgLXiLhHPJosM3MsXENSNssFdKSeuOP7jp1bmZKJEL9uTCtqhpK65jDw0X%2BmSFMbuXFkhFqmv7xCUpnLDsC4DX0yAvKr1XD1Hpz8PpyOGg%2F2xg02rmmHX6pggjoN0EtEhoWhuyW2xSjc698OgMQY2Vts2cE8PMAwkALnbe8LrryCLYDeVioEsAfI107JKjh5qcUWHoGXdsWKd%2BYyuN66xO8MvQxQTzDRFtBVxl1m8FPTWPXvtokYWnwRgy0InW895nrmYb2mHjUUQ6TGpqq2flQWvdmLrC9Lxl1dBZ3Wd6ebxu4dW5B%2F0Y%2F7P2%2FQG3COUYq%2FtwRNxEpYaA5iWZ11zDRWfxDVMFG3IZyifF%2Bptty%2FY4%2FHeCNpB16i7ZuiepK5RsAJGG3VQMTY7cpHMC%2BYysieGlwTgz1Zic74ysLpOWZPhF%2BkNloZzW8PJG1eYDRJk%2FZiey6jYqtTX8TxQul%2Fa3rMzmHhOeLK5qWEfPR41H4ATu6iJp1G4KqVAYd8T%2FI4QT9dLNBxRaEexVTsw1%2Fv%2BzgY6oAErXjcLZD17IBvZVINC0WciBWsTOObEoPY7C1IJTqtnsUru6Uf2bg%2F8rvq2afEnoEd3lh%2B8LG4I0m8NmzGc9NyKr1dClchDIh2lCa%2BsZBQjgueBWjOg4ePiNr89vxcrxnTfHc9VsQ%2BuQVN8GKroSyOLH%2BShrVSo2kNVU4tr5h%2BufCx5cmYYqhsHD16uw%2F0vaFzYiPdFylYHEFWXpuHj3D%2FO&X-Amz-Signature=59c9ce52814919ca8792ba4eb239117b7f16fb7e0bbdca3d200e392ab22eaeb3&X-Amz-SignedHeaders=host&x-amz-checksum-crc32=AAAAAA%3D%3D&x-amz-sdk-checksum-algorithm=CRC32&x-id=PutObject"
+
+# Invoke-WebRequest -Method Put -Uri $uploadUrl -InFile $zipPath -ContentType "application/zip"
+
+
+# {{zipBase64}} UEsDBBQAAAAIACV3jVyewv56lQAAAAUBAAAJAAAAaW5mby5qc29uVY5PCwIhEMXvQd9BPC8RHfsQHbtEyGyO22zqin8OIfvdU6TWYJjB93v4Xt7vGOMkBVm18DPL69AUAxOGItzqk7HczpeI+HYoSBbDcfghRRqFBYNF5gG1IhSQ4vMwu4k311rPvWU4eLzqXzXaG4i02NqgGTk4uqIPf2KRDcyL38BpSzdke9L1GhNpeUlmRF9B16SsMh9QSwMEFAAAAAgAzIKOXDRVffRGzwEAMdEBAA8AAABzZWxmaWVfYXV0aC5qcGfM+mdck8EWN4omIUAEgYReAoQAAlIEpEoLGLr0Jh2kSBWQXg09IF1ApfcmRZo0laL03rtSpBdpAtI8Ye997z3n/d0v99udZ
+
+

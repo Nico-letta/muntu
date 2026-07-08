@@ -18,6 +18,10 @@ __pycache__/
 # Dossiers de données brutes / Outputs de tokenization si trop volumineux
 data_engine/_output/
 
+# Configs projet locales (chemins prives)
+data_engine/configs/afriwallet.json
+data_engine/configs/*.local.json
+
 # OS / IDEs
 .DS_Store
 Thumbs.db

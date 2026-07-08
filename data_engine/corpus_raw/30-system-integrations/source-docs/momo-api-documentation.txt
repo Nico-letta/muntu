@@ -1,0 +1,2289 @@
+Other solutions
+
+Remittance
+
+The MoMo Remittance API enables secure, cross-border money transfers via the MTN Mobile Money platform. It allows licensed remittance providers to send funds directly to a recipient's MoMo wallet in supported countries.
+
+
+
+Distribute
+
+We enable businesses to distribute MTN and MoMo services and facilitate cash in, cash out and airtime sales and get commission from MTN and MoMo.
+
+
+
+Channel as a Service
+
+Our Interact API enables businesses to expose and manage a sub menu within the MoMo USSD and App channels. This enables businesses to make their service visible to the millions of consumers and businesses who use MoMo products
+
+
+
+KYC/ Account Validation
+
+We enable businesses to get KYC information on MoMo Consumers so they don't have to collect it from consumers. This simplifies customer onboarding for businesses.
+
+
+
+Pre-approval
+
+We enable businesses to use the Momo Pin to contract with their customers using the Momo Pin to accept T&Cs.
+
+
+
+Notify
+
+We enable businesses to send a customised SMS to MoMo Consumers and Business within the Pay or Get Paid transaction.
+
+View All APIs MoMo API
+
+Introduction
+
+Getting Started
+
+API User & API Key Management
+
+Use Cases
+
+Sandbox Use Cases
+
+Common Error Codes
+
+Callback
+
+Brand Guidelines
+
+Introduction
+
+               English
+
+               French
+
+             
+
+The purpose of this site is to detail the design principles, objects, behaviours and error handling for the MTN Mobile Money API. The overriding goal of the API is to enable all parties to implement MTN Mobile Money APIs in a flexible, yet consistent manner. We hope to achieve this by the implementing the following principles:
+
+
+
+Use of REST architectural principles.
+
+Providing a set of well-defined objects that are abstracted from the underlying object representations held in the various mobile money systems. This allows an API client to construct an API message without requiring specific knowledge of the target server implementation.
+
+Creation of a standard set of transaction types and other key enumerations, removing the need for developers to map for each and every API implementation.
+
+Use of ISO international standards for enumerators such as currency and country codes
+
+Use of supplementary metadata and sub-types to enable use case and/or mobile money provider-specific properties to be conveyed where necessary.
+
+Recognising that no common mobile money account identifier exists, use of a flexible construct to enable the target account(s) and transaction parties to be identified using one or multiple identifier types.
+
+The Open API is a JSON REST API that is used by Partner systems to access services in the Wallet platform. The Open API exposes services that are used by e.g. online merchants for managing payments and other financial services. This document gives an overview of the structure of the API.
+
+← Home
+
+Getting Started →
+
+
+
+MoMo API
+
+Introduction
+
+Getting Started
+
+API User & API Key Management
+
+Use Cases
+
+Sandbox Use Cases
+
+Common Error Codes
+
+Callback
+
+Brand Guidelines
+
+Introduction
+
+               English
+
+               French
+
+             
+
+L'objectif de ce site est de detailler les principes de conception, les objets, les comportements et la gestion des erreurs pour l'API MTN Mobile Money. L'objectif principal de l'API est de permettre a toutes les parties d'implementer les API MTN Mobile Money de maniere flexible, tout en garantissant la coherence. Nous esperons atteindre cet objectif en appliquant les principes suivants :
+
+
+
+Utilisation des principes d'architecture REST.
+
+Fourniture d'un ensemble d'objets bien definis, abstraits des representations d'objets sous-jacentes presentes dans les differents systemes de mobile money. Cela permet a un client API de construire un message API sans necessiter de connaissance specifique de l'implementation du serveur cible.
+
+Creation d'un ensemble standard de types de transactions et d'autres enumerations cles, supprimant ainsi la necessite pour les developpeurs de faire des correspondances pour chaque implementation d'API.
+
+Utilisation des normes internationales ISO pour les enumerations telles que les codes de devise et les codes pays.
+
+Utilisation de metadonnees supplementaires et de sous-types afin de permettre la transmission, lorsque necessaire, de proprietes specifiques aux cas d'usage et/ou aux fournisseurs de mobile money.
+
+Reconnaissance de l'absence d'un identifiant commun pour les comptes de mobile money, et utilisation d'une structure flexible permettant d'identifier le(s) compte(s) cible(s) et les parties a la transaction a l'aide d'un ou de plusieurs types d'identifiants.
+
+L'Open API est une API REST basee sur JSON, utilisee par les systemes partenaires pour acceder aux services de la plateforme Wallet. L'Open API expose des services utilises, par exemple, par les commercants en ligne pour la gestion des paiements et d'autres services financiers. Ce document fournit une vue d'ensemble de la structure de l'API.
+
+← Home
+
+Getting Started → MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Getting Started
+
+English
+y'ello, in this section we'll walk you through getting up and running on our Mobile Money Open API. Here you will:
+
+Signup For An Account
+
+Subscribe To Our Products
+
+Manage Your Subscriptions
+
+Generate API User and API Key
+
+1. Signup For An Account
+
+An account activation link will be sent in an email. The activation link expires within 24 hours of it being sent, and you will need to register for another account.
+
+2. Subscribe To Our Products
+
+On the products page on our developer portal you should see 4 items you can subscribe to:
+
+Collection Widget
+
+Collection
+
+Remittances
+
+Disbursements
+
+Each product will have a brief description, a link to the corresponding documentation and Subscribe button on the Products page.
+
+
+3. Manage Your Subscriptions
+
+Developers are issued a Primary Key and Secondary Key for every product.
+
+
+Both primary and secondary Subscription key provides access to the API. Without one of them a developer cannot access any of the APIs. Subscriptions are stored under the user profile and have no expiry.
+
+Here you can view the status of the package, date it started, conduct cancellation or activation actions, and also show or regenerate your Primary Key and Secondary Key
+
+
+4. Generate API User and API Key
+
+You are now almost ready to start we building with our Mobile Money Open API. The next thing we need to do is to Provision the API User and API Key using the Sandbox Provisioning API. We do this in the next section.
+
+← IntroductionAPI User & API Key Management → MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Getting Started
+
+French
+y'ello, dans cette section, nous vous guiderons pour demarrer avec notre Mobile Money Open API. Ici, vous pourrez :
+
+Creer un compte
+
+Souscrire a nos produits
+
+Gerer vos souscriptions
+
+Generer API User et API Key
+
+1. Creer un compte
+
+Un lien d'activation de compte sera envoye par email. Ce lien expire dans un delai de 24 heures apres son envoi, et vous devrez creer un nouveau compte si le lien expire.
+
+2. Souscrire a nos produits
+
+Sur la page des produits de notre portail developpeur, vous devriez voir 4 elements auxquels vous pouvez souscrire :
+
+Collection Widget
+
+Collection
+
+Remittances
+
+Disbursements
+
+Chaque produit contient une breve description, un lien vers la documentation correspondante, ainsi qu'un bouton "Subscribe" sur la page des produits.
+
+
+3. Gerer vos souscriptions
+
+
+Les developpeurs recoivent une Primary Key et une Secondary Key pour chaque produit.
+
+La Primary Key et la Secondary Key permettent toutes deux d'acceder a l'API. Sans l'une de ces cles, un developpeur ne peut acceder a aucune API. Les souscriptions sont enregistrees dans le profil utilisateur et n'ont pas de date d'expiration.
+
+Ici, vous pouvez voir le statut du package, la date de debut, effectuer des actions d'annulation ou d'activation, ainsi qu'afficher ou regenerer votre Primary Key et votre Secondary Key.
+
+
+4. Generer API User et API Key
+
+Vous etes maintenant presque pret a commencer a construire avec notre Mobile Money Open API. La prochaine etape consiste a provisionner l'API User et l'API Key en utilisant la Sandbox Provisioning API. Cette etape est detaillee dans la section suivante.
+
+← IntroductionAPI User & API Key Management →MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+API User and Key Management
+
+English
+Authentication
+
+There are two credentials used in the Open API.
+
+Subscription Key
+
+API User and API Key
+
+The subscription key is used to give access to APIs in the API Manager portal. A user is assigned a subscription Key as and when the user subscribes to products in the API Manager Portal.
+
+The API User and API Key are used to grant access to the wallet system in a specific country. API user and Key are wholly managed by the user through Partner Portal.
+
+Users are allowed to generate/revoke API Keys through the Partner Portal.
+
+However, on Sandbox Environment a Provisioning API is exposed to enable users to generate their own API User and API Key for testing purposes only.
+
+Subscription Key
+
+The subscription key is part of the header of all requests sent to the API Manager. The subscription key can be found under user profile in the API Manager Portal.
+
+The subscription key is assigned to the Ocp-Apim-Subscription-Key parameter of the header.
+
+API User and API Key for Oauth 2.0
+
+The API user and API key are provisioned differently in the sandbox and production environment.
+
+In the Sandbox a provisioning API is used to create the API User and API Key, whereas in the production environment the provisioning is done through the User Portal.
+
+The sections below describe the different steps required in creating API User and API key in Sandbox and Production Environments.
+
+Create API User
+
+
+The Provider sends a POST {baseURL}/apiuser request to Wallet platform.
+
+The Provider specifies the UUID Reference ID in the request Header and the subscription Key
+
+Reference ID will be used as the User ID for the API user to be created.
+
+Wallet Platform creates the User and responds with 201
+
+Example
+
+Request
+POST {baseURL}/apiuser HTTP/1.1
+
+Host: momodeveloper.mtn.com
+
+X-Reference-Id: c72025f5-5cd1-4630-99e4-8ba4722fad56
+
+Ocp-Apim-Subscription-Key: d484a1f0d34f4301916d0f2c9e9106a2{"providerCallbackHost": "clinic.com"}
+
+Response
+201 Created
+
+Create API Key
+
+
+The Provider sends a POST {baseURL}/apiuser/{APIUser}/apikey request to Wallet platform.
+
+The Provider specifies the API User in the URL and subscription Key in the header.
+
+Wallet Platform creates the API Key and responds with 201 Created with the newly Created API Key in the Body.
+ 
+Provider now has both API User and API Key created.
+
+Example
+
+Request
+POST {baseURL}/apiuser/c72025f5-5cd1-4630-99e4-8ba4722fad56/apikey HTTP/1.1
+
+Host: momodeveloper.mtn.com
+
+Ocp-Apim-Subscription-Key: d484a1f0d34f4301916d0f2c9e9106a2
+
+Response
+HTTP/1.1 201 Created date: Wed, 10 Oct 2018 09:16:15 GMT content-type: application/json;charset=utf-8 content-length: 45 { "apiKey": "f1db798c98df4bcf83b538175893bbf0" }
+
+GET API User Details
+
+It is possible to fetch API user details such as Call Back Host. However, it is not possible to fetch the API key.Provider shall be required to generate a new Key should they lose the existing one.
+
+
+The Provider sends a GET {baseURL}/apiuser/{APIUser} request to Wallet platform.
+
+The Provider specifies the API User in the URL and subscription Key in the header.
+
+Wallet Platform responds with 200 Ok and details of the user.
+
+TargetEnvironment is preconfigured to sandbox in the Sandbox environment, therefore Providers will not have the option of setting it to a different parameter.
+
+Example
+
+Request
+GET {baseURL}/apiuser/ c72025f5-5cd1-4630-99e4-8ba4722fad56
+
+Host: momodeveloper.mtn.com
+
+Ocp-Apim-Subscription-Key: d484a1f0d34f4301916d0f2c9e9106a2
+
+Response
+HTTP/1.1 200 Accepted date: Wed, 10 Oct 2018 09:16:15 GMT { "providerCallbackHost": "clinic.com", "targetEnvironment": "sandbox" }
+
+Oauth 2.0
+
+The Open API uses Oauth 2.0 token for authentication of request. User will request an access token using Client Credential Grant according to RFC 6749. The token received is according to RFC 6750 Bearer Token.
+
+The API user and API key are used in the basic authentication header when requesting the access token. The API user and key are managed in the Partner GUI for the country where the account is located. The Partner can create and manage API user and key from the Partner GUI.
+
+In the Sandbox, the API Key and API User are managed through the Provisioning API
+
+The received token has an expiry time. The same token can be used for transactions until it expires. A new token is requested by using the POST /token service in the same way as the initial token. The new token can be requested for before the previous one has expired to avoid authentication failure due to expired token.
+
+Important: The token must be treated as a credential and kept secret. The party that have access to the token will be authenticated as the user that requested the token. The below sequence describes the flow for requesting a token and using the token in a request.
+
+
+Provider system requests an access token using the API Key and API user as authentication.
+
+Wallet platform authenticates credentials and responds with the access token
+
+Provider system will use the access token for any request that is sent to Wallet Platform, e.g. POST /requesttopay
+
+Note: The same token shall be used if it is not expired.
+
+API Methods
+
+The API uses POST, GET, PUT methods. This section gives an overview of the interaction sequence used in the API and the usage of the methods.
+
+POST
+POST method is used for creating a resource in Wallet Platform. The request includes a reference id which is used to uniquely identify the specific resource that are created by the POST request. If a POST is using a reference id that is already used, then a duplication error response will be sent to the client.
+
+Example
+
+POST /requesttopay
+
+The POST is an asynchronous method. The Wallet Platform will validate the request to ensure that it is correct according to the API specification and then answer with HTTP 202 Accepted. The created resource will get status PENDING. Once the request has been processed the status will be updated to SUCCESSFUL or FAILED. The requester may then be notified of the final status through callback.
+
+GET
+Example
+
+GET is used for requesting information about a specific resource. The URL in the GET shall include the reference of the resource. If a resource was created with POST then the reference id that was provided in the request is used as the identity of the resource.
+
+POST /requesttopay request is sent with X-Reference-Id = 11377cbe-374c-43f6-a019-4fb70e57b617
+
+GET /requesttopay/11377cbe-374c-43f6-a019-4fb70e57b617 will return the status of the request.
+
+PUT
+The PUT method is used by the Open API when sending callbacks. Callback is sent if a callback URL is included in the POST request. The Wallet Platform will only send the callback once. There is no retry on the callback if the Partner system does not respond. If the callback is not received, then the Partner system can use GET to validate the status.
+
+← Getting StartedUse Cases →MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+API User and Key Management
+
+French
+Authentication
+
+Il existe deux types d'identifiants utilises dans l'Open API :
+
+Subscription Key
+
+API User et API Key
+
+La subscription key est utilisee pour donner acces aux API dans le portail API Manager. Un utilisateur recoit une subscription key lorsqu'il souscrit a des produits dans le portail API Manager.
+
+L'API User et l'API Key sont utilises pour donner acces au systeme Wallet dans un pays specifique. L'API User et l'API Key sont entierement geres par l'utilisateur via le Partner Portal.
+
+Les utilisateurs peuvent generer ou revoquer des API Keys via le Partner Portal.
+
+Cependant, dans l'environnement Sandbox, une Provisioning API est exposee afin de permettre aux utilisateurs de generer leur propre API User et API Key a des fins de test uniquement.
+
+Subscription Key
+
+La subscription key fait partie du header de toutes les requetes envoyees a l'API Manager. Elle peut etre trouvee dans le profil utilisateur du portail API Manager.
+
+La subscription key est assignee au parametre de header Ocp-Apim-Subscription-Key.
+
+API User and API Key for Oauth 2.0
+
+L'API User et l'API Key sont provisionnes differemment selon l'environnement Sandbox ou Production.
+
+Dans le Sandbox, une Provisioning API est utilisee pour creer l'API User et l'API Key, tandis qu'en environnement Production, le provisioning est effectue via le User Portal.
+
+Les sections ci-dessous decrivent les differentes etapes necessaires a la creation de l'API User et de l'API Key dans les environnements Sandbox et Production.
+
+Creer un API User
+
+
+Le Provider envoie une requete POST {baseURL}/apiuser a la plateforme Wallet.
+
+Le Provider specifie le UUID Reference ID dans le header de la requete ainsi que la subscription key.
+
+Le Reference ID sera utilise comme User ID pour l'API user a creer.
+
+La plateforme Wallet cree l'utilisateur et repond avec 201.
+
+Exemple
+
+Requete
+POST {baseURL}/apiuser HTTP/1.1
+
+Host: momodeveloper.mtn.com
+
+X-Reference-Id: c72025f5-5cd1-4630-99e4-8ba4722fad56
+
+Ocp-Apim-Subscription-Key: d484a1f0d34f4301916d0f2c9e9106a2{"providerCallbackHost": "clinic.com"}
+
+Reponse
+201 Created
+
+Creer une API Key
+
+
+Le Provider envoie une requete POST {baseURL}/apiuser/{APIUser}/apikey a la plateforme Wallet.
+
+Le Provider specifie l'API User dans l'URL et la subscription Key dans le header.
+
+La plateforme Wallet cree l'API Key et repond avec 201 Created avec la nouvelle API Key dans le Body.
+
+Le Provider dispose maintenant d'un API User et d'une API Key.
+
+Exemple
+
+Requete
+POST {baseURL}/apiuser/c72025f5-5cd1-4630-99e4-8ba4722fad56/apikey HTTP/1.1
+
+Host: momodeveloper.mtn.com
+
+Ocp-Apim-Subscription-Key: d484a1f0d34f4301916d0f2c9e9106a2
+
+Reponse
+HTTP/1.1 201 Created date: Wed, 10 Oct 2018 09:16:15 GMT content-type: application/json;charset=utf-8 content-length: 45 { "apiKey": "f1db798c98df4bcf83b538175893bbf0" }
+
+Recuperer les details de l'API User
+
+Il est possible de recuperer les details de l'API user tels que le Call Back Host. Cependant, il n'est pas possible de recuperer l'API key. Provider devra generer une nouvelle Key s'il perd celle existante.
+
+
+Le Provider envoie une requete GET {baseURL}/apiuser/{APIUser} a la plateforme Wallet.
+
+Le Provider specifie l'API User dans l'URL et la subscription Key dans le header.
+
+La plateforme Wallet repond avec 200 Ok et les details de l'utilisateur.
+
+Le TargetEnvironment est preconfigure a sandbox dans l'environnement Sandbox, par consequent les Providers ne peuvent pas le definir sur une autre valeur.
+
+Exemple
+
+Requete
+GET {baseURL}/apiuser/ c72025f5-5cd1-4630-99e4-8ba4722fad56
+
+Host: momodeveloper.mtn.com
+
+Ocp-Apim-Subscription-Key: d484a1f0d34f4301916d0f2c9e9106a2
+
+Reponse
+HTTP/1.1 200 Accepted date: Wed, 10 Oct 2018 09:16:15 GMT { "providerCallbackHost": "clinic.com", "targetEnvironment": "sandbox" }
+
+Oauth 2.0
+
+L'Open API utilise un token Oauth 2.0 pour l'authentification des requetes. L'utilisateur demandera un access token en utilisant le Client Credential Grant conformement au RFC 6749. Le token recu est un Bearer Token conformement au RFC 6750.
+
+L'API user et l'API key sont utilises dans le header d'authentification basic lors de la demande du token. L'API user et la key sont geres dans le Partner GUI pour le pays ou le compte est localise. Le Partner peut creer et gerer l'API user et la key depuis le Partner GUI.
+
+Dans le Sandbox, l'API Key et l'API User sont geres via la Provisioning API.
+
+Le token recu a une duree d'expiration. Le meme token peut etre utilise pour les transactions jusqu'a expiration. Un nouveau token est demande via le service POST /token de la meme maniere que le token initial. Un nouveau token peut etre demande avant expiration pour eviter un echec d'authentification.
+
+Important : Le token doit etre traite comme un identifiant et garde secret. Toute partie ayant acces au token sera authentifiee comme l'utilisateur ayant demande le token. La sequence ci-dessous decrit le flux d'obtention et d'utilisation du token.
+
+
+Le systeme Provider demande un access token en utilisant l'API Key et l'API user pour l'authentification.
+
+La plateforme Wallet authentifie les identifiants et repond avec un access token
+
+Le systeme Provider utilisera le access token pour toute requete envoyee a la plateforme Wallet, par exemple POST /requesttopay
+
+Note : Le meme token doit etre utilise s'il n'est pas expire.
+
+Methodes API
+
+L'API utilise les methodes POST, GET et PUT. Cette section donne un apercu de la sequence d'interaction utilisee dans l'API ainsi que de l'utilisation des methodes.
+
+POST
+La methode POST est utilisee pour creer une ressource dans la plateforme Wallet. La requete inclut un reference id qui identifie de maniere unique la ressource. Si un reference id deja utilise est envoye, une erreur de duplication sera retournee.
+
+Exemple
+
+POST /requesttopay
+
+La methode POST est asynchrone. La plateforme Wallet valide la requete et repond avec HTTP 202 Accepted. La ressource creee aura le statut PENDING. Une fois traitee, le statut sera mis a jour vers SUCCESSFUL ou FAILED. Le demandeur pourra etre notifie via callback.
+
+GET
+Exemple
+
+GET est utilise pour demander des informations sur une ressource specifique. L'URL doit inclure le reference de la ressource. Si la ressource a ete creee via POST, le reference id est utilise comme identifiant.
+
+POST /requesttopay avec X-Reference-Id = 11377cbe-374c-43f6-a019-4fb70e57b617
+
+GET /requesttopay/11377cbe-374c-43f6-a019-4fb70e57b617 retourne le statut de la requete.
+
+PUT
+La methode PUT est utilisee par l'Open API lors de l'envoi des callbacks. Un callback est envoye si une URL de callback est incluse dans la requete POST. La plateforme Wallet envoie le callback une seule fois. Il n'y a pas de retry si le systeme Partner ne repond pas. Si le callback n'est pas recu, le systeme Partner peut utiliser GET pour verifier le statut.
+
+← Getting StartedUse Cases →MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Request to Pay
+Pre-Approval
+Cancel PreApproval
+Transfer
+Validate Account Holder
+Get Balance
+Deliver Notification
+Validate Consumer Identity
+Get consumer information with consent
+Transfer with consumer consent
+Merchant payment with consumer consent
+Payment with consumer consent
+Bank transfer with consumer consent
+Aggregator API
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Use Cases
+
+English
+Select the product of interest and the use case
+
+Follow the APIs as shown. Execute in sequential order.
+
+Product Set: 
+Select a Product
+ Use Case: 
+Please select a product first
+
+Request To Pay
+
+Request to Pay service is used for requesting a payment from a customer (Payer). This can be used by e.g. an online web shop to request a payment for a customer. The customer is requested to approve the transaction on the customer client.
+
+
+Customer (Payer) have selected product(s) in the merchant web shop and decided to check out. Customer select to pay with Mobile Money.
+
+The provider system collects the account information for the customer e.g. mobile number and calculate the total amount of the products.
+
+The provider system sends a request to pay (POST /requesttopay) operation to Wallet Platform. This request includes the amount and customer (Payer) account holder number.
+
+Wallet Platform will respond with HTTP 202 Accepted to the provider system
+
+Provider shall inform the customer that a payment needs to be approved, by giving information on the merchant web page. For example, the merchant could show information that payment is being processed and that customer needs to approve using the own client, e.g. USSD, mobile app.
+
+Wallet Platform will process the request so that the customer can approve the payment. The request to pay will be in PENDING state until the customer have approved/Rejected the payment.
+
+The Customer (Payer) will use his/her own client to review the payment. Customer can approve or reject the payment.
+
+Wallet platform will transfer the funds if the customer approves the payment. Status of the payment is updated to SUCCESSFUL or FAILED.
+
+If a callback URL was provided in the POST /requesttopay then a callback will be sent once the request to pay have reached a final state (SUCCESSFUL, FAILED). Note the callback will only be sent once. There is no retry.
+
+GET request can be used for validating the status of the transaction. GET is used if the partner system has not requested a callback by providing a callback URL or if the callback was not received.
+
+Pre-Approval
+
+Pre-approval is used to setup an auto debit towards a customer. The Partner can request a pre-approval from the customer. Once the customer has approved then the partner can debit the customer account without authorization from the customer.
+
+The call flow for setting up a pre-approval is like the request to pay use case. The following picture describes the sequence for pre-approval.
+
+
+The Provider sends a POST /preapproval request to Wallet platform.
+
+Provider shall inform the customer that pre-approval needs to be approved.
+
+Customer (Payer) will use the own client to view the pre-approval request. Customer can approve or reject the request.
+
+Callback will be sent if a callback URL was provided in the POST request. The callback is sent when the request has reach a final state (Successful, Failed).
+
+The Provider can use the GET request to validate the status of the pre-approval.
+
+Cancel PreApproval
+
+Cancel PreApproval makes it possible for a Service Provider (Merchant) to cancel a preapproval that is targeting the Service Provider itself.
+
+Below Sequence provides the details of the API exchanges that happens between different actors:
+
+
+The Service Provider send a GET /v1_0/preapprovals/{accountHolderIdType}/{accountholderid} to get a list of all preapprovals for the Consumer, that is targeting the Service Provider.
+
+Wallet Platform authorizes the Service Provider and sends the get request with the status equal APPROVED.
+
+Wallet Platform fetches the preapprovals and returns the preapproval details to the Service Provider.
+
+The Service Provider selects the prepparovalid to cancel and send DELETE /v1_0/preapproval/{preapprovalid} to Wallet Platform.
+
+Wallet Platform cancels the preapproval and returns OK.
+
+A notification is optionally sent to the consumer.
+
+Transfer
+
+Transfer is used for transferring money from the provider account to a customer.
+
+The below sequence gives an overview of the flow of the transfer use case.
+
+
+The Provider sends a POST /transfer request to Wallet platform.
+
+Wallet platform will directly respond to indicate that the request is received and will be processed.
+
+Wallet platform will authorize the request to ensure that the transfer is allowed. The funds will be transferred from the provider account to the Payee account provided in the transfer request.
+
+Callback will be sent if a callback URL was provided in the POST request. The callback is sent when the request has reach a final state (SUCCESSFUL, FAILED).
+
+The Provider can use the GET request to validate the status of the transfer.
+
+Validate Account Holder
+
+Validate account holder can be used to do a validation if a customer is active and able to receive funds. The use case will only validate that the customer is available and active. It does not validate that a specific amount can be received.
+
+The sequence for the validate account holder is described below.
+
+
+The Partner can send a GET /accountholder request to validate is a customer is active. The Partner provides the id of that customer as part of the URL
+
+Wallet platform will respond with HTTP 200 if the account holder is active.
+
+Get Balance
+
+Get balance request is used to check the balance on the default account connected to the API User. The following is the sequence flow for get balance use case.
+
+
+Delivery Notification
+
+This service is intended to provide an additional notification to a customer after the completion of a successful financial transaction, by SMS or by email.
+
+Merchants and Service Providers using PGW (Partner gateway is an application responsible for connecting API manager to different Wallet instances across all the Opcos) to interact with the Wallet Platform have the capability to send a notification to their customers after completed transaction.
+
+Additional information is sent via SMS and is free text that may contain information that a partner wants to communicate for example, delivery notification reference number, a lottery number, a booking number, ticket id etc.
+
+The channel used to send the notification will be determined based on what identity was used to initiate original transaction/payment.
+
+The time window during which partner can use additional notification is configured in Partner Gateway.
+
+
+Validate Consumer Identity
+
+The Validate Consumer Identity use case (KYC as a service) enables a partner to retrieve (limited) customer KYC information with their consent. Upon request by the service provider, the customer will authorize, authenticate and provide consent to get detailed information.
+
+The Partner will receive a short-lived token to fetch detailed information of the customer from the wallet platform.
+
+The basic information that can be retrieved by default is Profile: Name, Gender, Date of birth, locale etc.
+
+API: GetBasicUserinfo can be used to either validate for example, Consumer's age or name.
+
+The use case will return limited information about the Consumer that can be used to pre-populate fields, validate the Consumer's age or use it for remittance or sanctions screening purposes.
+
+
+Get consumer information with consent
+
+This use case (Authentication as a Service) is used to validate/authenticate customer information, by way of a service provider sending a request to the wallet platform, with or without customer consent. The consumer will authenticate via authorization service, and if required, the consumer will be required to provide consent. The scope is to validate or retrieve customer information.
+
+This use case will also enable a partner to obtain consent, or digitally accept terms and conditions. This can be seen as a 'digital signature' (where a partner requires this).
+
+A partner may also be able to fetch limited user info without requiring customer consent. This will also enable partners to record and review that a customer has accepted the terms of a contract (amongst other use cases).
+
+This will be used as a base when any token based 'as a service' is required.
+
+API: bc-authorize.
+
+It provides the Partner with the ability to fetch detailed information about a Consumer, after the Consumer has given the Partner consent for the retrieval of said information:
+
+Select a tab to view API request and header details
+
+POST /bc-authorize
+POST /oauth2/token/
+POST /oauth2/v1_0/userinfo
+
+
+
+Token based API Authorization
+
+
+Token based API authorization is required to support consent management for different services. The Partner will request consent from the consumer for certain financial and non-financial transactions, and this will remain valid until the account holder revokes the consent.
+
+The functionalities that can be enhanced by using consent will be:
+
+1. Transfer
+
+2. Payment
+
+3. Merchant payment
+
+4. Transfer to any bank account
+
+For partners, this will enable them to view the status of the transactions for which consent was given using the related parameters. For account holders, they can revoke the consent from any service at their will.
+
+Business benefit of consent can be improved customer experience. Consent can be configured for a specific time and there will be no need to get consent for each transaction. Providing better control on what services are being allowed by the account holder for consent etc.
+
+Transfer with consumer consent
+
+Gives the partner the ability to transfer money on behalf of a consumer, after the consumer has given the partner consent to do so.
+
+Select a tab to view API request and header details
+
+POST /bc-authorize
+POST /oauth2/token/
+POST /oauth2/v1_0/transfer
+
+
+Merchant payment with consumer consent
+
+Gives the Merchant System (partner) the possibility to perform a merchant payment on behalf of a consumer to any receiver. This will only be possible after the Consumer has given the Merchant System (partner) a consent for doing so.
+
+Select a tab to view API request and header details
+
+POST /bc-authorize
+POST /oauth2/token/
+POST /oauth2/v1_0/userinfo
+POST /oauth2/v1_0/merchantpayment
+
+
+
+Payment with consumer consent
+
+Gives the Merchant System (partner) the possibility to perform a payment on behalf of a consumer to any receiver. This will only be possible after the Consumer has given the Merchant System (partner) a consent for doing so.
+
+Payment with consent will be similar to Merchant Payment. For more details, Please refer above section- "Merchant Payment with Consumer Consent".
+
+Bank transfer with consumer consent
+
+Gives the Merchant System (partner) the possibility to perform a Bank Transfer on behalf of a consumer to any receiver. This will only be possible after the Consumer has given the Merchant System (partner) a consent for doing so.
+
+Bank transfer with consent will be similar to Transfer with Consent. For more details, Please refer above section- "Transfer with Consumer Consent".
+
+Aggregator API
+
+The Aggregator Capability - Utilizes a new feature on the Open APIs(Transfer, RequestToPay , Payments), that extends the standard given APIs endpoint by introducing an additional required field: transferType. This enables service-specific charging, allowing aggregators to tailor pricing for different transfer use cases.
+
+Aggregator Request To Pay
+
+The Aggregator - RequestToPay API extends the standard RequestToPay endpoint by introducing an additional required field: transferType.
+
+View Standard RequestToPay
+
+
+Required Parameters
+
+Parameter	Type	Required	Description
+transferType	string	Yes	Specifies the type of transaction being initiated by the aggregator.
+Sandbox Testing
+
+The following transferType values are enabled in the sandbox environment:
+
+CUSTOM_PAYMENT
+
+CUSTOM_BANK_PAYMENT
+
+CUSTOM_BANK_PAYMENT_FEE
+
+Note: The complete list of supported transferType values for production will be shared by the onboarding team as agreed in the contract.
+
+Example Request
+
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay' \
+--header 'Ocp-Apim-Subscription-Key: PLACE_HOLDER_SUBSCRIPTION_KEY' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer PLACE_HOLDER_ACCOUNT_TOKEN' \
+--header 'X-Reference-Id: PLACE_HOLDER_X_REF_ID_UUID_V4' \
+--data '{
+  "amount":"1000",
+  "currency":"EUR",
+  "externalId":"10001",
+  "payer":{
+    "partyIdType":"MSISDN",
+    "partyId":"123456789012"
+  },
+  "payerMessage":"Order Payment",
+  "payeeNote":"Order Payment",
+  "transferType":"CUSTOM_PAYMENT"
+}'
+
+Aggregator Transfer
+
+The Aggregator - Transfer API extends the standard Transfer endpoint by introducing an additional required field: transferType.
+
+View Standard Transfer
+
+
+Required Parameters
+
+Parameter	Type	Required	Description
+transferType	string	Yes	Specifies the type of transaction being initiated by the aggregator.
+Sandbox Testing
+
+The following transferType values are enabled in the sandbox environment:
+
+CUSTOM_PAYMENT
+
+CUSTOM_BANK_PAYMENT
+
+CUSTOM_BANK_PAYMENT_FEE
+
+Note: The complete list of supported transferType values for production will be shared by the onboarding team as agreed in the contract.
+
+Example Request
+
+curl --location 'https://sandbox.momodeveloper.mtn.com/disbursement/v1_0/transfer' \
+--header 'Ocp-Apim-Subscription-Key: PLACE_HOLDER_SUBSCRIPTION_KEY' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer PLACE_HOLDER_ACCOUNT_TOKEN' \
+--header 'X-Reference-Id: PLACE_HOLDER_X_REF_ID_UUID_V4' \
+--data '{
+  "amount":"1000",
+  "currency":"EUR",
+  "externalId":"10001",
+  "payee":{
+    "partyIdType":"MSISDN",
+    "partyId":"123456789012"
+  },
+  "payerMessage":"Order Payment",
+  "payeeNote":"Order Payment",
+  "transferType":"CUSTOM_PAYMENT"
+}'
+
+Aggregator Payment
+
+The Aggregator - Payment API extends the standard Payment endpoint by introducing an additional required field: transferType.
+
+View Standard Payment
+
+
+Required Parameters
+
+Parameter	Type	Required	Description
+transferType	string	Yes	Specifies the type of transaction being initiated by the aggregator.
+Sandbox Testing
+
+The following transferType values are enabled in the sandbox environment:
+
+CUSTOM_PAYMENT
+
+CUSTOM_BANK_PAYMENT
+
+CUSTOM_BANK_PAYMENT_FEE
+
+Note: The complete list of supported transferType values for production will be shared by the onboarding team as agreed in the contract.
+
+Example Request
+
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v2_0/payment' \
+--header 'Ocp-Apim-Subscription-Key: PLACE_HOLDER_SUBSCRIPTION_KEY' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer PLACE_HOLDER_ACCOUNT_TOKEN' \
+--header 'X-Reference-Id: PLACE_HOLDER_X_REF_ID_UUID_V4' \
+--data '{
+  "externalTransactionId":"10001",
+  "money": {
+	"amount": "1000",
+	"currency": "EUR"
+  },
+  "customerReference":"MSISDN",
+  "serviceProviderUserName":"TestSpUsername",
+  "transferType":"CUSTOM_PAYMENT"
+}'
+
+← API User & API Key ManagementSandbox Use Cases →MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Request to Pay
+Pre-Approval
+Cancel PreApproval
+Transfer
+Validate Account Holder
+Get Balance
+Deliver Notification
+Validate Consumer Identity
+Get consumer information with consent
+Transfer with consumer consent
+Merchant payment with consumer consent
+Payment with consumer consent
+Bank transfer with consumer consent
+Aggregator API
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Use Cases
+
+French
+Selectionnez le produit d'interet et le cas d'utilisation
+
+Suivez les API comme indique. Executez-les dans l'ordre sequentiel.
+
+Product Set: 
+Select a Product
+ Use Case: 
+Please select a product first
+
+Request To Pay (Demande de paiement)
+
+Le service Request to Pay est utilise pour demander un paiement a un client (Payer). Cela peut etre utilise par exemple par une boutique en ligne pour demander un paiement a un client. Le client est invite a approuver la transaction via son client.
+
+
+Le client (Payer) a selectionne des produits dans la boutique en ligne du marchand et decide de passer a la caisse. Le client choisit de payer avec Mobile Money.
+
+Le systeme du Provider collecte les informations de compte du client, par exemple le numero de telephone, et calcule le montant total des produits.
+
+Le systeme du Provider envoie une operation request to pay (POST /requesttopay) a la plateforme Wallet. Cette requete inclut le montant et le numero du compte du client (Payer).
+
+La plateforme Wallet repondra avec HTTP 202 Accepted au systeme du Provider
+
+Le Provider doit informer le client qu'un paiement doit etre approuve en affichant des informations sur la page web du marchand. Par exemple, le marchand peut indiquer que le paiement est en cours de traitement et que le client doit approuver via son propre client, par exemple USSD ou application mobile.
+
+La plateforme Wallet traitera la requete afin que le client puisse approuver le paiement. La requete request to pay sera en etat PENDING jusqu'a ce que le client approuve ou rejette le paiement.
+
+Le client (Payer) utilisera son propre client pour examiner le paiement. Le client peut approuver ou rejeter le paiement.
+
+La plateforme Wallet transferera les fonds si le client approuve le paiement. Le statut du paiement est mis a jour en SUCCESSFUL ou FAILED.
+
+Si une URL de callback est fournie dans POST /requesttopay, un callback sera envoye lorsque la requete atteint un etat final (SUCCESSFUL, FAILED). Le callback est envoye une seule fois. Il n'y a pas de retry.
+
+Une requete GET peut etre utilisee pour valider le statut de la transaction. GET est utilise si le systeme partenaire n'a pas demande de callback ou si le callback n'a pas ete recu.
+
+Pre-Approval (Pré-approbation)
+
+Le pre-approval est utilise pour configurer un debit automatique pour un client. Le Partner peut demander un pre-approval au client. Une fois approuve, le Partner peut debiter le compte du client sans autorisation supplementaire.
+
+Le flux pour configurer un pre-approval est similaire au cas d'utilisation request to pay. L'image suivante decrit la sequence du pre-approval.
+
+
+Le Provider envoie une requete POST /preapproval a la plateforme Wallet.
+
+Le Provider doit informer le client que le pre-approval doit etre approuve.
+
+Le client (Payer) utilisera son propre client pour consulter la demande de pre-approval. Le client peut approuver ou rejeter la demande.
+
+Un callback sera envoye si une URL de callback est fournie dans la requete POST. Le callback est envoye lorsque la requete atteint un etat final (Successful, Failed).
+
+Le Provider peut utiliser une requete GET pour valider le statut du pre-approval.
+
+Cancel PreApproval (Annuler un PreApproval)
+
+Cancel PreApproval permet a un Service Provider (Merchant) d'annuler un preapproval qui cible ce meme Service Provider.
+
+La sequence ci-dessous fournit les details des echanges API entre les differents acteurs :
+
+
+Le Service Provider envoie une requete GET /v1_0/preapprovals/{accountHolderIdType}/{accountholderid} pour obtenir la liste des preapprovals du Consumer ciblant ce Service Provider.
+
+La plateforme Wallet autorise le Service Provider et traite la requete GET avec un statut APPROVED.
+
+La plateforme Wallet recupere les preapprovals et retourne les details au Service Provider.
+
+Le Service Provider selectionne le prepparovalid a annuler et envoie DELETE /v1_0/preapproval/{preapprovalid} a la plateforme Wallet.
+
+La plateforme Wallet annule le preapproval et retourne OK.
+
+Une notification peut etre envoyee au consumer de maniere optionnelle.
+
+Transfer (Transfert)
+
+Transfer est utilise pour transferer de l'argent du compte du provider vers un client.
+
+La sequence ci-dessous donne un apercu du flux du cas d'utilisation Transfer.
+
+
+Le Provider envoie une requete POST /transfer a la plateforme Wallet.
+
+La plateforme Wallet repond immediatement pour indiquer que la requete est recue et sera traitee.
+
+La plateforme Wallet autorise la requete pour verifier que le transfer est autorise. Les fonds seront transferes du compte provider vers le compte Payee fourni dans la requete.
+
+Un callback sera envoye si une URL de callback est fournie dans la requete POST. Le callback est envoye lorsque la requete atteint un etat final (SUCCESSFUL, FAILED).
+
+Le Provider peut utiliser une requete GET pour valider le statut du transfer.
+
+Validate Account Holder (Valider le Account Holder)
+
+Validate account holder permet de verifier si un client est actif et capable de recevoir des fonds. Ce cas d'utilisation valide uniquement que le client est actif et disponible. Il ne verifie pas si un montant specifique peut etre recu.
+
+La sequence pour valider le account holder est decrite ci-dessous.
+
+
+Le Partner peut envoyer une requete GET /accountholder pour verifier si un client est actif. Le Partner fournit l'id du client dans l'URL.
+
+La plateforme Wallet repond avec HTTP 200 si le account holder est actif.
+
+Get Balance (Obtenir le solde)
+
+La requete Get balance est utilisee pour verifier le solde du compte par defaut associe a l'API User. Voici le flux du cas d'utilisation Get balance.
+
+
+Delivery Notification (Notification de livraison)
+
+Ce service permet d'envoyer une notification supplementaire au client apres une transaction reussie, par SMS ou par email.
+
+Les Merchants et Service Providers utilisant PGW (Partner gateway est une application qui connecte l'API manager aux differentes instances Wallet) peuvent envoyer une notification apres transaction.
+
+Des informations supplementaires peuvent etre envoyees par SMS sous forme de texte libre (numero de livraison, numero de loterie, numero de reservation, ticket id, etc.).
+
+Le canal de notification depend de l'identite utilisee pour initier la transaction.
+
+La fenetre de temps pour envoyer ces notifications est configuree dans le Partner Gateway.
+
+
+Validate Consumer Identity (Valider l'identite du Consumer)
+
+Le cas d'utilisation Validate Consumer Identity (KYC as a service) permet au Partner de recuperer des informations KYC limitees avec le consentement du client.
+
+Le Partner recoit un token temporaire pour recuperer les informations detaillees du client.
+
+Les informations de base incluent : nom, genre, date de naissance, locale, etc.
+
+L'API GetBasicUserinfo peut etre utilisee pour valider l'age ou le nom du Consumer.
+
+Le cas d'utilisation retourne des informations limitees pour pre-remplir des champs, valider l'age ou effectuer des controles.
+
+
+Get consumer information with consent (Obtenir les informations du consumer avec consentement)
+
+Ce cas d'utilisation (Authentication as a Service) est utilise pour valider/authentifier les informations du client via une requete envoyee a la plateforme Wallet, avec ou sans consentement. Le consumer s'authentifie via le service d'autorisation et peut etre amene a donner son consentement. Le but est de valider ou recuperer les informations du client.
+
+Ce cas d'utilisation permet egalement au Partner d'obtenir le consentement ou une acceptation digitale des termes et conditions. Cela peut etre considere comme une signature digitale.
+
+Un Partner peut aussi recuperer des informations limitees sans consentement. Cela permet egalement d'enregistrer et verifier l'acceptation des conditions par le client.
+
+Cela servira de base pour tout service base sur token.
+
+API : bc-authorize.
+
+Cela permet au Partner de recuperer des informations detaillees sur un Consumer apres consentement.
+
+Sélectionnez un onglet pour afficher les détails de la requête API et des en-têtes.
+
+POST /bc-authorize
+POST /oauth2/token/
+POST /oauth2/v1_0/userinfo
+
+
+
+
+Autorisation API basee sur token
+
+L'autorisation API basee sur token est necessaire pour gerer le consentement. Le Partner demande le consentement pour des transactions financieres ou non. Celui-ci reste valide jusqu'a revocation.
+
+Les fonctionnalites pouvant etre ameliorees via le consentement sont :
+
+1. Transfer
+
+2. Payment
+
+3. Merchant payment
+
+4. Transfer vers tout compte bancaire
+
+Pour les Partners, cela permet de voir le statut des transactions avec consentement. Les account holders peuvent revoquer le consentement a tout moment.
+
+Le benefice est une meilleure experience client. Le consentement peut etre configure pour une duree definie sans repetition. Cela donne plus de controle sur les services autorises.
+
+Transfer with consumer consent (Transfer avec consentement du consumer)
+
+Permet au Partner de transferer de l'argent au nom du consumer apres consentement.
+
+Sélectionnez un onglet pour afficher les détails de la requête API et des en-têtes.
+
+POST /bc-authorize
+POST /oauth2/token/
+POST /oauth2/v1_0/transfer
+
+
+Merchant payment with consumer consent (Paiement marchand avec consentement du consumer)
+
+Permet au Merchant System (partner) d'effectuer un paiement au nom du consumer apres consentement vers tout receveur.
+
+Sélectionnez un onglet pour afficher les détails de la requête API et des en-têtes.
+
+POST /bc-authorize
+POST /oauth2/token/
+POST /oauth2/v1_0/userinfo
+POST /oauth2/v1_0/merchantpayment
+
+
+
+Payment with consumer consent (Paiement avec consentement du consumer)
+
+Permet au Merchant System (partner) d'effectuer un paiement au nom du consumer apres consentement.
+
+Le paiement avec consentement est similaire au Merchant Payment. Voir la section correspondante.
+
+Bank transfer with consumer consent (Virement bancaire avec consentement du consumer)
+
+Permet au Merchant System (partner) d'effectuer un virement bancaire au nom du consumer apres consentement.
+
+Le virement avec consentement est similaire au Transfer avec consentement. Voir la section correspondante.
+
+Aggregator API (API d’agrégation)
+
+La capacite Aggregator utilise une nouvelle fonctionnalite des Open APIs (Transfer, RequestToPay, Payments) qui etend les endpoints avec un champ requis supplementaire : transferType. Cela permet une tarification specifique selon le service.
+
+Aggregator Request To Pay (Demande de paiement de l’agrégateur)
+
+L'API Aggregator - RequestToPay etend l'endpoint standard RequestToPay en introduisant un champ obligatoire supplementaire : transferType.
+
+Voir RequestToPay standard
+
+
+Parametres obligatoires
+
+Parametre	Type	Obligatoire	Description
+transferType	string	Oui	Specifie le type de transaction initiee par l'aggregator.
+Tests Sandbox
+
+Les valeurs transferType suivantes sont actives dans l'environnement sandbox :
+
+CUSTOM_PAYMENT
+
+CUSTOM_BANK_PAYMENT
+
+CUSTOM_BANK_PAYMENT_FEE
+
+Note : La liste complete des valeurs transferType supportees en production sera partagee par l'equipe d'onboarding selon le contrat.
+
+Exemple de requete
+
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay' \
+--header 'Ocp-Apim-Subscription-Key: PLACE_HOLDER_SUBSCRIPTION_KEY' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer PLACE_HOLDER_ACCOUNT_TOKEN' \
+--header 'X-Reference-Id: PLACE_HOLDER_X_REF_ID_UUID_V4' \
+--data '{
+  "amount":"1000",
+  "currency":"EUR",
+  "externalId":"10001",
+  "payer":{
+    "partyIdType":"MSISDN",
+    "partyId":"123456789012"
+  },
+  "payerMessage":"Order Payment",
+  "payeeNote":"Order Payment",
+  "transferType":"CUSTOM_PAYMENT"
+}'
+
+Aggregator Transfer (Transfert de l’agrégateur)
+
+L'API Aggregator - Transfer etend l'endpoint standard Transfer en introduisant un champ obligatoire supplementaire : transferType.
+
+Voir Transfer standard
+
+
+Parametres obligatoires
+
+Parametre	Type	Obligatoire	Description
+transferType	string	Oui	Specifie le type de transaction initiee par l'aggregator.
+Tests Sandbox
+
+Les valeurs transferType suivantes sont actives dans l'environnement sandbox :
+
+CUSTOM_PAYMENT
+
+CUSTOM_BANK_PAYMENT
+
+CUSTOM_BANK_PAYMENT_FEE
+
+Note : La liste complete des valeurs transferType supportees en production sera partagee par l'equipe d'onboarding selon le contrat.
+
+Exemple de requete
+
+curl --location 'https://sandbox.momodeveloper.mtn.com/disbursement/v1_0/transfer' \
+--header 'Ocp-Apim-Subscription-Key: PLACE_HOLDER_SUBSCRIPTION_KEY' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer PLACE_HOLDER_ACCOUNT_TOKEN' \
+--header 'X-Reference-Id: PLACE_HOLDER_X_REF_ID_UUID_V4' \
+--data '{
+  "amount":"1000",
+  "currency":"EUR",
+  "externalId":"10001",
+  "payee":{
+    "partyIdType":"MSISDN",
+    "partyId":"123456789012"
+  },
+  "payerMessage":"Order Payment",
+  "payeeNote":"Order Payment",
+  "transferType":"CUSTOM_PAYMENT"
+}'
+
+Aggregator Payment (Paiement de l’agrégateur)
+
+L'API Aggregator - Payment etend l'endpoint standard Payment en introduisant un champ obligatoire supplementaire : transferType.
+
+Voir Payment standard
+
+
+Parametres obligatoires
+
+Parametre	Type	Obligatoire	Description
+transferType	string	Oui	Specifie le type de transaction initiee par l'aggregator.
+Tests Sandbox
+
+Les valeurs transferType suivantes sont actives dans l'environnement sandbox :
+
+CUSTOM_PAYMENT
+
+CUSTOM_BANK_PAYMENT
+
+CUSTOM_BANK_PAYMENT_FEE
+
+Note : La liste complete des valeurs transferType supportees en production sera partagee par l'equipe d'onboarding selon le contrat.
+
+Exemple de requete
+
+curl --location 'https://sandbox.momodeveloper.mtn.com/collection/v2_0/payment' \
+--header 'Ocp-Apim-Subscription-Key: PLACE_HOLDER_SUBSCRIPTION_KEY' \
+--header 'Content-Type: application/json' \
+--header 'X-Target-Environment: sandbox' \
+--header 'Authorization: Bearer PLACE_HOLDER_ACCOUNT_TOKEN' \
+--header 'X-Reference-Id: PLACE_HOLDER_X_REF_ID_UUID_V4' \
+--data '{
+  "externalTransactionId":"10001",
+  "money": {
+	"amount": "1000",
+	"currency": "EUR"
+  },
+  "customerReference":"MSISDN",
+  "serviceProviderUserName":"TestSpUsername",
+  "transferType":"CUSTOM_PAYMENT"
+}'
+
+← API User & API Key ManagementSandbox Use Cases →MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Sandbox Use Cases
+
+English
+To facilitate testing a set of predefined users and Test accounts are provided. These users and accounts have a predefined test scenario. A developer needs to Signup and Subscribe to a Product before accessing any of the APIs.
+
+In order to test Sandbox Use cases, Merchants/Agents/Partners/Testers needs to use the Sandbox Provisioning Collection and generate the apiuser and apikey and the same needs to be used for testing any of the sandbox Use cases. Existing Partner Accounts created on Partner GUI can't be used for testing the sandbox usecases.
+
+OAuth Token
+
+OAuth Token is generated from the merchants' API Key and Secret. The API Key and API Secret can be obtained through the provisioning API in Sandbox, as described in the API User and API Key Management section.
+
+Test Environment
+
+The Target Environment used in Testing is 'sandbox'
+
+Test Currency
+
+The currency used in Sandbox is EUR
+
+Sandbox Use Case
+
+The following Numbers are predefined with respective response for all Testcases.
+
+Any other number results in Success
+
+Sandbox Use Case	Testing Values
+AccountBalanceResponses	Success,AccountNotFound,ZeroBalance,
+NegativeBalance,NotAllowed,
+NotAllowedTargetEnvironment,
+InternalProcessingError,ServiceUnavailable
+AccountHolderActiveMsisdnNotFound	46733123450
+AccountHolderActiveMsisdnNotActive	46733123451
+AccountHolderActiveMsisdnNotAllowed	46733123452
+AccountHolderActiveMsisdnNotAllowedTargetEnvironment	46733123453
+AccountHolderActiveMsisdnInternalProcessingError	46733123454
+AccountHolderActiveMsisdnServiceUnavailable	46733123455
+AccountHolderActiveEmailNotFound	notfound@email.com
+AccountHolderActiveEmailNotActive	notactive@email.com
+AccountHolderActiveEmailNotAllowed	notallowed@email.com
+AccountHolderActiveEmailNotAllowedTargetEnvironment	notallowedtargetenvironment@email.com
+AccountHolderActiveEmailInternalProcessingError	internalprocessingerror@email.com
+AccountHolderActiveEmailServiceUnavailable	serviceunavailable@email.com
+AccountHolderActivePartyCodeNotFound	5cecb5a7-8bd0-4f49-87b1-8eb9ecc7b7bc
+AccountHolderActivePartyCodeNotActive	b0040b3c-b426-4a90-af6e-673e65861cd7
+AccountHolderActivePartyCodeNotAllowed	4d5f500f-c385-4901-9be5-25b6d36ad220
+AccountHolderActivePartyCodeNotAllowedTargetEnvironment	d2265f9b-0c22-496d-908f-79a65ad66266
+AccountHolderActivePartyCodeInternalProcessingError	8f548a78-ceb8-4d12-a243-5640b91e91a4
+AccountHolderActivePartyCodeServiceUnavailable	585c07a4-2c80-42f7-9e73-e586b36dee68
+RequestToPayPayerFailed	46733123450
+RequestToPayPayerTransfertypeUnknown	46733123464
+RequestToPayPayerRejected	46733123451
+RequestToPayPayerExpired	46733123452
+RequestToPayPayerOngoing	46733123453
+RequestToPayPayerDelayed	46733123454
+RequestToPayPayerNotFound	46733123455
+RequestToPayPayerPayeeNotAllowedToReceive	46733123456
+RequestToPayPayerNotAllowed	46733123457
+RequestToPayPayerNotAllowedTargetEnvironment	46733123458
+RequestToPayPayerInvalidCallbackUrlHost	46733123459
+RequestToPayPayerInvalidCurrency	46733123460
+RequestToPayPayerInternalProcessingError	46733123461
+RequestToPayPayerServiceUnavailable	46733123462
+RequestToPayPayerCouldNotPerformTransaction	46733123463
+PreApprovalPayerFailed	46733123450
+PreApprovalPayerRejected	46733123451
+PreApprovalPayerExpired	46733123452
+PreApprovalPayerOngoing	46733123453
+PreApprovalPayerDelayed	46733123454
+PreApprovalPayerNotFound	46733123455
+PreApprovalPayerNotAllowed	46733123456
+PreApprovalPayerNotAllowedTargetEnvironment	46733123457
+PreApprovalPayerInvalidCallbackUrlHost	46733123458
+PreApprovalPayerInvalidCurrency	46733123459
+PreApprovalPayerInternalProcessingError	46733123460
+PreApprovalPayerServiceUnavailable	46733123461
+PreApprovalGetApprovedNoneExisting	46733123469
+RequestToWithdrawPayerFailed	46733123450
+RequestToWithdrawPayerRejected	46733123451
+RequestToWithdrawPayerExpired	46733123452
+RequestToWithdrawPayerOngoing	46733123453
+RequestToWithdrawPayerDelayed	46733123454
+RequestToWithdrawPayerNotFound	46733123455
+RequestToWithdrawPayerPayeeNotAllowedToReceive	46733123456
+RequestToWithdrawPayerNotAllowed	46733123457
+RequestToWithdrawPayerNotAllowedTargetEnvironment	46733123458
+RequestToWithdrawPayerInvalidCallbackUrlHost	46733123459
+RequestToWithdrawPayerInvalidCurrency	46733123460
+RequestToWithdrawPayerInternalProcessingError	46733123461
+RequestToWithdrawPayerServiceUnavailable	46733123462
+RequestToWithdrawPayerCouldNotPerformTransaction	46733123463
+RefundTransactionNotFound	1
+RefundTransactionFailed	2
+RefundTransactionRejected	3
+RefundTransactionExpired	4
+RefundTransactionOngoing	5
+RefundTransactionDelayed	6
+RefundTransactionNotAllowed	7
+RefundTransactionNotAllowedTargetEnvironment	8
+RefundTransactionInvalidCallbackUrlHost	9
+RefundTransactionInvalidCurrency	10
+RefundTransactionInternalProcessingError	11
+RefundTransactionServiceUnavailable	12
+RefundTransactionCouldNotPerformTransaction	13
+DepositPayerFailed	46733123450
+DepositPayerRejected	46733123451
+DepositPayerExpired	46733123452
+DepositPayerOngoing	46733123453
+DepositPayerDelayed	46733123454
+DepositPayerNotFound	46733123455
+DepositPayerPayeeNotAllowedToReceive	46733123456
+DepositPayerNotAllowed	46733123457
+DepositPayerNotAllowedTargetEnvironment	46733123458
+DepositPayerInvalidCallbackUrlHost	46733123459
+DepositPayerInvalidCurrency	46733123460
+DepositPayerInternalProcessingError	46733123461
+DepositPayerServiceUnavailable	46733123462
+DepositPayerCouldNotPerformTransaction	46733123463
+TransferPayeeFailed	46733123450
+TransferPayeeTransfertypeUnknown	46733123464
+PaymentAmountFailed	2000
+PaymentAmountPendingFailed	4000
+PaymentAmountPendingPending	5000
+PaymentAmountPendingPending	6000
+PaymentAmountPendingSuccess	3000
+PaymentAmountSuccess	1000
+PaymentTransfertypeUnknown	7000
+TransferPayeeRejected	46733123451
+TransferPayeeExpired	46733123452
+TransferPayeeOngoing	46733123453
+TransferPayeeDelayed	46733123454
+TransferPayeeNotEnoughFunds	46733123455
+TransferPayeePayerLimitReached	46733123456
+TransferPayeeNotFound	46733123457
+TransferPayeeNotAllowed	46733123458
+TransferPayeeNotAllowedTargetEnvironment	46733123459
+TransferPayeeInvalidCallbackUrlHost	46733123460
+TransferPayeeInvalidCurrency	46733123461
+TransferPayeeInternalProcessingError	46733123462
+TransferPayeeServiceUnavailable	46733123463
+Oauth2CustomScopes	all_info
+Oauth2AccountHolderNotFound	46733123450
+Oauth2ConsentRejected	46733123451
+Oauth2ConsentPending	46733123452
+Oauth2ConsentExpired	46733123453
+Oauth2ConsentExpiredRefreshToken	46733123454
+Oauth2ConsentRevoked	46733123455
+Oauth2ConsentDeletedScope	46733123456
+Oauth2ConsentAlreadyUsed	46733123457
+Oauth2FinancialNoFunds	46733123458
+Oauth2FinancialPayeeNotFound	46733123459
+Oauth2FinancialConsentMismatch	46733123460
+Oauth2FinancialPayerLimitReached	46733123461
+Oauth2FinancialPayeeNotAllowedToReceive	46733123462
+CashTransferTransactionNotFound	1
+CashTransferTransactionFailed	2
+CashTransferTransactionRejected	3
+CashTransferTransactionExpired	4
+CashTransferTransactionPayeeNotFound	5
+CashTransferTransactionPayeeNotAllowedToReceive	6
+CashTransferTransactionNotAllowed	7
+CashTransferTransactionNotAllowedTargetEnvironment	8
+CashTransferTransactionInvalidCallbackUrlHost	9
+CashTransferTransactionInvalidCurrency	10
+CashTransferTransactionInternalProcessingError	11
+CashTransferTransactionServiceUnavailable	12
+CashTransferTransactionCouldNotPerformTransaction	13
+← Use CasesCommon Error Codes →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Sandbox Use Cases
+
+French
+Afin de faciliter les tests, un ensemble d'utilisateurs predefinis et de comptes de test est fourni. Ces utilisateurs et comptes disposent de scenarios de test predefinis. Un developpeur doit creer un compte et souscrire a un produit avant de pouvoir acceder aux API.
+
+Afin de tester les cas d'utilisation du Sandbox, les Merchants/Agents/Partners/Testers doivent utiliser la Sandbox Provisioning Collection et generer un apiuser et une apikey. Ces derniers doivent ensuite etre utilises pour tester les cas d'utilisation du Sandbox. Les comptes partenaires existants crees via le Partner GUI ne peuvent pas etre utilises pour tester les cas d'utilisation du Sandbox.
+
+OAuth Token
+
+Le OAuth Token est genere a partir de l'API Key et du Secret du marchand. L'API Key et le Secret peuvent etre obtenus via la Provisioning API dans le Sandbox, comme decrit dans la section API User and API Key Management.
+
+Test Environment
+
+Le Target Environment utilise pour les tests est "sandbox".
+
+Test Currency
+
+La devise utilisee dans le Sandbox est EUR.
+
+Sandbox Use Case
+
+Les numeros suivants sont predefinis avec des reponses associees pour tous les cas de test.
+
+Tout autre numero entraine un resultat de type Success.
+
+Sandbox Use Case	Testing Values
+AccountBalanceResponses	Success,AccountNotFound,ZeroBalance,
+NegativeBalance,NotAllowed,
+NotAllowedTargetEnvironment,
+InternalProcessingError,ServiceUnavailable
+AccountHolderActiveMsisdnNotFound	46733123450
+AccountHolderActiveMsisdnNotActive	46733123451
+AccountHolderActiveMsisdnNotAllowed	46733123452
+AccountHolderActiveMsisdnNotAllowedTargetEnvironment	46733123453
+AccountHolderActiveMsisdnInternalProcessingError	46733123454
+AccountHolderActiveMsisdnServiceUnavailable	46733123455
+AccountHolderActiveEmailNotFound	notfound@email.com
+AccountHolderActiveEmailNotActive	notactive@email.com
+AccountHolderActiveEmailNotAllowed	notallowed@email.com
+AccountHolderActiveEmailNotAllowedTargetEnvironment	notallowedtargetenvironment@email.com
+AccountHolderActiveEmailInternalProcessingError	internalprocessingerror@email.com
+AccountHolderActiveEmailServiceUnavailable	serviceunavailable@email.com
+AccountHolderActivePartyCodeNotFound	5cecb5a7-8bd0-4f49-87b1-8eb9ecc7b7bc
+AccountHolderActivePartyCodeNotActive	b0040b3c-b426-4a90-af6e-673e65861cd7
+AccountHolderActivePartyCodeNotAllowed	4d5f500f-c385-4901-9be5-25b6d36ad220
+AccountHolderActivePartyCodeNotAllowedTargetEnvironment	d2265f9b-0c22-496d-908f-79a65ad66266
+AccountHolderActivePartyCodeInternalProcessingError	8f548a78-ceb8-4d12-a243-5640b91e91a4
+AccountHolderActivePartyCodeServiceUnavailable	585c07a4-2c80-42f7-9e73-e586b36dee68
+RequestToPayPayerFailed	46733123450
+RequestToPayPayerTransfertypeUnknown	46733123464
+RequestToPayPayerRejected	46733123451
+RequestToPayPayerExpired	46733123452
+RequestToPayPayerOngoing	46733123453
+RequestToPayPayerDelayed	46733123454
+RequestToPayPayerNotFound	46733123455
+RequestToPayPayerPayeeNotAllowedToReceive	46733123456
+RequestToPayPayerNotAllowed	46733123457
+RequestToPayPayerNotAllowedTargetEnvironment	46733123458
+RequestToPayPayerInvalidCallbackUrlHost	46733123459
+RequestToPayPayerInvalidCurrency	46733123460
+RequestToPayPayerInternalProcessingError	46733123461
+RequestToPayPayerServiceUnavailable	46733123462
+RequestToPayPayerCouldNotPerformTransaction	46733123463
+PreApprovalPayerFailed	46733123450
+PreApprovalPayerRejected	46733123451
+PreApprovalPayerExpired	46733123452
+PreApprovalPayerOngoing	46733123453
+PreApprovalPayerDelayed	46733123454
+PreApprovalPayerNotFound	46733123455
+PreApprovalPayerNotAllowed	46733123456
+PreApprovalPayerNotAllowedTargetEnvironment	46733123457
+PreApprovalPayerInvalidCallbackUrlHost	46733123458
+PreApprovalPayerInvalidCurrency	46733123459
+PreApprovalPayerInternalProcessingError	46733123460
+PreApprovalPayerServiceUnavailable	46733123461
+PreApprovalGetApprovedNoneExisting	46733123469
+RequestToWithdrawPayerFailed	46733123450
+RequestToWithdrawPayerRejected	46733123451
+RequestToWithdrawPayerExpired	46733123452
+RequestToWithdrawPayerOngoing	46733123453
+RequestToWithdrawPayerDelayed	46733123454
+RequestToWithdrawPayerNotFound	46733123455
+RequestToWithdrawPayerPayeeNotAllowedToReceive	46733123456
+RequestToWithdrawPayerNotAllowed	46733123457
+RequestToWithdrawPayerNotAllowedTargetEnvironment	46733123458
+RequestToWithdrawPayerInvalidCallbackUrlHost	46733123459
+RequestToWithdrawPayerInvalidCurrency	46733123460
+RequestToWithdrawPayerInternalProcessingError	46733123461
+RequestToWithdrawPayerServiceUnavailable	46733123462
+RequestToWithdrawPayerCouldNotPerformTransaction	46733123463
+RefundTransactionNotFound	1
+RefundTransactionFailed	2
+RefundTransactionRejected	3
+RefundTransactionExpired	4
+RefundTransactionOngoing	5
+RefundTransactionDelayed	6
+RefundTransactionNotAllowed	7
+RefundTransactionNotAllowedTargetEnvironment	8
+RefundTransactionInvalidCallbackUrlHost	9
+RefundTransactionInvalidCurrency	10
+RefundTransactionInternalProcessingError	11
+RefundTransactionServiceUnavailable	12
+RefundTransactionCouldNotPerformTransaction	13
+DepositPayerFailed	46733123450
+DepositPayerRejected	46733123451
+DepositPayerExpired	46733123452
+DepositPayerOngoing	46733123453
+DepositPayerDelayed	46733123454
+DepositPayerNotFound	46733123455
+DepositPayerPayeeNotAllowedToReceive	46733123456
+DepositPayerNotAllowed	46733123457
+DepositPayerNotAllowedTargetEnvironment	46733123458
+DepositPayerInvalidCallbackUrlHost	46733123459
+DepositPayerInvalidCurrency	46733123460
+DepositPayerInternalProcessingError	46733123461
+DepositPayerServiceUnavailable	46733123462
+DepositPayerCouldNotPerformTransaction	46733123463
+TransferPayeeFailed	46733123450
+TransferPayeeTransfertypeUnknown	46733123464
+PaymentAmountFailed	2000
+PaymentAmountPendingFailed	4000
+PaymentAmountPendingPending	5000
+PaymentAmountPendingPending	6000
+PaymentAmountPendingSuccess	3000
+PaymentAmountSuccess	1000
+PaymentTransfertypeUnknown	7000
+TransferPayeeRejected	46733123451
+TransferPayeeExpired	46733123452
+TransferPayeeOngoing	46733123453
+TransferPayeeDelayed	46733123454
+TransferPayeeNotEnoughFunds	46733123455
+TransferPayeePayerLimitReached	46733123456
+TransferPayeeNotFound	46733123457
+TransferPayeeNotAllowed	46733123458
+TransferPayeeNotAllowedTargetEnvironment	46733123459
+TransferPayeeInvalidCallbackUrlHost	46733123460
+TransferPayeeInvalidCurrency	46733123461
+TransferPayeeInternalProcessingError	46733123462
+TransferPayeeServiceUnavailable	46733123463
+Oauth2CustomScopes	all_info
+Oauth2AccountHolderNotFound	46733123450
+Oauth2ConsentRejected	46733123451
+Oauth2ConsentPending	46733123452
+Oauth2ConsentExpired	46733123453
+Oauth2ConsentExpiredRefreshToken	46733123454
+Oauth2ConsentRevoked	46733123455
+Oauth2ConsentDeletedScope	46733123456
+Oauth2ConsentAlreadyUsed	46733123457
+Oauth2FinancialNoFunds	46733123458
+Oauth2FinancialPayeeNotFound	46733123459
+Oauth2FinancialConsentMismatch	46733123460
+Oauth2FinancialPayerLimitReached	46733123461
+Oauth2FinancialPayeeNotAllowedToReceive	46733123462
+CashTransferTransactionNotFound	1
+CashTransferTransactionFailed	2
+CashTransferTransactionRejected	3
+CashTransferTransactionExpired	4
+CashTransferTransactionPayeeNotFound	5
+CashTransferTransactionPayeeNotAllowedToReceive	6
+CashTransferTransactionNotAllowed	7
+CashTransferTransactionNotAllowedTargetEnvironment	8
+CashTransferTransactionInvalidCallbackUrlHost	9
+CashTransferTransactionInvalidCurrency	10
+CashTransferTransactionInternalProcessingError	11
+CashTransferTransactionServiceUnavailable	12
+CashTransferTransactionCouldNotPerformTransaction	13
+← Use CasesCommon Error Codes →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Sandbox Use Cases
+
+French
+Afin de faciliter les tests, un ensemble d'utilisateurs predefinis et de comptes de test est fourni. Ces utilisateurs et comptes disposent de scenarios de test predefinis. Un developpeur doit creer un compte et souscrire a un produit avant de pouvoir acceder aux API.
+
+Afin de tester les cas d'utilisation du Sandbox, les Merchants/Agents/Partners/Testers doivent utiliser la Sandbox Provisioning Collection et generer un apiuser et une apikey. Ces derniers doivent ensuite etre utilises pour tester les cas d'utilisation du Sandbox. Les comptes partenaires existants crees via le Partner GUI ne peuvent pas etre utilises pour tester les cas d'utilisation du Sandbox.
+
+OAuth Token
+
+Le OAuth Token est genere a partir de l'API Key et du Secret du marchand. L'API Key et le Secret peuvent etre obtenus via la Provisioning API dans le Sandbox, comme decrit dans la section API User and API Key Management.
+
+Test Environment
+
+Le Target Environment utilise pour les tests est "sandbox".
+
+Test Currency
+
+La devise utilisee dans le Sandbox est EUR.
+
+Sandbox Use Case
+
+Les numeros suivants sont predefinis avec des reponses associees pour tous les cas de test.
+
+Tout autre numero entraine un resultat de type Success.
+
+Sandbox Use Case	Testing Values
+AccountBalanceResponses	Success,AccountNotFound,ZeroBalance,
+NegativeBalance,NotAllowed,
+NotAllowedTargetEnvironment,
+InternalProcessingError,ServiceUnavailable
+AccountHolderActiveMsisdnNotFound	46733123450
+AccountHolderActiveMsisdnNotActive	46733123451
+AccountHolderActiveMsisdnNotAllowed	46733123452
+AccountHolderActiveMsisdnNotAllowedTargetEnvironment	46733123453
+AccountHolderActiveMsisdnInternalProcessingError	46733123454
+AccountHolderActiveMsisdnServiceUnavailable	46733123455
+AccountHolderActiveEmailNotFound	notfound@email.com
+AccountHolderActiveEmailNotActive	notactive@email.com
+AccountHolderActiveEmailNotAllowed	notallowed@email.com
+AccountHolderActiveEmailNotAllowedTargetEnvironment	notallowedtargetenvironment@email.com
+AccountHolderActiveEmailInternalProcessingError	internalprocessingerror@email.com
+AccountHolderActiveEmailServiceUnavailable	serviceunavailable@email.com
+AccountHolderActivePartyCodeNotFound	5cecb5a7-8bd0-4f49-87b1-8eb9ecc7b7bc
+AccountHolderActivePartyCodeNotActive	b0040b3c-b426-4a90-af6e-673e65861cd7
+AccountHolderActivePartyCodeNotAllowed	4d5f500f-c385-4901-9be5-25b6d36ad220
+AccountHolderActivePartyCodeNotAllowedTargetEnvironment	d2265f9b-0c22-496d-908f-79a65ad66266
+AccountHolderActivePartyCodeInternalProcessingError	8f548a78-ceb8-4d12-a243-5640b91e91a4
+AccountHolderActivePartyCodeServiceUnavailable	585c07a4-2c80-42f7-9e73-e586b36dee68
+RequestToPayPayerFailed	46733123450
+RequestToPayPayerTransfertypeUnknown	46733123464
+RequestToPayPayerRejected	46733123451
+RequestToPayPayerExpired	46733123452
+RequestToPayPayerOngoing	46733123453
+RequestToPayPayerDelayed	46733123454
+RequestToPayPayerNotFound	46733123455
+RequestToPayPayerPayeeNotAllowedToReceive	46733123456
+RequestToPayPayerNotAllowed	46733123457
+RequestToPayPayerNotAllowedTargetEnvironment	46733123458
+RequestToPayPayerInvalidCallbackUrlHost	46733123459
+RequestToPayPayerInvalidCurrency	46733123460
+RequestToPayPayerInternalProcessingError	46733123461
+RequestToPayPayerServiceUnavailable	46733123462
+RequestToPayPayerCouldNotPerformTransaction	46733123463
+PreApprovalPayerFailed	46733123450
+PreApprovalPayerRejected	46733123451
+PreApprovalPayerExpired	46733123452
+PreApprovalPayerOngoing	46733123453
+PreApprovalPayerDelayed	46733123454
+PreApprovalPayerNotFound	46733123455
+PreApprovalPayerNotAllowed	46733123456
+PreApprovalPayerNotAllowedTargetEnvironment	46733123457
+PreApprovalPayerInvalidCallbackUrlHost	46733123458
+PreApprovalPayerInvalidCurrency	46733123459
+PreApprovalPayerInternalProcessingError	46733123460
+PreApprovalPayerServiceUnavailable	46733123461
+PreApprovalGetApprovedNoneExisting	46733123469
+RequestToWithdrawPayerFailed	46733123450
+RequestToWithdrawPayerRejected	46733123451
+RequestToWithdrawPayerExpired	46733123452
+RequestToWithdrawPayerOngoing	46733123453
+RequestToWithdrawPayerDelayed	46733123454
+RequestToWithdrawPayerNotFound	46733123455
+RequestToWithdrawPayerPayeeNotAllowedToReceive	46733123456
+RequestToWithdrawPayerNotAllowed	46733123457
+RequestToWithdrawPayerNotAllowedTargetEnvironment	46733123458
+RequestToWithdrawPayerInvalidCallbackUrlHost	46733123459
+RequestToWithdrawPayerInvalidCurrency	46733123460
+RequestToWithdrawPayerInternalProcessingError	46733123461
+RequestToWithdrawPayerServiceUnavailable	46733123462
+RequestToWithdrawPayerCouldNotPerformTransaction	46733123463
+RefundTransactionNotFound	1
+RefundTransactionFailed	2
+RefundTransactionRejected	3
+RefundTransactionExpired	4
+RefundTransactionOngoing	5
+RefundTransactionDelayed	6
+RefundTransactionNotAllowed	7
+RefundTransactionNotAllowedTargetEnvironment	8
+RefundTransactionInvalidCallbackUrlHost	9
+RefundTransactionInvalidCurrency	10
+RefundTransactionInternalProcessingError	11
+RefundTransactionServiceUnavailable	12
+RefundTransactionCouldNotPerformTransaction	13
+DepositPayerFailed	46733123450
+DepositPayerRejected	46733123451
+DepositPayerExpired	46733123452
+DepositPayerOngoing	46733123453
+DepositPayerDelayed	46733123454
+DepositPayerNotFound	46733123455
+DepositPayerPayeeNotAllowedToReceive	46733123456
+DepositPayerNotAllowed	46733123457
+DepositPayerNotAllowedTargetEnvironment	46733123458
+DepositPayerInvalidCallbackUrlHost	46733123459
+DepositPayerInvalidCurrency	46733123460
+DepositPayerInternalProcessingError	46733123461
+DepositPayerServiceUnavailable	46733123462
+DepositPayerCouldNotPerformTransaction	46733123463
+TransferPayeeFailed	46733123450
+TransferPayeeTransfertypeUnknown	46733123464
+PaymentAmountFailed	2000
+PaymentAmountPendingFailed	4000
+PaymentAmountPendingPending	5000
+PaymentAmountPendingPending	6000
+PaymentAmountPendingSuccess	3000
+PaymentAmountSuccess	1000
+PaymentTransfertypeUnknown	7000
+TransferPayeeRejected	46733123451
+TransferPayeeExpired	46733123452
+TransferPayeeOngoing	46733123453
+TransferPayeeDelayed	46733123454
+TransferPayeeNotEnoughFunds	46733123455
+TransferPayeePayerLimitReached	46733123456
+TransferPayeeNotFound	46733123457
+TransferPayeeNotAllowed	46733123458
+TransferPayeeNotAllowedTargetEnvironment	46733123459
+TransferPayeeInvalidCallbackUrlHost	46733123460
+TransferPayeeInvalidCurrency	46733123461
+TransferPayeeInternalProcessingError	46733123462
+TransferPayeeServiceUnavailable	46733123463
+Oauth2CustomScopes	all_info
+Oauth2AccountHolderNotFound	46733123450
+Oauth2ConsentRejected	46733123451
+Oauth2ConsentPending	46733123452
+Oauth2ConsentExpired	46733123453
+Oauth2ConsentExpiredRefreshToken	46733123454
+Oauth2ConsentRevoked	46733123455
+Oauth2ConsentDeletedScope	46733123456
+Oauth2ConsentAlreadyUsed	46733123457
+Oauth2FinancialNoFunds	46733123458
+Oauth2FinancialPayeeNotFound	46733123459
+Oauth2FinancialConsentMismatch	46733123460
+Oauth2FinancialPayerLimitReached	46733123461
+Oauth2FinancialPayeeNotAllowedToReceive	46733123462
+CashTransferTransactionNotFound	1
+CashTransferTransactionFailed	2
+CashTransferTransactionRejected	3
+CashTransferTransactionExpired	4
+CashTransferTransactionPayeeNotFound	5
+CashTransferTransactionPayeeNotAllowedToReceive	6
+CashTransferTransactionNotAllowed	7
+CashTransferTransactionNotAllowedTargetEnvironment	8
+CashTransferTransactionInvalidCallbackUrlHost	9
+CashTransferTransactionInvalidCurrency	10
+CashTransferTransactionInternalProcessingError	11
+CashTransferTransactionServiceUnavailable	12
+CashTransferTransactionCouldNotPerformTransaction	13
+← Use CasesCommon Error Codes →MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Common Error Codes
+
+English
+The complete definitions of error codes are found in the swagger documentation. Below is the list of error codes available.
+
+Common Error Codes
+
+HTTP Code	Error Response Code	Description	Action
+409	RESOURCE_ALREADY_EXIST	Duplicated Reference ID. Every request must have a unique reference ID; using an ID of the previous request will result in this error response.	Check X-Reference ID used is unique and is in UUID V4 format
+401	ACCESS DENIED DUE TO INVALID SUBSCRIPTION KEY	Authentication failed.Credentials invalid.Header Ocp-APIM-Subscription-Key value is incorrect.	Check the User Profile Section to verify the related product subscription key is used. Collection, Disbursement and Remittance have different subscription keys. If the primary key doesn't work, try the secondary key. Contact MTN support if both provided keys aren't working. Sandbox subscription keys are located in https://momodeveloper.mtn.com/profile Production subscription keys are located in https://momoapi.mtn.com/profile
+404	RESOURCE NOT FOUND	Reference ID not found. Requested resource does not exist. Predominantly occurs with Get Status API and implies that the requested reference ID does not exist. This results in the Request to Debit or Transfer transaction being unsuccessful.	Check if the original request to pay or the transfer (disbursement) operation was successful with response code 202.
+400	REQUEST REJECTED/ BAD REQUEST	Bad request. Request does not follow the specification.	This relates to any of the below scenarios:
+- Incorrect/wrong values in the headers, and/or the X-ref ID does not meet UUID Version 4.
+- Inputting a Body in an API that is not supported e.g. /Token API
+- Having unsupported special characters in the Body request for example an apostrophe (').
+- Invalid currency - needs to match the target environment currency.
+- More than 160 characters in the note and message; explore utilizing the notification API for increased number of characters.
+- The URL posted to needs to reviewed e.g. incorrect number of forward slashes (///).
+403	FORBIDDEN IP	Authorization failed. IP not authorized to utilize Disbursement API.	Share your originating Public IP from which the APIs are called with your MTN Account Manager.
+500	NOT_ALLOWED	Authorization failed. User does not have permission.The account authenticated with the Request via Token is restricted.	Contact your MTN Account Manager.
+500	NOT_ALLOWED_TARGET_ENVIRONMENT	Value passed in header X-Target-Environment is incorrect	Use the correct X-targetenvironment corresponding to below country:
+- MTN Uganda= mtnuganda
+- MTN Ghana= mtnghana
+- MTN Ivory Coast= mtnivorycoast
+- MTN Zambia= mtnzambia
+- MTN Cameroon= mtncameroon
+- MTN Benin= mtnbenin
+- MTN Congo= mtncongo
+- MTN Swaziland= mtnswaziland
+- MTN GuineaConakry= mtnguineaconakry
+- MTN SouthAfrica= mtnsouthafrica
+- MTN Liberia= mtnliberia
+- MTN SouthSudan= mtnsouthsudan
+- MTN Nigeria= mtnnigeria
+- MTN Rwanda= mtnrwanda
+For Test Environment = sandbox
+500	INVALID_CALLBACK_URL_HOST	Callback URL with different host name to configured for API User.
+Check the Host of the Call Back URL in the request header; this needs to match what was configured on the partner portal when creating the API user and Key.	Host needs to be configured using Hostname and not IP address.
+500	INVALID_CURRENCY	Currency not supported on the requested account	Use Currency Code specific to the Country.
+503	SERVICE_UNAVAILABLE	Service temporary unavailable, try again later	Enquire with MTN Support.
+Common Error Responses with Action
+
+Type	Description	Action
+INTERNAL_PROCESSING_ERROR	Default or Generic error code used when there is no specific error mapping. This predominantly occurs due to insufficient customer funds to complete the transaction.
+Also related to service denied or Wallet Platform is not reachable.	Advice customer to ensure they have sufficient funds to complete the transaction. Also request the customer to retry the transaction. If the problem still occurs with sufficient customer funds, please contact your MTN Account Manager for further investigation.
+PAYEE_NOT_FOUND	The MSISDN being paid to is invalid.	MSISDN format must include country code. MSISDN is not registered for Mobile Money Service.
+PAYER_NOT_FOUND	MSISDN of the number from whom the money was requested in invalid.	MSISDN format must include country code.MSISDN is not registered for Mobile Money Service.
+COULD_NOT_PERFORM_TRANSACTION	This can be attributed to transaction timeout. This predominantly occurs with a delay to approve a transaction within the given time frame (5 minutes).	Advise customer to try again and approve transaction within 5 minutes.
+← Sandbox Use CaseCallback →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Common Error Codes
+
+French
+Les definitions completes des codes d'erreur sont disponibles dans la documentation Swagger. Ci-dessous se trouve la liste des codes d'erreur disponibles.
+
+Common Error Codes
+
+HTTP Code	Error Response Code	Description	Action
+409	RESOURCE_ALREADY_EXIST	ID de reference duplique. Chaque requete doit avoir un ID unique ; l'utilisation d'un ID deja utilise entrainera cette erreur.	Verifiez que le X-Reference ID utilise est unique et au format UUID V4.
+401	ACCESS DENIED DUE TO INVALID SUBSCRIPTION KEY	Echec de l'authentification. Identifiants invalides. La valeur du header Ocp-APIM-Subscription-Key est incorrecte.	Verifiez dans la section User Profile que la subscription key correspondant au produit est utilisee. Collection, Disbursement et Remittance ont des cles differentes. Si la primary key ne fonctionne pas, essayez la secondary key. Contactez le support MTN si aucune des cles ne fonctionne. Sandbox https://momodeveloper.mtn.com/profile Production https://momoapi.mtn.com/profile
+404	RESOURCE NOT FOUND	ID de reference introuvable. La ressource demandee n'existe pas. Cela se produit principalement avec l'API Get Status et signifie que l'ID n'existe pas. Cela entraine l'echec de la transaction Request to Debit ou Transfer.	Verifiez si la requete initiale (request to pay ou transfer) a ete acceptee avec le code 202.
+400	REQUEST REJECTED/ BAD REQUEST	Mauvaise requete. La requete ne respecte pas les specifications.	Cela peut etre du aux cas suivants :
+- Valeurs incorrectes dans les headers ou X-ref ID non conforme au format UUID V4
+- Presence d'un Body dans une API qui ne le supporte pas (ex : /Token API)
+- Presence de caracteres speciaux non supportes dans le Body (ex : apostrophe ')
+- Devise invalide ne correspondant pas a l'environnement cible
+- Plus de 160 caracteres dans note ou message (utiliser Notification API si necessaire)
+- URL incorrecte (ex : nombre incorrect de "/")
+403	FORBIDDEN IP	Echec d'autorisation. IP non autorisee a utiliser l'API Disbursement.	Partagez votre IP publique avec votre Account Manager MTN.
+500	NOT_ALLOWED	Echec d'autorisation. L'utilisateur n'a pas les permissions necessaires. Le compte authentifie est restreint.	Contactez votre Account Manager MTN.
+500	NOT_ALLOWED_TARGET_ENVIRONMENT	Valeur du header X-Target-Environment incorrecte.	Utilisez la valeur correcte selon le pays :
+- MTN Uganda= mtnuganda
+- MTN Ghana= mtnghana
+- MTN Ivory Coast= mtnivorycoast
+- MTN Zambia= mtnzambia
+- MTN Cameroon= mtncameroon
+- MTN Benin= mtnbenin
+- MTN Congo= mtncongo
+- MTN Swaziland= mtnswaziland
+- MTN GuineaConakry= mtnguineaconakry
+- MTN SouthAfrica= mtnsouthafrica
+- MTN Liberia= mtnliberia
+- MTN SouthSudan= mtnsouthsudan
+- MTN Nigeria= mtnnigeria
+- MTN Rwanda= mtnrwanda
+Pour l'environnement de test : sandbox
+500	INVALID_CALLBACK_URL_HOST	URL de callback avec un host different de celui configure pour l'API User.	Verifiez que le host de l'URL correspond a celui configure sur le portail partenaire.
+Le host doit etre un nom de domaine et non une adresse IP.
+500	INVALID_CURRENCY	Devise non supportee pour le compte cible.	Utilisez le code devise specifique au pays.
+503	SERVICE_UNAVAILABLE	Service temporairement indisponible.	Reessayez plus tard ou contactez le support MTN.
+Common Error Responses with Action
+
+Type	Description	Action
+INTERNAL_PROCESSING_ERROR	Code d'erreur generique utilise lorsqu'aucune correspondance specifique n'existe.
+Cela se produit principalement en cas de fonds insuffisants ou si la plateforme Wallet est indisponible.	Demandez au client de verifier ses fonds et de reessayer. Si le probleme persiste, contactez le Account Manager MTN.
+PAYEE_NOT_FOUND	Le MSISDN du beneficiaire est invalide.	Le MSISDN doit inclure le code pays et etre enregistre pour le service Mobile Money.
+PAYER_NOT_FOUND	Le MSISDN du payeur est invalide.	Le MSISDN doit inclure le code pays et etre enregistre pour le service Mobile Money.
+COULD_NOT_PERFORM_TRANSACTION	Echec de transaction, generalement du a un timeout (delai de validation depasse, 5 minutes).	Demandez au client de reessayer et de valider la transaction dans les 5 minutes.
+← Sandbox Use CaseCallback →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Callback
+
+English
+Setting up a callback URL
+
+Transfer and RequestToPay APIs are Asynchronous in MTN MoMo API Platform
+
+When a merchant system sends a POST of either /transfer, or /requesttopay APIs, the Gateway validates the request and then responds with '202 Accepted'
+
+The transaction is then queued for processing.
+
+Once processed, a callback with the final result of the transaction is sent to the merchant system
+
+In order to receive the callback for your transactions, please consider the following:
+
+a) On Sandbox
+
+Register your callback host by specifying the domain as providerCallbackHost when creating your API Keys. On production this will be done via the Account Portal
+
+Specify the callback URL in each of your /requesttopay or /tranfer POST
+
+Only https is allowed on sandbox
+
+Allow PUT & POST on your callback listener host
+
+a) On Production
+
+After Go-live you will be provided a link to log on to your Accounts Portal
+
+You will be required to register you callback host on the portal when creating your API keys as shown below
+
+Only https is allowed on production
+
+Allow PUT & POST on your callback listener host
+
+
+Please note that the Wallet Platform sends the callback only once. There is no retry mechanism if the partner system does not respond. To ensure reliability, we strongly recommend that partner systems implement a fallback mechanism by polling the transaction status using the appropriate GET method.
+
+Let's take the Deposit API (Deposit-V1) under the Disbursement product set as an example:
+
+1. The transaction request is sent as described in the documentation: https://momodeveloper.mtn.com/API-collections#api=disbursement&operation=Deposit-V1
+
+2. To receive a callback, you must include your callback URL in the X-Callback-Url header.
+This URL must be hosted on the same domain specified when creating the API user.
+
+3. The callback will be a POST request, and the payload will be similar to the response returned by the status check API for the same operation.
+
+NOTE: By implementing status polling, you can ensure transaction completion even in cases where the callback is missed.
+
+
+Approved Intermediate CA's for Open API
+
+For Open API callbacks to function, the 3PP Intermediate certificate chains must be imported on the OpenAPI Partner Gateway tls_keystore and callback URLs are required to use https L7 protocol:
+
+CN - Refers to the Common name of the immediate intermediate CA Chain
+
+Alias - Refers to the name that is used while storing the Certificate in PG's tls_keystore
+
+Below is the list of Approved Intermediate CA's that's already available to use:
+
+NOTE: Incase any Partner's callback URL is not part of the Approved Intermediate CA's, callbacks might not work for the said Partners.
+
+Alias	CN
+amazon_root_ca_1_starfield_services_root_certificate_authority_g2	CN=Amazon Root CA 1, O=Amazon, C=US
+amazonrca4	CN=Amazon Root CA 4, O=Amazon, C=US
+amazonintermediatecert	CN=Amazon RSA 2048 M01, O=Amazon, C=US
+amazon_rsa_2048_m02_amazon_root_ca_1	CN=Amazon RSA 2048 M02, O=Amazon, C=US
+amazon_rsa_2048	CN=Amazon RSA 2048 M03, O=Amazon, C=US
+amazonca1b	CN=Amazon, OU=Server CA 1B, O=Amazon, C=US
+certum_domain_validation_ca_sha2_certum_trusted_network_ca	CN=Certum Domain Validation CA SHA2, OU=Certum Certification Authority, O=Unizeto Technologies S.A., C=PL
+comodo_rsa_domain_validation_secure_server_ca	CN=COMODO RSA Domain Validation Secure Server CA, O=COMODO CA Limited, L=Salford, ST=Greater Manchester, C=GB
+digicert global g2 tls rsa sha256 2020 ca1	CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1, O=DigiCert Inc, C=US
+digicert global root g2	CN=DigiCert Global Root G2, OU=www.digicert.com, O=DigiCert Inc, C=US
+digicert_sha2_high_assurance_server_ca	CN=DigiCert SHA2 High Assurance Server CA, OU=www.digicert.com, O=DigiCert Inc, C=US
+digicert_sha2_secure_server_ca	CN=DigiCert SHA2 Secure Server CA, O=DigiCert Inc, C=US
+digicert_tls_rsa_sha256_2020_ca1	CN=DigiCert TLS RSA SHA256 2020 CA1, O=DigiCert Inc, C=US
+e1	CN=DPDHL Global TLS CA - I5, O=Deutsche Post AG, C=DE
+encryption_everywhere_dv_tls_ca_-_g1	CN=DPDHL Global TLS CA - I5, O=Deutsche Post AG, C=DE
+e7	CN=E7, O=Let's Encrypt, C=US
+encryption everywhere dv tls ca - g1	CN=Encryption Everywhere DV TLS CA - G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+ee_ca-g2	CN=Encryption Everywhere DV TLS CA - G2, OU=www.digicert.com, O=DigiCert Inc, C=US
+entrustl1k_.entrustrootca-g2	CN=Entrust Certification Authority - L1K, OU="(c) 2012 Entrust, Inc. - for authorized use only", OU=See www.entrust.net/legal-terms, O="Entrust, Inc.", C=US
+entrust_ov_tls-issuing_rsa_ca_1	CN=Entrust OV TLS Issuing RSA CA 1, O=SSL Corporation, C=US
+gandi_ca3	CN=Gandi RSA Domain Validation Secure Server CA 3, O=Gandi, C=FR
+geotrust_ev_rsa_ca_2018	CN=GeoTrust EV RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+geotrust_global_tls_rsa4096_sha256_2022_ca1	CN=GeoTrust Global TLS RSA4096 SHA256 2022 CA1, O="DigiCert, Inc.", C=US
+geotrust_rsa_ca_2018	CN=GeoTrust RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+geostrust_ca_g1	CN=GeoTrust TLS RSA CA G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+globalsign_ca_r3	CN=GlobalSign Atlas R3 DV TLS CA 2024 Q3, O=GlobalSign nv-sa, C=BE
+globalsign_ca_r6	CN=GlobalSign GCC R6 AlphaSSL CA 2023, O=GlobalSign nv-sa, C=BE
+globalsign_gcc_r6_alphassl_ca_2025	CN=GlobalSign GCC R6 AlphaSSL CA 2025, O=GlobalSign nv-sa, C=BE
+globalsign_rsa_ov_ssl_ca_2018	CN=GlobalSign RSA OV SSL CA 2018, O=GlobalSign nv-sa, C=BE
+go daddy secure certificate authority - g2	CN=Go Daddy Secure Certificate Authority - G2, OU=http://certs.godaddy.com/repository/, O="GoDaddy.com, Inc.", L=Scottsdale, ST=Arizona, C=US
+go daddy secure certificate authority - g2.crt	CN=Go Daddy Secure Certificate Authority - G2, OU=http://certs.godaddy.com/repository/, O="GoDaddy.com, Inc.", L=Scottsdale, ST=Arizona, C=US
+go_daddy_secure_certificate_authority_-_g2	CN=Go Daddy Secure Certificate Authority - G2, OU=http://certs.godaddy.com/repository/, O="GoDaddy.com, Inc.", L=Scottsdale, ST=Arizona, C=US
+gogetssl_rsa_dv_ca	CN=GoGetSSL RSA DV CA, O=GoGetSSL, L=Riga, C=LV
+gts_ca_1c3	CN=GTS CA 1C3, O=Google Trust Services LLC, C=US
+gts_ca_1d4	CN=GTS CA 1D4, O=Google Trust Services LLC, C=US
+isrg root x1_new1	CN=ISRG Root X1, O=Internet Security Research Group, C=US
+azure_rsa_ca3	CN=Microsoft Azure RSA TLS Issuing CA 03, O=Microsoft Corporation, C=US
+azure_rsa_ca7	CN=Microsoft Azure RSA TLS Issuing CA 07, O=Microsoft Corporation, C=US
+alpayintermediate	CN=RapidSSL Global TLS RSA4096 SHA256 2022 CA1, O="DigiCert, Inc.", C=US
+rapidssl global tls rsa4096 sha256 2022 ca1.crt	CN=RapidSSL Global TLS RSA4096 SHA256 2022 CA1, O="DigiCert, Inc.", C=US
+rapidssl_tls_rsa_ca_g1	CN=RapidSSL TLS RSA CA G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+sectigo_ecc_domain_validation_secure_server_ca	CN=Sectigo ECC Domain Validation Secure Server CA 2, O=Sectigo Limited, L=Salford, ST=Greater Manchester, C=GB
+sectigo_public_server_authentication_ca_dv_r36	CN=Sectigo Public Server Authentication CA DV R36, O=Sectigo Limited, C=GB
+sectigo_rsa_domain_validation_secure_server_ca	CN=Sectigo RSA Domain Validation Secure Server CA, O=Sectigo Limited, L=Salford, ST=Greater Manchester, C=GB
+sectigo_rsa_organization_validation_secure_server_ca	CN=Sectigo RSA Organization Validation Secure Server CA, O=Sectigo Limited, L=Salford, ST=Greater Manchester, C=GB
+ssl.com_rsa_ssl_subca	CN=SSL.com RSA SSL subCA, O=SSL Corporation, L=Houston, ST=Texas, C=US
+starfield_services_root_certificate_authority_g2	CN=Starfield Services Root Certificate Authority - G2, O="Starfield Technologies, Inc.", L=Scottsdale, ST=Arizona, C=US
+3pp_ca-bundle	CN=Starfield Services Root Certificate Authority, OU=http://certificates.starfieldtech.com/repository/, O="Starfield Technologies, Inc.", L=Scottsdale, ST=Arizona, C=US
+thawte_ev_rsa_ca_2018	CN=Thawte EV RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+digicert_g_r2	CN=Thawte EV RSA CA G2, O=DigiCert Inc, C=US
+thawte_rsa_ca_2018	CN=Thawte RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+thawte_tls_rsa_ca_g1_digicert_global_root_g2	CN=Thawte TLS RSA CA G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+usertrust_rsa_certification_authority	CN=USERTrust RSA Certification Authority, O=The USERTRUST Network, L=Jersey City, ST=New Jersey, C=US
+we1	CN=WE1, O=Google Trust Services, C=US
+we1_gts	CN=WE1, O=Google Trust Services, C=US
+we2	CN=WE2, O=Google Trust Services, C=US
+wr2	CN=WR2, O=Google Trust Services, C=US
+wr3	CN=WR3, O=Google Trust Services, C=US
+wr4	CN=WR4, O=Google Trust Services, C=US
+zerossl_rsa_domain_secure_site_ca	CN=ZeroSSL RSA Domain Secure Site CA, O=ZeroSSL, C=AT
+viking_ca1	CN="Viking Cloud Organization Validation CA, Level 1", O="Viking Cloud, Inc.", C=US
+← Common Error CodesBrand Guidelines →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Callback
+
+French
+Configuration d'une URL de callback
+
+Les API Transfer et RequestToPay sont asynchrones sur la plateforme MTN MoMo API.
+
+Lorsqu'un systeme marchand envoie une requete POST vers /transfer ou /requesttopay, le Gateway valide la requete puis repond avec "202 Accepted".
+
+La transaction est ensuite mise en file d'attente pour traitement.
+
+Une fois traitee, un callback contenant le resultat final de la transaction est envoye au systeme marchand.
+
+Afin de recevoir les callbacks pour vos transactions, veuillez prendre en compte les points suivants :
+
+a) Sur Sandbox
+
+Enregistrez votre callback host en specifiant le domaine comme providerCallbackHost lors de la creation de vos API Keys. En production, cela sera fait via le Account Portal.
+
+Specifiez l'URL de callback dans chaque requete POST de /requesttopay ou /transfer.
+
+Seul le protocole https est autorise sur le sandbox.
+
+Autorisez les methodes PUT et POST sur votre callback listener host.
+
+a) Sur Production
+
+Apres le go-live, un lien vous sera fourni pour vous connecter a votre Accounts Portal.
+
+Vous devrez enregistrer votre callback host sur le portail lors de la creation de vos API Keys, comme indique ci-dessous.
+
+Seul le protocole https est autorise en production.
+
+Autorisez les methodes PUT et POST sur votre callback listener host.
+
+
+Veuillez noter que la Wallet Platform envoie le callback une seule fois. Il n'existe aucun mecanisme de retry si le systeme partenaire ne repond pas. Afin d'assurer la fiabilite, nous recommandons fortement aux systemes partenaires d'implementer un mecanisme de secours en interrogeant le statut de la transaction a l'aide de la methode GET appropriee.
+
+Prenons comme exemple l'API Deposit (Deposit-V1) dans le produit Disbursement :
+
+1. La requete de transaction est envoyee comme decrit dans la documentation : https://momodeveloper.mtn.com/API-collections#api=disbursement&operation=Deposit-V1
+
+2. Pour recevoir un callback, vous devez inclure votre URL de callback dans le header X-Callback-Url.
+Cette URL doit etre hebergee sur le meme domaine que celui specifie lors de la creation de l'API user.
+
+3. Le callback sera une requete POST, et le payload sera similaire a la reponse renvoyee par l'API de verification de statut pour la meme operation.
+
+NOTE : En implementant un mecanisme de verification de statut (status polling), vous pouvez garantir la finalisation de la transaction meme si le callback est manque.
+
+
+Approved Intermediate CA's for Open API
+
+Pour que les callbacks Open API fonctionnent, les chaines de certificats intermediaires 3PP doivent etre importees dans le tls_keystore du OpenAPI Partner Gateway, et les URLs de callback doivent utiliser le protocole https L7.
+
+CN : fait reference au nom commun (Common Name) de la chaine intermediaire immediate.
+
+Alias : fait reference au nom utilise lors du stockage du certificat dans le tls_keystore du PG.
+
+Ci-dessous la liste des Intermediate CA approuves deja disponibles :
+
+NOTE : Si l'URL de callback d'un partenaire ne fait pas partie des Intermediate CA approuves, les callbacks peuvent ne pas fonctionner pour ce partenaire.
+
+Alias	CN
+amazon_root_ca_1_starfield_services_root_certificate_authority_g2	CN=Amazon Root CA 1, O=Amazon, C=US
+amazonrca4	CN=Amazon Root CA 4, O=Amazon, C=US
+amazonintermediatecert	CN=Amazon RSA 2048 M01, O=Amazon, C=US
+amazon_rsa_2048_m02_amazon_root_ca_1	CN=Amazon RSA 2048 M02, O=Amazon, C=US
+amazon_rsa_2048	CN=Amazon RSA 2048 M03, O=Amazon, C=US
+amazonca1b	CN=Amazon, OU=Server CA 1B, O=Amazon, C=US
+certum_domain_validation_ca_sha2_certum_trusted_network_ca	CN=Certum Domain Validation CA SHA2, OU=Certum Certification Authority, O=Unizeto Technologies S.A., C=PL
+comodo_rsa_domain_validation_secure_server_ca	CN=COMODO RSA Domain Validation Secure Server CA, O=COMODO CA Limited, L=Salford, ST=Greater Manchester, C=GB
+digicert global g2 tls rsa sha256 2020 ca1	CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1, O=DigiCert Inc, C=US
+digicert global root g2	CN=DigiCert Global Root G2, OU=www.digicert.com, O=DigiCert Inc, C=US
+digicert_sha2_high_assurance_server_ca	CN=DigiCert SHA2 High Assurance Server CA, OU=www.digicert.com, O=DigiCert Inc, C=US
+digicert_sha2_secure_server_ca	CN=DigiCert SHA2 Secure Server CA, O=DigiCert Inc, C=US
+digicert_tls_rsa_sha256_2020_ca1	CN=DigiCert TLS RSA SHA256 2020 CA1, O=DigiCert Inc, C=US
+e1	CN=DPDHL Global TLS CA - I5, O=Deutsche Post AG, C=DE
+encryption_everywhere_dv_tls_ca_-_g1	CN=DPDHL Global TLS CA - I5, O=Deutsche Post AG, C=DE
+e7	CN=E7, O=Let's Encrypt, C=US
+encryption everywhere dv tls ca - g1	CN=Encryption Everywhere DV TLS CA - G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+ee_ca-g2	CN=Encryption Everywhere DV TLS CA - G2, OU=www.digicert.com, O=DigiCert Inc, C=US
+entrustl1k_.entrustrootca-g2	CN=Entrust Certification Authority - L1K, OU="(c) 2012 Entrust, Inc. - for authorized use only", OU=See www.entrust.net/legal-terms, O="Entrust, Inc.", C=US
+entrust_ov_tls-issuing_rsa_ca_1	CN=Entrust OV TLS Issuing RSA CA 1, O=SSL Corporation, C=US
+gandi_ca3	CN=Gandi RSA Domain Validation Secure Server CA 3, O=Gandi, C=FR
+geotrust_ev_rsa_ca_2018	CN=GeoTrust EV RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+geotrust_global_tls_rsa4096_sha256_2022_ca1	CN=GeoTrust Global TLS RSA4096 SHA256 2022 CA1, O="DigiCert, Inc.", C=US
+geotrust_rsa_ca_2018	CN=GeoTrust RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+geostrust_ca_g1	CN=GeoTrust TLS RSA CA G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+globalsign_ca_r3	CN=GlobalSign Atlas R3 DV TLS CA 2024 Q3, O=GlobalSign nv-sa, C=BE
+globalsign_ca_r6	CN=GlobalSign GCC R6 AlphaSSL CA 2023, O=GlobalSign nv-sa, C=BE
+globalsign_gcc_r6_alphassl_ca_2025	CN=GlobalSign GCC R6 AlphaSSL CA 2025, O=GlobalSign nv-sa, C=BE
+globalsign_rsa_ov_ssl_ca_2018	CN=GlobalSign RSA OV SSL CA 2018, O=GlobalSign nv-sa, C=BE
+go daddy secure certificate authority - g2	CN=Go Daddy Secure Certificate Authority - G2, OU=http://certs.godaddy.com/repository/, O="GoDaddy.com, Inc.", L=Scottsdale, ST=Arizona, C=US
+go daddy secure certificate authority - g2.crt	CN=Go Daddy Secure Certificate Authority - G2, OU=http://certs.godaddy.com/repository/, O="GoDaddy.com, Inc.", L=Scottsdale, ST=Arizona, C=US
+go_daddy_secure_certificate_authority_-_g2	CN=Go Daddy Secure Certificate Authority - G2, OU=http://certs.godaddy.com/repository/, O="GoDaddy.com, Inc.", L=Scottsdale, ST=Arizona, C=US
+gogetssl_rsa_dv_ca	CN=GoGetSSL RSA DV CA, O=GoGetSSL, L=Riga, C=LV
+gts_ca_1c3	CN=GTS CA 1C3, O=Google Trust Services LLC, C=US
+gts_ca_1d4	CN=GTS CA 1D4, O=Google Trust Services LLC, C=US
+isrg root x1_new1	CN=ISRG Root X1, O=Internet Security Research Group, C=US
+azure_rsa_ca3	CN=Microsoft Azure RSA TLS Issuing CA 03, O=Microsoft Corporation, C=US
+azure_rsa_ca7	CN=Microsoft Azure RSA TLS Issuing CA 07, O=Microsoft Corporation, C=US
+alpayintermediate	CN=RapidSSL Global TLS RSA4096 SHA256 2022 CA1, O="DigiCert, Inc.", C=US
+rapidssl global tls rsa4096 sha256 2022 ca1.crt	CN=RapidSSL Global TLS RSA4096 SHA256 2022 CA1, O="DigiCert, Inc.", C=US
+rapidssl_tls_rsa_ca_g1	CN=RapidSSL TLS RSA CA G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+sectigo_ecc_domain_validation_secure_server_ca	CN=Sectigo ECC Domain Validation Secure Server CA 2, O=Sectigo Limited, L=Salford, ST=Greater Manchester, C=GB
+sectigo_public_server_authentication_ca_dv_r36	CN=Sectigo Public Server Authentication CA DV R36, O=Sectigo Limited, C=GB
+sectigo_rsa_domain_validation_secure_server_ca	CN=Sectigo RSA Domain Validation Secure Server CA, O=Sectigo Limited, L=Salford, ST=Greater Manchester, C=GB
+sectigo_rsa_organization_validation_secure_server_ca	CN=Sectigo RSA Organization Validation Secure Server CA, O=Sectigo Limited, L=Salford, ST=Greater Manchester, C=GB
+ssl.com_rsa_ssl_subca	CN=SSL.com RSA SSL subCA, O=SSL Corporation, L=Houston, ST=Texas, C=US
+starfield_services_root_certificate_authority_g2	CN=Starfield Services Root Certificate Authority - G2, O="Starfield Technologies, Inc.", L=Scottsdale, ST=Arizona, C=US
+3pp_ca-bundle	CN=Starfield Services Root Certificate Authority, OU=http://certificates.starfieldtech.com/repository/, O="Starfield Technologies, Inc.", L=Scottsdale, ST=Arizona, C=US
+thawte_ev_rsa_ca_2018	CN=Thawte EV RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+digicert_g_r2	CN=Thawte EV RSA CA G2, O=DigiCert Inc, C=US
+thawte_rsa_ca_2018	CN=Thawte RSA CA 2018, OU=www.digicert.com, O=DigiCert Inc, C=US
+thawte_tls_rsa_ca_g1_digicert_global_root_g2	CN=Thawte TLS RSA CA G1, OU=www.digicert.com, O=DigiCert Inc, C=US
+usertrust_rsa_certification_authority	CN=USERTrust RSA Certification Authority, O=The USERTRUST Network, L=Jersey City, ST=New Jersey, C=US
+we1	CN=WE1, O=Google Trust Services, C=US
+we1_gts	CN=WE1, O=Google Trust Services, C=US
+we2	CN=WE2, O=Google Trust Services, C=US
+wr2	CN=WR2, O=Google Trust Services, C=US
+wr3	CN=WR3, O=Google Trust Services, C=US
+wr4	CN=WR4, O=Google Trust Services, C=US
+zerossl_rsa_domain_secure_site_ca	CN=ZeroSSL RSA Domain Secure Site CA, O=ZeroSSL, C=AT
+viking_ca1	CN="Viking Cloud Organization Validation CA, Level 1", O="Viking Cloud, Inc.", C=US
+← Common Error CodesBrand Guidelines →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Brand Guidelines
+
+English
+MoMo LogoMoMo Logo
+The MTN MoMo logo will only be used at the payment stage of your customer journey. Below are the brand guidelines for use of the MTN MoMo Brand:
+
+When used, the logo sits in the bottom right hand corner of the messaging, against a white or MoMo Blue background
+
+The distance between the logo and the border to the right and border to the bottom is always equal and equivalent size to the blue bulb that forms the MTN logo
+
+The size of the logo will occupy the rectangle space of the ad where it features, scaled to feature prominently relative to all the other content in the ad
+
+Color Palette
+Reference to or usage of the MTN MoMo logo in other instances other than at the payment stage in the customer journey, will be restricted a statement of endorsement i.e. Supported by MTN MoMo. The use of the MTN MoMo in these instances is prohibited.
+
+← CallbackIntroduction →
+MoMo API
+Introduction
+Getting Started
+API User & API Key Management
+Use Cases
+Sandbox Use Cases
+Common Error Codes
+Callback
+Brand Guidelines
+Brand Guidelines
+
+French
+MoMo LogoMoMo Logo
+Le logo MTN MoMo ne sera utilise qu'au stade du paiement dans le parcours client. Ci-dessous figurent les directives de marque pour l'utilisation de la marque MTN MoMo :
+
+Lorsqu'il est utilise, le logo est place dans le coin inferieur droit du message, sur un fond blanc ou un fond MoMo Blue.
+
+La distance entre le logo et la bordure droite ainsi que la bordure inferieure est toujours egale et correspond a la taille de l'ampoule bleue qui constitue le logo MTN.
+
+La taille du logo doit occuper l'espace rectangulaire de la publicite dans laquelle il apparait, et etre dimensionnee de maniere a etre mise en avant par rapport aux autres elements du contenu.
+
+Color Palette
+Toute reference ou utilisation du logo MTN MoMo en dehors du stade du paiement dans le parcours client est limitee a une mention de type approbation, par exemple : Supported by MTN MoMo. L'utilisation du logo MTN MoMo dans ces cas est interdite.
+
+← CallbackIntroduction →
+Explore Limitless Possibilities with Our API’s
+Search products
+Collection Widget | Receive mobile money payments on your website through a USSD or QR code
+The MoMo Widget is a solution that enables a developer or partner to integrate a MoMoPay checkout button to accept Mobile Money payments on your e-commerce site.
+
+
+Collections | Enable remote collection of bills, fees or taxes.
+The MoMo Collection API product subscription allows businesses to receive payments directly from their customers' MoMo wallets into their business wallets. This streamlined payment process enables businesses to manage their finances more efficiently.
+
+...
+
+Disbursements | Automatically deposit funds to multiple users
+The MoMo Disbursement API product subscription offers a range of features for businesses. Key features include bulk payouts, business-to-business payments, and customer payouts, such as salaries. This streamlined payment process enables businesses to...
+
+
+Remittances | Remit funds to local recipients from the diaspora with ease
+The MoMo Remittance API product subscription allows partners and business to enable there customers to move funds across boarders connecting people and breaking boundaries. KYC like first name and last name with clear identifications of the sender ...Logo
+Home
+Documentation
+API Sandbox
+Products
+Support
+Sign in
+Sign up
+Connect. Share. Learn
+
+
+
+
+
+
+
