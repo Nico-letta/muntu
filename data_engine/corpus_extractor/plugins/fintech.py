@@ -79,7 +79,7 @@ SYNTHETIC_TOPICS = [
     ("KYC CG document job_type 11", "kyc-cg", "Smile document verification Congo uniquement."),
     ("Headers CG XAF Airtel", "airtel-headers", "X-Country CG, X-Currency XAF systematiques."),
     ("Disbursement token separe MTN", "mtn-disbursement", "disbursement/token/ != collection token."),
-    ("AIRTEL schema_only pas implemente", "roadmap-airtel", "Pas de src/providers/airtel.service.ts."),
+    ("AIRTEL schema_only hors perimetre", "roadmap-airtel", "Pas de src/providers/airtel.service.ts."),
 ]
 
 
@@ -117,7 +117,7 @@ def export_synthetic_corpus(ctx: ExtractContext) -> None:
         parts.append(f"**Reponse:** {answer}\n\n")
         parts.append(f"**Contexte {name}:** Stack NestJS + Prisma + PostgreSQL. ")
         parts.append("Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. ")
-        parts.append("AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.\n\n")
+        parts.append("AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.\n\n")
         parts.append(f"**Slug:** `{slug}`\n\n---\n\n")
     ctx.write_corpus("35-business-flows/synthetic-training-corpus.md", "".join(parts))
 

@@ -6,7 +6,7 @@
 
 **Reponse:** Verifier callback mtn:r2p, poll GET status, confirmer approbation client USSD.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `momo-pending`
 
@@ -18,7 +18,7 @@
 
 **Reponse:** Transaction enquiry avant retry, jamais reutiliser transaction.id.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-duplicate`
 
@@ -30,7 +30,7 @@
 
 **Reponse:** increment balanceFcfa si CASH_OUT_MOMO FAILED via webhook ou poll.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `momo-compensation`
 
@@ -42,7 +42,7 @@
 
 **Reponse:** Renversement reussi, success true, status TR.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-refund`
 
@@ -54,7 +54,7 @@
 
 **Reponse:** providerCallbackHost doit egaler host X-Callback-Url.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-callback`
 
@@ -66,7 +66,7 @@
 
 **Reponse:** kycStatus pour paiements, smartSelfieLastAuthSuccess pour step-up.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `kyc-smartselfie`
 
@@ -78,7 +78,7 @@
 
 **Reponse:** Regex ^\d{11}$ pour NIN_V2 biometric.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `kyc-ng`
 
@@ -90,7 +90,7 @@
 
 **Reponse:** MTN_MOMO_TARGET_ENVIRONMENT=mtncongo, currency XAF.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-opco`
 
@@ -102,7 +102,7 @@
 
 **Reponse:** P2002 eventKey ignore silencieusement.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `smile-idempotent`
 
@@ -114,7 +114,7 @@
 
 **Reponse:** FAILED sans increment wallet, ACSC seul credite.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `bridge-failed`
 
@@ -126,7 +126,7 @@
 
 **Reponse:** TTL 5 min, deleteMany OTP expires, renvoyer code.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `auth-otp`
 
@@ -138,7 +138,7 @@
 
 **Reponse:** Number() a la frontiere API, jamais division par 100.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `wallet-bigint`
 
@@ -150,7 +150,7 @@
 
 **Reponse:** isFrozen true si cardStatus LC/IA/SC etc.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `onafriq-freeze`
 
@@ -162,7 +162,7 @@
 
 **Reponse:** Configurer wallet portail developer.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-router`
 
@@ -174,7 +174,7 @@
 
 **Reponse:** GET payments/{id}, pas de credit sur TIP.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-ambiguous`
 
@@ -186,7 +186,7 @@
 
 **Reponse:** Poll GET si 202 recu, sinon nouveau UUID.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-409`
 
@@ -198,7 +198,7 @@
 
 **Reponse:** Smile document verification Congo uniquement.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `kyc-cg`
 
@@ -210,7 +210,7 @@
 
 **Reponse:** X-Country CG, X-Currency XAF systematiques.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-headers`
 
@@ -222,19 +222,19 @@
 
 **Reponse:** disbursement/token/ != collection token.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-disbursement`
 
 ---
 
-## Paire synthetique 20: AIRTEL schema_only pas implemente
+## Paire synthetique 20: AIRTEL schema_only hors perimetre
 
-**Instruction:** En tant qu'ingenieur fintech Afrique, comment gerer: AIRTEL schema_only pas implemente?
+**Instruction:** En tant qu'ingenieur fintech Afrique, comment gerer: AIRTEL schema_only hors perimetre?
 
 **Reponse:** Pas de src/providers/airtel.service.ts.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `roadmap-airtel`
 

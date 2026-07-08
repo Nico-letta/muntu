@@ -17,11 +17,21 @@ python data_engine/generate_corpus.py
 
 Sans argument `--config`, le script cherche `configs/afriwallet.json`, puis `afriwallet.example.json`.
 
+## AI-MESSAGE-PIPELINE
+
+```bash
+python data_engine/expand_corpus_sources.py --config data_engine/configs/ai-message-pipeline.json
+python data_engine/generate_corpus.py
+```
+
+Template versionne : `ai-message-pipeline.example.json` — copier vers `ai-message-pipeline.json` et ajuster `source_path`.
+
 ## Securite Git
 
 Les fichiers `*.json` locaux avec chemins prives sont **gitignores** :
 
 - `data_engine/configs/afriwallet.json`
+- `data_engine/configs/ai-message-pipeline.json`
 - `data_engine/configs/*.local.json`
 
 Seuls les templates `*.example.json` et ce README sont versionnes.

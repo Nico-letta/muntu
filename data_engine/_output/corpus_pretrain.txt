@@ -694,6 +694,252 @@ const AboutSection: React.FC = () => {
 export default AboutSection;
 --- END FILE: 15-mobile-ux-studies/case-ui-001/output.tsx ---
 
+--- START FILE: 20-backend-api/ai-message-pipeline-package.json.md ---
+# IA message pipeline — package.json
+
+> Source: `ai_message_codebase/package.json`
+
+```json
+{
+  "name": "ai-message-pipeline",
+  "version": "1.0.0",
+  "description": "WhatsApp AI messaging pipeline with Ollama, Redis, and Prisma",
+  "license": "MIT",
+  "author": "Nicoletta Moumbounou",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "axios": "^1.17.0",
+    "bullmq": "^5.78.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.8.0",
+    "winston": "^3.19.0"
+  }
+}
+
+```
+
+--- END FILE: 20-backend-api/ai-message-pipeline-package.json.md ---
+
+--- START FILE: 20-backend-api/ai-message-pipeline-readme.md ---
+# IA message pipeline — README et architecture
+
+> Source: `ai_message_codebase/README.md`
+
+# AI MESSAGE PIPELINE
+
+This is a small open-source project that connects WhatsApp messages to an AI response flow using Node.js, Ollama, Redis, and Prisma.
+
+The project is intended to receive messages from the WhatsApp Business API, store the conversation history, generate a reply with a local language model, and send the answer back to the user.
+
+## Why this project exists
+
+This project is a small experimental backend for building AI-assisted WhatsApp interactions. It demonstrates how a webhook can receive messages, queue them for processing, call a local language model, and return a response automatically.
+
+It is designed as a simple foundation for developers who want to experiment with WhatsApp automation, local AI inference, and event-driven backends.
+
+## Overview
+
+The application follows a simple asynchronous workflow:
+
+1. A WhatsApp webhook receives an incoming message.
+2. The message is pushed to a BullMQ queue managed by Redis.
+3. A worker processes the job, stores the message in the database, and calls an AI model.
+4. The AI response is saved and sent back to the user through the WhatsApp API.
+
+## Main features
+
+- WhatsApp webhook handling for inbound messages
+- Message queue processing with BullMQ and Redis
+- Conversation persistence through Prisma and MySQL/MariaDB
+- AI response generation using Ollama
+- WhatsApp message sending through the Meta Graph API
+- Basic health check endpoint
+- Tier-based system prompts for different user categories
+
+## Architecture
+
+The project uses a classic backend structure:
+
+- Express for the HTTP server
+- Prisma for database access and schema management
+- BullMQ for background jobs
+- Redis as the queue backend
+- Ollama as the local model inference engine
+- WhatsApp Cloud API for outbound messaging
+
+The main flow is:
+
+- Webhook controller: receives and validates incoming WhatsApp events
+- Queue layer: decouples the webhook from the processing work
+- Worker: performs the business logic and model calls
+- Database: stores users, messages, prompts, and escalations
+
+## Technologies used
+
+- Node.js
+- Express
+- Prisma
+- BullMQ
+- Redis
+- MySQL/MariaDB
+- Ollama
+- Axios
+- dotenv
+- Helmet
+- CORS
+
+## Prerequisites
+
+Before running the project, make sure you have:
+
+- Node.js v18 or newer
+- npm installed
+- A Redis instance running
+- A MySQL or MariaDB database available
+- Ollama installed and a model available locally
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd ai-message-pipeline
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Generate the Prisma client:
+
+```bash
+npx prisma generate
+```
+
+Apply database migrations:
+
+```bash
+npx prisma migrate deploy
+```
+
+## Configuration
+
+Create a `.env` file at the project root with the required environment variables.
+
+Example variables:
+
+```env
+DATABASE_URL=mysql://user:password@localhost:3306/database_name
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_TOKEN=your_whatsapp_token
+WHATSAPP_VERIFY_TOKEN=your_webhook_verify_token
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:latest
+```
+
+Additional configuration may be required depending on the deployment environment.
+
+## Architecture flow
+
+```text
+[WhatsApp] -> [Webhook Controller] -> [Redis Queue] -> [Worker] -> [Ollama] -> [WhatsApp API]
+```
+
+## System prompts
+
+The project supports tier-based system prompts. These prompts define the behavior of the AI depending on the user's category.
+
+You can configure them in the database through the `SystemPrompt` model in Prisma. This is useful if you want different tones, instructions, or safety rules for different user groups.
+
+## Running the application
+
+Start the server:
+
+```bash
+npm start
+```
+
+For development mode:
+
+```bash
+npm run dev
+```
+
+The server exposes a basic health endpoint at:
+
+```text
+/health
+```
+
+## Project structure
+
+```text
+ai-message-pipeline/
+├── src/                          # Application source code
+│   ├── app.js                    # Express application setup
+│   ├── server.js                 # Server entry point
+│   ├── config/                   # Configuration files for queues, database, and environment
+│   ├── controllers/              # HTTP controllers and route handlers
+│   │   └── whatsapp/             # WhatsApp webhook controller and routes
+│   ├── middlewares/              # Request validation and security middleware
+│   ├── services/                 # Business logic and external API integrations
+│   │   ├── ollama.service.js     # AI model calls through Ollama
+│   │   ├── whatsapp.service.js   # WhatsApp API messaging helper
+│   │   └── notify.service.js     # Notify integration helper
+│   ├── workers/                  # Background job workers
+│   │   └── whatsapp.worker.js    # Queue consumer for WhatsApp processing
+│   ├── views/                    # Template views for the web layer
+│   └── public/                   # Static assets such as CSS and JavaScript
+├── prisma/                        # Prisma schema and migrations
+│   ├── schema.prisma             # Database models and relations
+│   └── migrations/               # Database migration history
+├── storage/                       # Local storage for uploaded or generated files
+├── logs/                          # Runtime logs
+├── .env                           # Environment variables (not committed)
+├── package.json                   # Project dependencies and scripts
+└── README.md                      # Project documentation
+```
+
+## Contributing
+
+Contributions are welcome. If you want to improve the project, you can:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes.
+4. Submit a pull request with a clear explanation of the improvement.
+
+## Notes
+
+This repository is a lightweight prototype and a learning-oriented project. It works as a basic backend foundation for WhatsApp-based AI interactions, but it is not yet a fully production-ready platform.
+
+- The project uses queue-based processing, but monitoring and production hardening are still minimal.
+- The current implementation focuses mainly on the backend webhook and AI processing flow.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+
+--- END FILE: 20-backend-api/ai-message-pipeline-readme.md ---
+
 --- START FILE: 20-backend-api/input-boundaries/payload-validation.md ---
 ﻿# Frontières d'entrée — Validation des Payloads
 
@@ -6826,6 +7072,1091 @@ describe('KYC endpoints (e2e-lite)', () => {
 
 --- END FILE: 20-backend-api/golden-snippets/afriwallet-e2e-tests.md ---
 
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-auth-middleware.md ---
+# Golden Snippet — `src/middlewares/auth.middleware.js`
+
+> **Couche:** `20-backend-api` · **Source:** `ai_message_codebase/src/middlewares/auth.middleware.js`
+
+Validation WHATSAPP_WEBHOOK_SECRET sur requetes entrantes.
+
+```javascript
+/**
+ * Middleware de sécurité pour valider les requêtes entrantes
+ */
+
+/**
+ * Vérifie que la requête possède le token secret de Notify
+ */
+const validateWebhookSecret = (req, res, next) => {
+    try {
+        // Récupération du token envoyé par Notify dans les en-têtes HTTP
+        // Note : En général, les plateformes envoient cela dans 'x-webhook-secret' ou l'en-tête standard 'authorization'
+        const incomingSecret = req.headers['x-webhook-secret'] || req.headers['authorization'];
+
+        const systemSecret = process.env.WHATSAPP_WEBHOOK_SECRET;
+
+        // Si le secret n'est pas configuré sur notre serveur, sécurité maximale : on bloque
+        if (!systemSecret) {
+            console.error(' Erreur de configuration : WHATSAPP_WEBHOOK_SECRET n’est pas défini dans le fichier .env');
+            return res.status(500).json({ error: 'Erreur interne de configuration du serveur' });
+        }
+
+        // Vérification de la correspondance
+        if (!incomingSecret || incomingSecret !== systemSecret) {
+            console.warn(` Tentative d'accès non autorisée bloquée ! Origin: ${req.ip}`);
+            return res.status(401).json({ 
+                error: 'Non autorisé', 
+                message: 'Le jeton de validation du webhook est absent ou invalide.' 
+            });
+        }
+
+        // Si tout est valide, on passe au middleware suivant (ou au contrôleur) 
+        next();
+
+    } catch (error) {
+        console.error(' Erreur dans le middleware de sécurité :', error);
+        return res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+module.exports = {
+    validateWebhookSecret
+};
+```
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-auth-middleware.md ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-complete-src-bundle.md ---
+# IA message pipeline — Source JavaScript Complete Bundle
+
+> Fichiers sous `ai_message_codebase/src/` pour entrainement MoE MUNTU.
+
+## `src/app.js`
+
+```javascript
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+require('dotenv').config();
+
+const app = express();
+
+// ==========================================
+// MIDDLEWARES GLOBAUX DE SÉCURITÉ & PARSING
+// ==========================================
+
+// Configuration de Helmet pour sécuriser les en-têtes HTTP de l'admin web
+app.use(helmet({
+    contentSecurityPolicy: false, // À ajuster plus tard si des scripts externes bloquent sur l'UI admin
+}));
+
+// Activation du CORS (Utile si ton panel admin communique avec une autre origine)
+app.use(cors());
+
+// Intercepteurs de requêtes (Crucial pour capter les webhooks JSON de Notify)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ==========================================
+// CONFIGURATION DU MOTEUR DE RENDU (Pôle Média)
+// ==========================================
+app.set('view engine', 'ejs');
+app.set('views', './src/views');
+app.use(express.static('./src/public'));
+
+// ==========================================
+// ROUTE DE VÉRIFICATION OPÉRATIONNELLE (Healthcheck)
+// ==========================================
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'UP',
+        timestamp: new Date(),
+        env: process.env.NODE_ENV
+    });
+});
+
+// ==========================================
+// ZONES D'INJECTION DES ACCÈS FUTURS
+// ==========================================
+// app.use('/webhook', whatsappRouter);
+// app.use('/admin', adminRouter);
+const whatsappRouter = require('./controllers/whatsapp/whatsapp.routes');
+app.use('/api/v1/webhook/whatsapp', whatsappRouter);
+
+// Gestion globale des erreurs 404 (Route non trouvée)
+app.use((req, res, next) => {
+    res.status(404).json({ error: 'Ressource introuvable sur le serveur IA message pipeline' });
+});
+
+module.exports = app;
+```
+
+## `src/config/db.js`
+
+```javascript
+const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
+const { PrismaClient } = require('@prisma/client');
+
+// On utilise l'URL native de JavaScript pour découper la chaîne unique DATABASE_URL
+const dbUrl = new URL(process.env.DATABASE_URL);
+
+const adapter = new PrismaMariaDb({
+  host: dbUrl.hostname,
+  port: parseInt(dbUrl.port || '3306', 10),
+  user: dbUrl.username,
+  password: decodeURIComponent(dbUrl.password),
+  database: dbUrl.pathname.replace('/', ''), // Retire le slash initial pour avoir le nom de la BDD
+  connectionLimit: 5,
+});
+
+const prisma = new PrismaClient({ adapter });
+
+console.log('  Prisma Client connecté (Source unique : DATABASE_URL).');
+
+module.exports = prisma;
+```
+
+## `src/config/queue.js`
+
+```javascript
+const { Queue } = require('bullmq');
+
+// Configuration de la connexion Redis commune
+const redisConnection = {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+};
+
+/**
+ * Initialisation de la file d'attente pour les messages WhatsApp
+ */
+const whatsappQueue = new Queue('whatsapp-queue', {
+    connection: redisConnection,
+    defaultJobOptions: {
+        attempts: 3, // En cas d'échec (ex: timeout de l'IA), on réessaye 3 fois
+        backoff: {
+            type: 'exponential',
+            delay: 2000, // Attendre 2s avant le premier retry, puis 4s, etc.
+        },
+        removeOnComplete: true, // Nettoie Redis quand le job est fini avec succès
+        removeOnFail: false,    // Garde l'historique dans Redis si ça plante (pratique pour débugger)
+    }
+});
+
+console.log(' File d\'attente BullMQ [whatsapp-queue] initialisée.');
+
+module.exports = {
+    whatsappQueue,
+    redisConnection // On l'exporte car notre futur Worker en aura besoin
+};
+```
+
+## `src/controllers/whatsapp/whatsapp.controller.js`
+
+```javascript
+// src/controllers/whatsapp/whatsapp.controller.js
+require('dotenv').config();
+const { whatsappQueue } = require('../../config/queue');
+/**
+ * Validation du Webhook par Meta (Requête GET)
+ */
+const verifyWebhook = (req, res) => {
+    const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (!VERIFY_TOKEN) {
+        console.error(' [Meta Webhook] Token de vérification introuvable dans les variables d\'environnement.');
+        return res.sendStatus(500);
+    }
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            console.log(' [Meta Webhook] Validation réussie !');
+            return res.status(200).send(challenge);
+        } else {
+            console.log(' [Meta Webhook] Échec de validation (Tokens non correspondants)');
+            return res.sendStatus(403);
+        }
+    }
+    return res.sendStatus(400);
+};
+
+/**
+ * Réception des messages WhatsApp (Requête POST)
+ */
+const receiveMessage = async (req, res) => {
+    const body = req.body;
+
+    if (body.object === 'whatsapp_business_account') {
+        try {
+            if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value.messages) {
+                const messageData = body.entry[0].changes[0].value.messages[0];
+
+                const from = messageData.from;
+                const messageType = messageData.type;
+
+                if (messageType === 'text') {
+                    const text = messageData.text.body;
+
+                    console.log(` [Webhook] Nouveau message texte de ${from} : "${text}"`);
+
+                    // Injection du job dans la file d'attente Redis
+                    await whatsappQueue.add('whatsapp-job', { 
+                        from, 
+                        text,
+                        name: body.entry[0].changes[0].value.contacts?.[0]?.profile?.name || 'Utilisateur'
+                    });
+                    
+                    console.log(` [BullMQ] Job 'whatsapp-job' ajouté avec succès pour ${from}`);
+                }
+            }
+            
+            return res.status(200).send('EVENT_RECEIVED');
+        } catch (error) {
+            console.error(' [Webhook] Erreur lors du traitement du payload :', error);
+            return res.status(200).send('EVENT_RECEIVED');
+        }
+    } else {
+        return res.sendStatus(404);
+    }
+};
+
+module.exports = {
+    verifyWebhook,
+    receiveMessage
+};
+```
+
+## `src/controllers/whatsapp/whatsapp.routes.js`
+
+```javascript
+// src/controllers/whatsapp/whatsapp.routes.js
+const express = require('express');
+const router = express.Router();
+const whatsappController = require('./whatsapp.controller');
+
+// Route GET pour la vérification de Meta
+router.get('/', whatsappController.verifyWebhook);
+
+// Route POST pour la réception des messages
+router.post('/', whatsappController.receiveMessage);
+
+module.exports = router;
+```
+
+## `src/middlewares/auth.middleware.js`
+
+```javascript
+/**
+ * Middleware de sécurité pour valider les requêtes entrantes
+ */
+
+/**
+ * Vérifie que la requête possède le token secret de Notify
+ */
+const validateWebhookSecret = (req, res, next) => {
+    try {
+        // Récupération du token envoyé par Notify dans les en-têtes HTTP
+        // Note : En général, les plateformes envoient cela dans 'x-webhook-secret' ou l'en-tête standard 'authorization'
+        const incomingSecret = req.headers['x-webhook-secret'] || req.headers['authorization'];
+
+        const systemSecret = process.env.WHATSAPP_WEBHOOK_SECRET;
+
+        // Si le secret n'est pas configuré sur notre serveur, sécurité maximale : on bloque
+        if (!systemSecret) {
+            console.error(' Erreur de configuration : WHATSAPP_WEBHOOK_SECRET n’est pas défini dans le fichier .env');
+            return res.status(500).json({ error: 'Erreur interne de configuration du serveur' });
+        }
+
+        // Vérification de la correspondance
+        if (!incomingSecret || incomingSecret !== systemSecret) {
+            console.warn(` Tentative d'accès non autorisée bloquée ! Origin: ${req.ip}`);
+            return res.status(401).json({ 
+                error: 'Non autorisé', 
+                message: 'Le jeton de validation du webhook est absent ou invalide.' 
+            });
+        }
+
+        // Si tout est valide, on passe au middleware suivant (ou au contrôleur) 
+        next();
+
+    } catch (error) {
+        console.error(' Erreur dans le middleware de sécurité :', error);
+        return res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+};
+
+module.exports = {
+    validateWebhookSecret
+};
+```
+
+## `src/server.js`
+
+```javascript
+require('dotenv').config();
+const app = require('./app');
+
+require('./workers/whatsapp.worker');
+
+const PORT = process.env.PORT || 3000;
+
+/**
+ * Initialisation et démarrage du serveur de l'église I.C.C
+ */
+async function startServer() {
+    try {
+        // C'est ici que nous intégrerons l'initialisation des pools d'infrastructures :
+        // await db.connect();      -> Connexion pool MySQL
+        // await redis.connect();   -> Connexion Redis pour BullMQ
+        const currentEnv = process.env.NODE_ENV || 'development';
+        
+        app.listen(PORT, () => {
+            console.log(`=======================================================`);
+            console.log(` SERVEUR IA message pipeline DEMARRÉ EN MODE [${currentEnv.toUpperCase()}]`);
+            console.log(` Port d'écoute : ${PORT}`);
+            console.log(` Vérification d'état : http://localhost:${PORT}/health`);
+            console.log(`=======================================================`);
+        });
+    } catch (error) {
+        console.error(' Échec critique lors du bootstrapping du serveur :', error);
+        process.exit(1); // Arrêt immédiat du processus en cas de panne d'infrastructure
+    }
+}
+
+startServer();
+```
+
+## `src/services/notify.service.js`
+
+```javascript
+/**
+ * Service de communication officiel avec l'API Notify.cg
+ */
+async function sendWhatsAppMessage(lid, text, name = 'Fidèle') {
+    //  Récupération de l'URL depuis le .env avec un fallback propre
+    const url = process.env.NOTIFY_API_URL || 'https://app.notify.cg/api/external/send';
+    
+    //  Récupération du Token (Strictement requis !)
+    const token = process.env.NOTIFY_API_TOKEN;
+
+    if (!token) {
+        throw new Error(" [Notify Service] Sécurité : Le token NOTIFY_API_TOKEN est introuvable dans le fichier .env");
+    }
+
+    console.log(` [Notify Service] Expédition de la réponse via l'API externe vers le LID: ${lid}...`);
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                canal: 'whatsapp',
+                message: text,
+                phoneNumber: lid,
+                name: name
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erreur API Notify (${response.status}) : ${errorText}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        const result = contentType && contentType.includes("application/json") 
+            ? await response.json() 
+            : await response.text();
+
+        console.log(` [Notify Service] Message transmis avec succès à la passerelle Notify !`);
+        return result;
+
+    } catch (error) {
+        console.error(` [Notify Service] Échec de l'envoi HTTP :`, error.message);
+        throw error;
+    }
+}
+
+module.exports = {
+    sendWhatsAppMessage
+};
+```
+
+## `src/services/ollama.service.js`
+
+```javascript
+const axios = require('axios');
+
+// Extraction des configurations depuis le .env avec des valeurs de secours (fallbacks)
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:latest';
+
+/**
+ * Génère une réponse de l'IA en lui passant l'historique de la conversation et son prompt système
+ * @param {Array} conversationHistory - Le tableau des derniers messages [{role, content}]
+ * @param {string} systemPrompt - Les instructions de comportement basées sur le statut du fidèle
+ * @returns {Promise<string>} - Le message texte généré par Qwen
+ */
+async function generateResponse(conversationHistory, systemPrompt) {
+    try {
+        // Construction du payload complet pour le modèle de chat d'Ollama
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...conversationHistory
+        ];
+
+        console.log(` [Ollama Service] Envoi de la demande à ${OLLAMA_MODEL}...`);
+
+        const response = await axios.post(`${OLLAMA_URL}/api/chat`, {
+            model: OLLAMA_MODEL,
+            messages: messages,
+            stream: false // On désactive le streaming pour récupérer la réponse d'un bloc dans le Worker
+        });
+
+        // Extraction propre du texte de la réponse d'Ollama
+        if (response.data && response.data.message) {
+            return response.data.message.content.trim();
+        }
+
+        throw new Error("Structure de réponse Ollama invalide");
+
+    } catch (error) {
+        console.error(" [Ollama Service] Erreur lors de la génération de la réponse :", error.message);
+        throw error;
+    }
+}
+
+module.exports = {
+    generateResponse
+};
+```
+
+## `src/services/whatsapp.service.js`
+
+```javascript
+const axios = require('axios');
+
+/**
+ * Envoie un message texte simple à un utilisateur via l'API Cloud de WhatsApp
+ * @param {string} to - Le numéro de téléphone du destinataire (format international sans +, ex: 24206xxxx)
+ * @param {string} text - Le contenu du message à envoyer
+ */
+async function sendWhatsAppMessage(to, text) {
+    const url = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+    
+    const data = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: to,
+        type: "text",
+        text: {
+            preview_url: true, // Permet d'afficher l'aperçu du lien web de ta future Webview !
+            body: text
+        }
+    };
+
+    try {
+        const response = await axios.post(url, data, {
+            headers: {
+                'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log(` [Meta API] Message envoyé avec succès à ${to}. MessageID: ${response.data.messages[0].id}`);
+        return response.data;
+    } catch (error) {
+        console.error(` [Meta API] Erreur lors de l'envoi du message à ${to} :`);
+        if (error.response) {
+            console.error(JSON.stringify(error.response.data, null, 2));
+        } else {
+            console.error(error.message);
+        }
+        throw error;
+    }
+}
+
+module.exports = {
+    sendWhatsAppMessage
+};
+```
+
+## `src/workers/whatsapp.worker.js`
+
+```javascript
+const { Worker } = require('bullmq');
+const { redisConnection } = require('../config/queue');
+const prisma = require('../config/db');
+const { generateResponse } = require('../services/ollama.service');
+const { sendWhatsAppMessage } = require('../services/whatsapp.service');
+
+console.log(' Le Worker WhatsApp IA message pipeline a été réveillé et guette la file...');
+
+const whatsappWorker = new Worker('whatsapp-queue', async (job) => {
+    const { from, text } = job.data;
+
+    console.log(`\n [Worker] Traitement du job #${job.id} en cours...`);
+    console.log(` Expéditeur (whatsappId) : ${from}`);
+    console.log(` Contenu : "${text}"`);
+
+    try {
+        // 1. Récupérer ou créer l'utilisateur dans la table 'users' avec son niveau d'accès (tier)
+        let user = await prisma.user.upsert({
+            where: { whatsappId: from },
+            update: {},
+            create: {
+                whatsappId: from,
+                tier: 'PROSPECT' // Par défaut, un nouvel utilisateur est un PROSPECT (en attente de KYC)
+            }
+        });
+
+        // Extraction du tier (gère l'adaptation si le champ s'appelle tier ou s'il y a une transition)
+        const currentTier = user.tier || 'PROSPECT';
+        console.log(` Utilisateur identifié : ID ${user.id} | Tier : ${currentTier}`);
+
+        // 2. Enregistrer le message reçu dans la table 'message_logs'
+        const savedMessage = await prisma.messageLog.create({
+            data: {
+                userId: user.id,
+                role: 'user',
+                content: text
+            }
+        });
+
+        console.log(` Message enregistré en BDD avec l'ID : ${savedMessage.id}`);
+
+        // 3. Récupérer l'historique récent pour donner de la mémoire à l'IA (Qwen2.5)
+        const rawHistory = await prisma.messageLog.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: 'desc' },
+            take: 10
+        });
+
+        const conversationHistory = rawHistory.reverse().map(log => ({
+            role: log.role,
+            content: log.content
+        }));
+
+        console.log(` Mémoire chargée : ${conversationHistory.length} messages récupérés pour le contexte.`);
+
+        // 4. Récupération dynamique du prompt système en BDD selon le TIER (PROSPECT, VERIFIED, PREMIUM)
+        console.log(` [Worker] Recherche du prompt système pour le tier : ${currentTier}...`);
+        
+        const systemPromptRecord = await prisma.systemPrompt.findUnique({
+            where: { tier: currentTier }
+        });
+
+        // Sécurité : Si aucun prompt n'est configuré en BDD, on utilise un prompt IA message pipeline de secours
+        const currentPrompt = systemPromptRecord 
+            ? systemPromptRecord.content 
+            : `Tu es l'assistant officiel de IA message pipeline au Congo-Brazzaville. Sois professionnel et guide l'utilisateur vers la validation de son identité.`;
+        
+        // On lance l'inférence locale (Ollama / Qwen2.5) avec le prompt extrait de la BDD
+        const aiResponse = await generateResponse(conversationHistory, currentPrompt);
+        
+        console.log(`\n [Qwen2.5] Réponse générée depuis le prompt BDD (${currentTier}) :`);
+        console.log(` "${aiResponse}"\n`);
+
+        // 5. Enregistrer la réponse de l'IA dans la table 'message_logs'
+        const savedAssistantMessage = await prisma.messageLog.create({
+            data: {
+                userId: user.id,
+                role: 'assistant',
+                content: aiResponse
+            }
+        });
+
+        console.log(` Réponse de l'IA enregistrée en BDD avec l'ID : ${savedAssistantMessage.id}`);
+
+        // 6. Envoi du message final à l'utilisateur sur WhatsApp
+        await sendWhatsAppMessage(from, aiResponse);
+
+        console.log(` [Worker] Job #${job.id} traité avec succès !`);
+
+    } catch (error) {
+        console.error(` [Worker] Échec de traitement pour le job #${job.id} :`, error);
+        throw error;
+    }
+}, {
+    connection: redisConnection,
+    concurrency: 1
+});
+
+module.exports = whatsappWorker;
+```
+
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-complete-src-bundle.md ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-core.js ---
+/**
+ * Golden Snippet — Pipeline WhatsApp + Ollama (IA message pipeline)
+ * Source: ai_message_codebase/src/workers/whatsapp.worker.js
+ * Flux: upsert user -> MessageLog -> SystemPrompt tier -> Ollama -> Meta send.
+ */
+
+    try {
+        // 1. Récupérer ou créer l'utilisateur dans la table 'users' avec son niveau d'accès (tier)
+        let user = await prisma.user.upsert({
+            where: { whatsappId: from },
+            update: {},
+            create: {
+                whatsappId: from,
+                tier: 'PROSPECT' // Par défaut, un nouvel utilisateur est un PROSPECT (en attente de KYC)
+            }
+        });
+
+        // Extraction du tier (gère l'adaptation si le champ s'appelle tier ou s'il y a une transition)
+        const currentTier = user.tier || 'PROSPECT';
+        console.log(` Utilisateur identifié : ID ${user.id} | Tier : ${currentTier}`);
+
+        // 2. Enregistrer le message reçu dans la table 'message_logs'
+        const savedMessage = await prisma.messageLog.create({
+            data: {
+                userId: user.id,
+                role: 'user',
+                content: text
+            }
+        });
+
+        console.log(` Message enregistré en BDD avec l'ID : ${savedMessage.id}`);
+
+        // 3. Récupérer l'historique récent pour donner de la mémoire à l'IA (Qwen2.5)
+        const rawHistory = await prisma.messageLog.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: 'desc' },
+            take: 10
+        });
+
+        const conversationHistory = rawHistory.reverse().map(log => ({
+            role: log.role,
+            content: log.content
+        }));
+
+        console.log(` Mémoire chargée : ${conversationHistory.length} messages récupérés pour le contexte.`);
+
+        // 4. Récupération dynamique du prompt système en BDD selon le TIER (PROSPECT, VERIFIED, PREMIUM)
+        console.log(` [Worker] Recherche du prompt système pour le tier : ${currentTier}...`);
+        
+        const systemPromptRecord = await prisma.systemPrompt.findUnique({
+            where: { tier: currentTier }
+        });
+
+        // Sécurité : Si aucun prompt n'est configuré en BDD, on utilise un prompt IA message pipeline de secours
+        const currentPrompt = systemPromptRecord 
+            ? systemPromptRecord.content 
+            : `Tu es l'assistant officiel de IA message pipeline au Congo-Brazzaville. Sois professionnel et guide l'utilisateur vers la validation de son identité.`;
+        
+        // On lance l'inférence locale (Ollama / Qwen2.5) avec le prompt extrait de la BDD
+        const aiResponse = await generateResponse(conversationHistory, currentPrompt);
+        
+        console.log(`\n [Qwen2.5] Réponse générée depuis le prompt BDD (${currentTier}) :`);
+        console.log(` "${aiResponse}"\n`);
+
+        // 5. Enregistrer la réponse de l'IA dans la table 'message_logs'
+        const savedAssistantMessage = await prisma.messageLog.create({
+            data: {
+                userId: user.id,
+                role: 'assistant',
+                content: aiResponse
+            }
+        });
+
+        console.log(` Réponse de l'IA enregistrée en BDD avec l'ID : ${savedAssistantMessage.id}`);
+
+        // 6. Envoi du message final à l'utilisateur sur WhatsApp
+        await sendWhatsAppMessage(from, aiResponse);
+
+        console.log(` [Worker] Job #${job.id} traité avec succès !`);
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-core.js ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-queue-config.md ---
+# Golden Snippet — `src/config/queue.js`
+
+> **Couche:** `20-backend-api` · **Source:** `ai_message_codebase/src/config/queue.js`
+
+File BullMQ whatsapp-queue, retries exponentiels, connexion Redis.
+
+```javascript
+const { Queue } = require('bullmq');
+
+// Configuration de la connexion Redis commune
+const redisConnection = {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+};
+
+/**
+ * Initialisation de la file d'attente pour les messages WhatsApp
+ */
+const whatsappQueue = new Queue('whatsapp-queue', {
+    connection: redisConnection,
+    defaultJobOptions: {
+        attempts: 3, // En cas d'échec (ex: timeout de l'IA), on réessaye 3 fois
+        backoff: {
+            type: 'exponential',
+            delay: 2000, // Attendre 2s avant le premier retry, puis 4s, etc.
+        },
+        removeOnComplete: true, // Nettoie Redis quand le job est fini avec succès
+        removeOnFail: false,    // Garde l'historique dans Redis si ça plante (pratique pour débugger)
+    }
+});
+
+console.log(' File d\'attente BullMQ [whatsapp-queue] initialisée.');
+
+module.exports = {
+    whatsappQueue,
+    redisConnection // On l'exporte car notre futur Worker en aura besoin
+};
+```
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-queue-config.md ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-tests.md ---
+# IA message pipeline E2E Test Specifications
+
+## `app.test.js`
+
+```javascript
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { once } = require('node:events');
+
+const app = require('../src/app');
+
+async function withServer(fn) {
+  const server = app.listen(0);
+  await once(server, 'listening');
+
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+
+  try {
+    await fn(port);
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  }
+}
+
+test('GET /health returns a healthy response', async () => {
+  await withServer(async (port) => {
+    const response = await fetch(`http://127.0.0.1:${port}/health`);
+    assert.equal(response.status, 200);
+
+    const body = await response.json();
+    assert.equal(body.status, 'UP');
+  });
+});
+
+test('GET webhook verification accepts the configured token', async () => {
+  process.env.WHATSAPP_VERIFY_TOKEN = 'test-webhook-token';
+
+  await withServer(async (port) => {
+    const url = new URL(`http://127.0.0.1:${port}/api/v1/webhook/whatsapp`);
+    url.searchParams.set('hub.mode', 'subscribe');
+    url.searchParams.set('hub.verify_token', 'test-webhook-token');
+    url.searchParams.set('hub.challenge', 'challenge-123');
+
+    const response = await fetch(url);
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), 'challenge-123');
+  });
+});
+
+```
+
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-tests.md ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-webhook-controller.md ---
+# Golden Snippet — `src/controllers/whatsapp/whatsapp.controller.js`
+
+> **Couche:** `20-backend-api` · **Source:** `ai_message_codebase/src/controllers/whatsapp/whatsapp.controller.js`
+
+Webhook Meta GET verify + POST enqueue whatsapp-job dans Redis.
+
+```javascript
+// src/controllers/whatsapp/whatsapp.controller.js
+require('dotenv').config();
+const { whatsappQueue } = require('../../config/queue');
+/**
+ * Validation du Webhook par Meta (Requête GET)
+ */
+const verifyWebhook = (req, res) => {
+    const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (!VERIFY_TOKEN) {
+        console.error(' [Meta Webhook] Token de vérification introuvable dans les variables d\'environnement.');
+        return res.sendStatus(500);
+    }
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            console.log(' [Meta Webhook] Validation réussie !');
+            return res.status(200).send(challenge);
+        } else {
+            console.log(' [Meta Webhook] Échec de validation (Tokens non correspondants)');
+            return res.sendStatus(403);
+        }
+    }
+    return res.sendStatus(400);
+};
+
+/**
+ * Réception des messages WhatsApp (Requête POST)
+ */
+const receiveMessage = async (req, res) => {
+    const body = req.body;
+
+    if (body.object === 'whatsapp_business_account') {
+        try {
+            if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value.messages) {
+                const messageData = body.entry[0].changes[0].value.messages[0];
+
+                const from = messageData.from;
+                const messageType = messageData.type;
+
+                if (messageType === 'text') {
+                    const text = messageData.text.body;
+
+                    console.log(` [Webhook] Nouveau message texte de ${from} : "${text}"`);
+
+                    // Injection du job dans la file d'attente Redis
+                    await whatsappQueue.add('whatsapp-job', { 
+                        from, 
+                        text,
+                        name: body.entry[0].changes[0].value.contacts?.[0]?.profile?.name || 'Utilisateur'
+                    });
+                    
+                    console.log(` [BullMQ] Job 'whatsapp-job' ajouté avec succès pour ${from}`);
+                }
+            }
+            
+            return res.status(200).send('EVENT_RECEIVED');
+        } catch (error) {
+            console.error(' [Webhook] Erreur lors du traitement du payload :', error);
+            return res.status(200).send('EVENT_RECEIVED');
+        }
+    } else {
+        return res.sendStatus(404);
+    }
+};
+
+module.exports = {
+    verifyWebhook,
+    receiveMessage
+};
+```
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-webhook-controller.md ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-webhook-handler.js ---
+/**
+ * Golden Snippet — Webhook Meta verify + receive (IA message pipeline)
+ * Source: ai_message_codebase/src/controllers/whatsapp/whatsapp.controller.js
+ */
+
+// src/controllers/whatsapp/whatsapp.controller.js
+require('dotenv').config();
+const { whatsappQueue } = require('../../config/queue');
+/**
+ * Validation du Webhook par Meta (Requête GET)
+ */
+const verifyWebhook = (req, res) => {
+    const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (!VERIFY_TOKEN) {
+        console.error(' [Meta Webhook] Token de vérification introuvable dans les variables d\'environnement.');
+        return res.sendStatus(500);
+    }
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            console.log(' [Meta Webhook] Validation réussie !');
+            return res.status(200).send(challenge);
+        } else {
+            console.log(' [Meta Webhook] Échec de validation (Tokens non correspondants)');
+            return res.sendStatus(403);
+        }
+    }
+    return res.sendStatus(400);
+};
+
+/**
+ * Réception des messages WhatsApp (Requête POST)
+ */
+const receiveMessage = async (req, res) => {
+    const body = req.body;
+
+    if (body.object === 'whatsapp_business_account') {
+        try {
+            if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value.messages) {
+                const messageData = body.entry[0].changes[0].value.messages[0];
+
+                const from = messageData.from;
+                const messageType = messageData.type;
+
+                if (messageType === 'text') {
+                    const text = messageData.text.body;
+
+                    console.log(` [Webhook] Nouveau message texte de ${from} : "${text}"`);
+
+                    // Injection du job dans la file d'attente Redis
+                    await whatsappQueue.add('whatsapp-job', { 
+                        from, 
+                        text,
+                        name: body.entry[0].changes[0].value.contacts?.[0]?.profile?.name || 'Utilisateur'
+                    });
+                    
+                    console.log(` [BullMQ] Job 'whatsapp-job' ajouté avec succès pour ${from}`);
+                }
+            }
+            
+            return res.status(200).send('EVENT_RECEIVED');
+        } catch (error) {
+            console.error(' [Webhook] Erreur lors du traitement du payload :', error);
+            return res.status(200).send('EVENT_RECEIVED');
+        }
+    } else {
+        return res.sendStatus(404);
+    }
+};
+
+module.exports = {
+    verifyWebhook,
+    receiveMessage
+};
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-webhook-handler.js ---
+
+--- START FILE: 20-backend-api/golden-snippets/ai-message-pipeline-worker.md ---
+# Golden Snippet — `src/workers/whatsapp.worker.js`
+
+> **Couche:** `20-backend-api` · **Source:** `ai_message_codebase/src/workers/whatsapp.worker.js`
+
+Worker BullMQ : upsert user/tier, historique MessageLog, prompt SystemPrompt par tier, Ollama, envoi Meta.
+
+```javascript
+const { Worker } = require('bullmq');
+const { redisConnection } = require('../config/queue');
+const prisma = require('../config/db');
+const { generateResponse } = require('../services/ollama.service');
+const { sendWhatsAppMessage } = require('../services/whatsapp.service');
+
+console.log(' Le Worker WhatsApp IA message pipeline a été réveillé et guette la file...');
+
+const whatsappWorker = new Worker('whatsapp-queue', async (job) => {
+    const { from, text } = job.data;
+
+    console.log(`\n [Worker] Traitement du job #${job.id} en cours...`);
+    console.log(` Expéditeur (whatsappId) : ${from}`);
+    console.log(` Contenu : "${text}"`);
+
+    try {
+        // 1. Récupérer ou créer l'utilisateur dans la table 'users' avec son niveau d'accès (tier)
+        let user = await prisma.user.upsert({
+            where: { whatsappId: from },
+            update: {},
+            create: {
+                whatsappId: from,
+                tier: 'PROSPECT' // Par défaut, un nouvel utilisateur est un PROSPECT (en attente de KYC)
+            }
+        });
+
+        // Extraction du tier (gère l'adaptation si le champ s'appelle tier ou s'il y a une transition)
+        const currentTier = user.tier || 'PROSPECT';
+        console.log(` Utilisateur identifié : ID ${user.id} | Tier : ${currentTier}`);
+
+        // 2. Enregistrer le message reçu dans la table 'message_logs'
+        const savedMessage = await prisma.messageLog.create({
+            data: {
+                userId: user.id,
+                role: 'user',
+                content: text
+            }
+        });
+
+        console.log(` Message enregistré en BDD avec l'ID : ${savedMessage.id}`);
+
+        // 3. Récupérer l'historique récent pour donner de la mémoire à l'IA (Qwen2.5)
+        const rawHistory = await prisma.messageLog.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: 'desc' },
+            take: 10
+        });
+
+        const conversationHistory = rawHistory.reverse().map(log => ({
+            role: log.role,
+            content: log.content
+        }));
+
+        console.log(` Mémoire chargée : ${conversationHistory.length} messages récupérés pour le contexte.`);
+
+        // 4. Récupération dynamique du prompt système en BDD selon le TIER (PROSPECT, VERIFIED, PREMIUM)
+        console.log(` [Worker] Recherche du prompt système pour le tier : ${currentTier}...`);
+        
+        const systemPromptRecord = await prisma.systemPrompt.findUnique({
+            where: { tier: currentTier }
+        });
+
+        // Sécurité : Si aucun prompt n'est configuré en BDD, on utilise un prompt IA message pipeline de secours
+        const currentPrompt = systemPromptRecord 
+            ? systemPromptRecord.content 
+            : `Tu es l'assistant officiel de IA message pipeline au Congo-Brazzaville. Sois professionnel et guide l'utilisateur vers la validation de son identité.`;
+        
+        // On lance l'inférence locale (Ollama / Qwen2.5) avec le prompt extrait de la BDD
+        const aiResponse = await generateResponse(conversationHistory, currentPrompt);
+        
+        console.log(`\n [Qwen2.5] Réponse générée depuis le prompt BDD (${currentTier}) :`);
+        console.log(` "${aiResponse}"\n`);
+
+        // 5. Enregistrer la réponse de l'IA dans la table 'message_logs'
+        const savedAssistantMessage = await prisma.messageLog.create({
+            data: {
+                userId: user.id,
+                role: 'assistant',
+                content: aiResponse
+            }
+        });
+
+        console.log(` Réponse de l'IA enregistrée en BDD avec l'ID : ${savedAssistantMessage.id}`);
+
+        // 6. Envoi du message final à l'utilisateur sur WhatsApp
+        await sendWhatsAppMessage(from, aiResponse);
+
+        console.log(` [Worker] Job #${job.id} traité avec succès !`);
+
+    } catch (error) {
+        console.error(` [Worker] Échec de traitement pour le job #${job.id} :`, error);
+        throw error;
+    }
+}, {
+    connection: redisConnection,
+    concurrency: 1
+});
+
+module.exports = whatsappWorker;
+```
+
+--- END FILE: 20-backend-api/golden-snippets/ai-message-pipeline-worker.md ---
+
 --- START FILE: 20-backend-api/golden-snippets/auth-service.md ---
 # Golden Snippet — `src/auth/auth.service.ts`
 
@@ -8919,6 +10250,292 @@ export class WebhooksService {
 ```
 
 --- END FILE: 20-backend-api/golden-snippets/webhooks-service.md ---
+
+--- START FILE: 25-database-storage/ai-message-pipeline-prisma-config.md ---
+# IA message pipeline — prisma.config.ts
+
+> Source: `ai_message_codebase/prisma.config.ts`
+
+```typescript
+// This file was generated by Prisma, and assumes you have installed the following:
+// npm install --save-dev prisma dotenv
+import "dotenv/config";
+import { defineConfig } from "@prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    url: process.env["DATABASE_URL"] || 'mysql://root:root@localhost:3306/ia_message_db',
+  },  
+});
+
+
+```
+
+--- END FILE: 25-database-storage/ai-message-pipeline-prisma-config.md ---
+
+--- START FILE: 25-database-storage/ai-message-pipeline-prisma-models.js ---
+/**
+ * Golden Snippet — Modeles Prisma IA message pipeline (IA message pipeline)
+ * Source: ai_message_codebase/prisma/schema.prisma
+ * UserTier, AppState, Session KYC, MessageLog, SystemPrompt, Escalation.
+ */
+
+enum UserTier {
+  PROSPECT      // Anciennement VISITEUR
+  VERIFIED      // Anciennement FIDELE_REGULIER
+  PREMIUM       // Anciennement MEMBRE
+  ADMIN         // Anciennement RESPONSABLE
+}
+
+enum AppState {
+  IDLE
+  AWAITING_KYC_DOC
+  KYC_IN_PROGRESS
+  AWAITING_PIN
+  AWAITING_AMOUNT
+  CONFIRM_TRANSACTION
+}
+
+model Session {
+  id                String   @id @default(uuid())
+  whatsappId        String   @unique
+  currentState      AppState @default(IDLE) 
+  contextData       Json?
+  lastUpdated       DateTime @updatedAt
+  kycExternalId     String?
+  user              User?    @relation(fields: [userId], references: [id])
+  userId            String?  @unique 
+  lastInteractionAt DateTime @default(now())
+
+  @@map("sessions") // Ajouté pour la cohérence globale
+}
+
+enum EscalationStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+model User {
+  id          String   @id @default(uuid())
+  whatsappId  String   @unique
+  nom         String?
+  prenom      String?
+  tier        UserTier @default(PROSPECT) // Corrigé (nom du champ et valeur par défaut)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    MessageLog[]
+  escalations Escalation[]
+  session     Session?
+
+  @@map("users")
+}
+
+model MessageLog {
+  id           String   @id @default(uuid())
+  userId       String?  
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  role         String   // "user" ou "assistant"
+  content      String   @db.Text
+  createdAt    DateTime @default(now())
+  intent       String?  
+  actionStatus String?  // "PENDING", "EXECUTED", "REJECTED"
+
+  @@index([userId]) 
+  @@map("message_logs")
+}
+
+// Table d'archivage pour la stratégie de rotation des logs
+model MessageLogArchive {
+  id           String   @id
+  userId       String?
+  role         String
+  content      String   @db.Text
+  createdAt    DateTime
+  intent       String?
+  actionStatus String?
+  archivedAt   DateTime @default(now())
+
+  @@map("message_logs_archive")
+}
+
+model KnowledgeBase {
+  id          String   @id @default(uuid())
+  title       String
+  fileType    String
+  storagePath String
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("knowledge_base")
+}
+
+model Escalation {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      EscalationStatus @default(PENDING)
+  reason      String?
+  frozenUntil DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("escalations")
+}
+
+model SystemPrompt {
+  id        String   @id @default(uuid())
+  tier      UserTier @unique // Corrigé pour s'aligner sur UserTier
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_prompts")
+}
+
+--- END FILE: 25-database-storage/ai-message-pipeline-prisma-models.js ---
+
+--- START FILE: 25-database-storage/ai-message-pipeline-schema-prisma.md ---
+# Prisma Schema — IA message pipeline (source complete)
+
+> Source: `ai_message_codebase/prisma/schema.prisma`
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserTier {
+  PROSPECT      // Anciennement VISITEUR
+  VERIFIED      // Anciennement FIDELE_REGULIER
+  PREMIUM       // Anciennement MEMBRE
+  ADMIN         // Anciennement RESPONSABLE
+}
+
+enum AppState {
+  IDLE
+  AWAITING_KYC_DOC
+  KYC_IN_PROGRESS
+  AWAITING_PIN
+  AWAITING_AMOUNT
+  CONFIRM_TRANSACTION
+}
+
+model Session {
+  id                String   @id @default(uuid())
+  whatsappId        String   @unique
+  currentState      AppState @default(IDLE) 
+  contextData       Json?
+  lastUpdated       DateTime @updatedAt
+  kycExternalId     String?
+  user              User?    @relation(fields: [userId], references: [id])
+  userId            String?  @unique 
+  lastInteractionAt DateTime @default(now())
+
+  @@map("sessions") // Ajouté pour la cohérence globale
+}
+
+enum EscalationStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+model User {
+  id          String   @id @default(uuid())
+  whatsappId  String   @unique
+  nom         String?
+  prenom      String?
+  tier        UserTier @default(PROSPECT) // Corrigé (nom du champ et valeur par défaut)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    MessageLog[]
+  escalations Escalation[]
+  session     Session?
+
+  @@map("users")
+}
+
+model MessageLog {
+  id           String   @id @default(uuid())
+  userId       String?  
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  role         String   // "user" ou "assistant"
+  content      String   @db.Text
+  createdAt    DateTime @default(now())
+  intent       String?  
+  actionStatus String?  // "PENDING", "EXECUTED", "REJECTED"
+
+  @@index([userId]) 
+  @@map("message_logs")
+}
+
+// Table d'archivage pour la stratégie de rotation des logs
+model MessageLogArchive {
+  id           String   @id
+  userId       String?
+  role         String
+  content      String   @db.Text
+  createdAt    DateTime
+  intent       String?
+  actionStatus String?
+  archivedAt   DateTime @default(now())
+
+  @@map("message_logs_archive")
+}
+
+model KnowledgeBase {
+  id          String   @id @default(uuid())
+  title       String
+  fileType    String
+  storagePath String
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("knowledge_base")
+}
+
+model Escalation {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      EscalationStatus @default(PENDING)
+  reason      String?
+  frozenUntil DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("escalations")
+}
+
+model SystemPrompt {
+  id        String   @id @default(uuid())
+  tier      UserTier @unique // Corrigé pour s'aligner sur UserTier
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_prompts")
+}
+```
+
+--- END FILE: 25-database-storage/ai-message-pipeline-schema-prisma.md ---
 
 --- START FILE: 25-database-storage/postgres-policies.md ---
 ﻿# PostgreSQL — Politiques AfriWallet
@@ -13437,6 +15054,119 @@ export class MtnService {
 
 --- END FILE: 30-system-integrations/providers/mtn-momo.service.ts ---
 
+--- START FILE: 30-system-integrations/golden-snippets/ai-message-pipeline-meta-service.md ---
+# Golden Snippet — `src/services/whatsapp.service.js`
+
+> **Couche:** `30-system-integrations` · **Source:** `ai_message_codebase/src/services/whatsapp.service.js`
+
+Envoi message texte via Graph API v20.0 Meta WhatsApp Cloud.
+
+```javascript
+const axios = require('axios');
+
+/**
+ * Envoie un message texte simple à un utilisateur via l'API Cloud de WhatsApp
+ * @param {string} to - Le numéro de téléphone du destinataire (format international sans +, ex: 24206xxxx)
+ * @param {string} text - Le contenu du message à envoyer
+ */
+async function sendWhatsAppMessage(to, text) {
+    const url = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+    
+    const data = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: to,
+        type: "text",
+        text: {
+            preview_url: true, // Permet d'afficher l'aperçu du lien web de ta future Webview !
+            body: text
+        }
+    };
+
+    try {
+        const response = await axios.post(url, data, {
+            headers: {
+                'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log(` [Meta API] Message envoyé avec succès à ${to}. MessageID: ${response.data.messages[0].id}`);
+        return response.data;
+    } catch (error) {
+        console.error(` [Meta API] Erreur lors de l'envoi du message à ${to} :`);
+        if (error.response) {
+            console.error(JSON.stringify(error.response.data, null, 2));
+        } else {
+            console.error(error.message);
+        }
+        throw error;
+    }
+}
+
+module.exports = {
+    sendWhatsAppMessage
+};
+```
+
+--- END FILE: 30-system-integrations/golden-snippets/ai-message-pipeline-meta-service.md ---
+
+--- START FILE: 30-system-integrations/golden-snippets/ai-message-pipeline-ollama-service.md ---
+# Golden Snippet — `src/services/ollama.service.js`
+
+> **Couche:** `30-system-integrations` · **Source:** `ai_message_codebase/src/services/ollama.service.js`
+
+Client Ollama /api/chat avec system prompt + historique conversation.
+
+```javascript
+const axios = require('axios');
+
+// Extraction des configurations depuis le .env avec des valeurs de secours (fallbacks)
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:latest';
+
+/**
+ * Génère une réponse de l'IA en lui passant l'historique de la conversation et son prompt système
+ * @param {Array} conversationHistory - Le tableau des derniers messages [{role, content}]
+ * @param {string} systemPrompt - Les instructions de comportement basées sur le statut du fidèle
+ * @returns {Promise<string>} - Le message texte généré par Qwen
+ */
+async function generateResponse(conversationHistory, systemPrompt) {
+    try {
+        // Construction du payload complet pour le modèle de chat d'Ollama
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...conversationHistory
+        ];
+
+        console.log(` [Ollama Service] Envoi de la demande à ${OLLAMA_MODEL}...`);
+
+        const response = await axios.post(`${OLLAMA_URL}/api/chat`, {
+            model: OLLAMA_MODEL,
+            messages: messages,
+            stream: false // On désactive le streaming pour récupérer la réponse d'un bloc dans le Worker
+        });
+
+        // Extraction propre du texte de la réponse d'Ollama
+        if (response.data && response.data.message) {
+            return response.data.message.content.trim();
+        }
+
+        throw new Error("Structure de réponse Ollama invalide");
+
+    } catch (error) {
+        console.error(" [Ollama Service] Erreur lors de la génération de la réponse :", error.message);
+        throw error;
+    }
+}
+
+module.exports = {
+    generateResponse
+};
+```
+
+--- END FILE: 30-system-integrations/golden-snippets/ai-message-pipeline-ollama-service.md ---
+
 --- START FILE: 30-system-integrations/golden-snippets/bridge-payments-service.md ---
 # Golden Snippet — `src/providers/bridge-payments.service.ts`
 
@@ -15334,6 +17064,27 @@ TWILIO_FROM=""
 
 
 --- END FILE: 30-system-integrations/source-docs/afriwallet-env-example.txt ---
+
+--- START FILE: 30-system-integrations/source-docs/ai-message-pipeline-env-example.txt ---
+# IA message pipeline — Environment Variables (template)
+
+> Pas de .env.example dans le repo — derive du README.
+
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=mysql://user:password@localhost:3306/ai_message_ai
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_TOKEN=your_whatsapp_token
+WHATSAPP_VERIFY_TOKEN=your_webhook_verify_token
+WHATSAPP_WEBHOOK_SECRET=your_webhook_secret
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:latest
+NOTIFY_API_URL=https://api.notify.cg
+NOTIFY_API_TOKEN=your_notify_token
+
+--- END FILE: 30-system-integrations/source-docs/ai-message-pipeline-env-example.txt ---
 
 --- START FILE: 30-system-integrations/source-docs/airtel-api-documentation.txt ---
 # Airtel Money USSD and Banking (Congo)
@@ -39256,7 +41007,7 @@ Production: https://momoapi.mtn.com/profile
 1. **Fait :** Le corpus markdown explique le pourquoi (CEMAC, codes erreur).
 2. **Fait :** Les .ts montrent le comment exact dans AfriWallet.
 3. **Regle :** Ne pas dupliquer le bundle complet (`afriwallet-complete-src-bundle.md`) — snippets signature uniquement.
-4. **Action :** Relancer `python data_engine/expand_corpus_sources.py` apres changement codebase AfriWallet.
+4. **Action :** Relancer `python data_engine/expand_corpus_sources.py --config data_engine/configs/afriwallet.json` apres changement codebase AfriWallet.
 
 ### Liens corpus
 - Schema : `corpus-annotation-schema.md`
@@ -39390,7 +41141,7 @@ debug-qa-deep-training.md            <- Q&A comportemental
 
 Les scenarios narratifs (`debug-scenarios-production.md`) restent la couche **storytelling**.
 Les exemples normalises (`annotated-provider-examples-normalized.md`) sont la couche **evidence + justification**.
-Les golden snippets `.ts` (exportes depuis `{afriwallet_codebase}` par `expand_corpus_sources.py`) sont la couche **code signature**.
+Les golden snippets `.ts` (exportes via `expand_corpus_sources.py --config configs/*.json`) sont la couche **code signature**.
 
 ### Fichiers TypeScript golden (compiles)
 
@@ -39402,7 +41153,7 @@ Les golden snippets `.ts` (exportes depuis `{afriwallet_codebase}` par `expand_c
 | `25-database-storage/prisma-critical-models.ts` | schema.prisma |
 
 Regle : extraits signature uniquement — pas de boilerplate NestJS generique.
-Relancer `expand_corpus_sources.py` apres modification du codebase AfriWallet.
+Relancer `python data_engine/expand_corpus_sources.py --config data_engine/configs/afriwallet.json` apres modification du codebase AfriWallet.
 
 --- END FILE: 35-business-flows/corpus-annotation-schema.md ---
 
@@ -39771,7 +41522,7 @@ C'est la **souverainete contextuelle** que MUNTU doit internaliser.
 
 ---
 
-## Q17. Congo CG — Airtel implemente dans AfriWallet ?
+## Q17. Congo CG — Airtel actif dans AfriWallet ?
 
 **Reponse expert:**
 
@@ -39779,7 +41530,7 @@ C'est la **souverainete contextuelle** que MUNTU doit internaliser.
 
 ```prisma
 enum PaymentProvider {
-  MTN_MOMO   // implemente — src/providers/mtn.service.ts
+  MTN_MOMO   // deploye — src/providers/mtn.service.ts
   AIRTEL     // schema_only — PAS de service
   ...
 }
@@ -39860,7 +41611,7 @@ UX: proposer "Renvoyer un code" (respecter cooldown 60s).
 - [ ] `MTN_MOMO_TARGET_ENVIRONMENT=mtncongo`
 - [ ] `MTN_MOMO_CURRENCY=XAF`
 - [ ] IP publique whitelist Disbursement
-- [ ] Polling fallback implemente
+- [ ] Polling fallback deploye
 - [ ] Compensation cash-out testee
 
 **Airtel (preparation):**
@@ -41784,7 +43535,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Verifier callback mtn:r2p, poll GET status, confirmer approbation client USSD.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `momo-pending`
 
@@ -41796,7 +43547,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Transaction enquiry avant retry, jamais reutiliser transaction.id.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-duplicate`
 
@@ -41808,7 +43559,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** increment balanceFcfa si CASH_OUT_MOMO FAILED via webhook ou poll.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `momo-compensation`
 
@@ -41820,7 +43571,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Renversement reussi, success true, status TR.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-refund`
 
@@ -41832,7 +43583,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** providerCallbackHost doit egaler host X-Callback-Url.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-callback`
 
@@ -41844,7 +43595,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** kycStatus pour paiements, smartSelfieLastAuthSuccess pour step-up.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `kyc-smartselfie`
 
@@ -41856,7 +43607,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Regex ^\d{11}$ pour NIN_V2 biometric.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `kyc-ng`
 
@@ -41868,7 +43619,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** MTN_MOMO_TARGET_ENVIRONMENT=mtncongo, currency XAF.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-opco`
 
@@ -41880,7 +43631,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** P2002 eventKey ignore silencieusement.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `smile-idempotent`
 
@@ -41892,7 +43643,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** FAILED sans increment wallet, ACSC seul credite.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `bridge-failed`
 
@@ -41904,7 +43655,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** TTL 5 min, deleteMany OTP expires, renvoyer code.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `auth-otp`
 
@@ -41916,7 +43667,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Number() a la frontiere API, jamais division par 100.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `wallet-bigint`
 
@@ -41928,7 +43679,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** isFrozen true si cardStatus LC/IA/SC etc.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `onafriq-freeze`
 
@@ -41940,7 +43691,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Configurer wallet portail developer.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-router`
 
@@ -41952,7 +43703,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** GET payments/{id}, pas de credit sur TIP.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-ambiguous`
 
@@ -41964,7 +43715,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Poll GET si 202 recu, sinon nouveau UUID.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-409`
 
@@ -41976,7 +43727,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** Smile document verification Congo uniquement.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `kyc-cg`
 
@@ -41988,7 +43739,7 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** X-Country CG, X-Currency XAF systematiques.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `airtel-headers`
 
@@ -42000,19 +43751,19 @@ Webhook signature: x-webhook-signature (AES256). Idempotency via eventKey in Web
 
 **Reponse:** disbursement/token/ != collection token.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `mtn-disbursement`
 
 ---
 
-## Paire synthetique 20: AIRTEL schema_only pas implemente
+## Paire synthetique 20: AIRTEL schema_only hors perimetre
 
-**Instruction:** En tant qu'ingenieur fintech Afrique, comment gerer: AIRTEL schema_only pas implemente?
+**Instruction:** En tant qu'ingenieur fintech Afrique, comment gerer: AIRTEL schema_only hors perimetre?
 
 **Reponse:** Pas de src/providers/airtel.service.ts.
 
-**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum seulement (non implemente). Montants FCFA BigInt. MoMo async 202.
+**Contexte AfriWallet:** Stack NestJS + Prisma + PostgreSQL. Providers actifs: MTN_MOMO, SMILE_ID, ONAFRIQ, BRIDGE. AIRTEL enum schema_only (hors perimetre deploye). Montants FCFA BigInt. MoMo async 202.
 
 **Slug:** `roadmap-airtel`
 

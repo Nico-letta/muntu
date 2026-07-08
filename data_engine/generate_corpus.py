@@ -3,7 +3,7 @@ import re
 import subprocess
 import sys
 
-COMPILE_EXTENSIONS = (".md", ".tsx", ".ts", ".txt")
+COMPILE_EXTENSIONS = (".md", ".tsx", ".ts", ".txt", ".js")
 SKIP_FILES = {"README.md", "CONSOLIDATION-MAP.md"}
 
 SUBFOLDER_ORDER = {
@@ -18,7 +18,7 @@ def _path_sort_key(relative_path: str) -> tuple:
     parts = relative_path.replace("\\", "/").split("/")
     keys: list[tuple] = []
     for part in parts:
-        is_file = re.search(r"\.(md|tsx|ts|txt)$", part, re.I)
+        is_file = re.search(r"\.(md|tsx|ts|txt|js)$", part, re.I)
         if is_file:
             keys.append((1, 0, part.lower()))
             continue

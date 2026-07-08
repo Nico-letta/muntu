@@ -89,7 +89,7 @@ def iter_source_files(
 def export_src_bundle(ctx: ExtractContext, spec: dict[str, Any]) -> None:
     src_subdir = spec.get("src_subdir", "src")
     src_root = ctx.codebase / src_subdir
-    extensions = spec.get("extensions", [".ts", ".tsx"])
+    extensions = spec.get("extensions", [".js", ".ts", ".tsx"])
     exclude = spec.get("exclude_dirs", ["node_modules", "dist", ".next"])
     output = spec["output"]
     fence_lang = spec.get("fence_lang", "typescript")
@@ -182,12 +182,58 @@ def export_test_specs(ctx: ExtractContext, spec: dict[str, Any]) -> None:
     if not test_dir.exists():
         return
     extensions = spec.get("extensions", [".ts"])
+    fence = spec.get("fence_lang", "typescript")
     output = spec["output"]
     parts = [f"# {ctx.product_name} E2E Test Specifications\n\n"]
     for path in iter_source_files(test_dir, extensions, []):
         code = ctx.sanitize(path.read_text(encoding="utf-8"))
-        parts.append(f"## `{path.name}`\n\n```typescript\n{code}\n```\n\n")
+        parts.append(f"## `{path.name}`\n\n```{fence}\n{code}\n```\n\n")
     ctx.write_corpus(output, "".join(parts))
+
+
+def export_static_files(ctx: ExtractContext, spec: dict[str, Any]) -> None:
+    for item in spec.get("items", []):
+        rel_src = item["source"]
+        src = ctx.codebase / rel_src
+        if not src.exists():
+            print(f"[WARN] Fichier statique absent: {src}")
+            continue
+        raw = ctx.sanitize(src.read_text(encoding="utf-8"))
+        if item.get("as_code"):
+            fence = item.get("fence_lang", "text")
+            body = f"```\n{raw}\n```" if fence == "text" else f"```{fence}\n{raw}\n```"
+            content = (
+                f"# {item.get('title', rel_src)}\n\n"
+                f"> Source: `{ctx.source_ref(rel_src)}`\n\n"
+                f"{body}\n"
+            )
+        elif item.get("wrap_markdown"):
+            content = (
+                f"# {item.get('title', rel_src)}\n\n"
+                f"> Source: `{ctx.source_ref(rel_src)}`\n\n"
+                f"{raw}\n"
+            )
+        else:
+            content = raw
+        ctx.write_corpus(item["output"], content)
+
+
+def export_env_template(ctx: ExtractContext, spec: dict[str, Any]) -> None:
+    output = spec["output"]
+    if spec.get("inline"):
+        body = spec["inline"]
+    else:
+        src = ctx.codebase / spec.get("source", ".env.example")
+        if not src.exists():
+            print(f"[WARN] Env template absent: {src}")
+            return
+        body = src.read_text(encoding="utf-8")
+    header = spec.get(
+        "header",
+        f"# {ctx.product_name} Environment Variables\n\n"
+        f"> Template sans secrets — source: `{ctx.source_ref('.env.example')}`\n\n",
+    )
+    ctx.write_corpus(output, header + body)
 
 
 def export_instruction_pairs(ctx: ExtractContext, spec: dict[str, Any]) -> None:
@@ -426,6 +472,12 @@ class ExtractionEngine:
 
         if cfg.feature_enabled("knowledge_chunks"):
             export_knowledge_chunks(ctx, cfg.feature("knowledge_chunks"))
+
+        if cfg.feature_enabled("static_files"):
+            export_static_files(ctx, cfg.feature("static_files"))
+
+        if cfg.feature_enabled("env_template"):
+            export_env_template(ctx, cfg.feature("env_template"))
 
         from .plugins import fintech as fintech_plugin
 

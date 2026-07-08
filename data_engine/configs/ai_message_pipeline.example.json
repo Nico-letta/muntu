@@ -1,0 +1,157 @@
+{
+  "project_id": "ai-message-pipeline",
+  "project_name": "IA message pipeline",
+  "engine_name": "MUNTU",
+  "codebase_ref": "ai_message_codebase",
+  "repo_root": "../..",
+  "source_path": "D:/ai-message-pipeline",
+  "corpus_staging": "D:/ai-message-pipeline/training-corpus",
+  "corpus_output": "data_engine/corpus_raw",
+  "branding": {
+    "path_aliases": [
+      { "from": "D:/ai-message-pipeline/", "to": "ai_message_codebase/" },
+      { "from": "D:\\ai-message-pipeline\\", "to": "ai_message_codebase/" },
+      { "from": "D:/ai-message-pipeline", "to": "ai_message_codebase" }
+    ],
+    "text_replacements": [
+      { "pattern": "\\bZENO-IA\\b", "repl": "IA message pipeline", "regex": true },
+      { "pattern": "\\bZENO\\b", "repl": "IA message pipeline", "regex": true },
+      { "pattern": "\\bZeno\\b", "repl": "IA message pipeline", "regex": true },
+      { "pattern": "Message-IA", "repl": "IA message pipeline", "regex": false }
+    ]
+  },
+  "cleanup_legacy_artifacts": [],
+  "features": {
+    "provider_docs": { "enabled": false },
+    "runbooks": { "enabled": false },
+    "synthetic_corpus": { "enabled": false },
+    "error_matrix_validation": { "enabled": false },
+    "training_pairs": { "enabled": false },
+    "multi_turn_scenarios": { "enabled": false },
+    "legacy_knowledge": { "enabled": false },
+    "postman": { "enabled": false },
+    "knowledge_chunks": { "enabled": false },
+    "smile_templates": { "enabled": false },
+    "extract_prisma": {
+      "enabled": true,
+      "path": "prisma/schema.prisma",
+      "output": "25-database-storage/ai-message-pipeline-schema-prisma.md"
+    },
+    "extract_src_bundle": {
+      "enabled": true,
+      "src_subdir": "src",
+      "extensions": [".js"],
+      "exclude_dirs": ["node_modules", "dist", "logs", "storage"],
+      "output": "20-backend-api/golden-snippets/ai-message-pipeline-complete-src-bundle.md",
+      "title": "IA message pipeline — Source JavaScript Complete Bundle",
+      "fence_lang": "javascript"
+    },
+    "static_files": {
+      "enabled": true,
+      "items": [
+        {
+          "source": "README.md",
+          "output": "20-backend-api/ai-message-pipeline-readme.md",
+          "wrap_markdown": true,
+          "title": "IA message pipeline — README et architecture"
+        },
+        {
+          "source": "package.json",
+          "output": "20-backend-api/ai-message-pipeline-package.json.md",
+          "as_code": true,
+          "fence_lang": "json",
+          "title": "IA message pipeline — package.json"
+        },
+        {
+          "source": "prisma.config.ts",
+          "output": "25-database-storage/ai-message-pipeline-prisma-config.md",
+          "as_code": true,
+          "fence_lang": "typescript",
+          "title": "IA message pipeline — prisma.config.ts"
+        }
+      ]
+    },
+    "env_template": {
+      "enabled": true,
+      "output": "30-system-integrations/source-docs/ai-message-pipeline-env-example.txt",
+      "header": "# IA message pipeline — Environment Variables (template)\n\n> Pas de .env.example dans le repo — derive du README.\n\n",
+      "inline": "PORT=3000\nNODE_ENV=development\nDATABASE_URL=mysql://user:password@localhost:3306/ai-message-pipeline\nREDIS_HOST=127.0.0.1\nREDIS_PORT=6379\nWHATSAPP_PHONE_NUMBER_ID=your_phone_number_id\nWHATSAPP_TOKEN=your_whatsapp_token\nWHATSAPP_VERIFY_TOKEN=your_webhook_verify_token\nWHATSAPP_WEBHOOK_SECRET=your_webhook_secret\nOLLAMA_URL=http://localhost:11434\nOLLAMA_MODEL=qwen2.5:latest\nNOTIFY_API_URL=https://api.notify.cg\nNOTIFY_API_TOKEN=your_notify_token\n"
+    },
+    "golden_snippets_md": {
+      "enabled": true,
+      "items": [
+        {
+          "name": "ai-message-pipeline-worker",
+          "source": "src/workers/whatsapp.worker.js",
+          "layer": "20-backend-api",
+          "lang": "javascript",
+          "description": "Worker BullMQ : upsert user/tier, historique MessageLog, prompt SystemPrompt par tier, Ollama, envoi Meta."
+        },
+        {
+          "name": "ai-message-pipeline-webhook-controller",
+          "source": "src/controllers/whatsapp/whatsapp.controller.js",
+          "layer": "20-backend-api",
+          "lang": "javascript",
+          "description": "Webhook Meta GET verify + POST enqueue whatsapp-job dans Redis."
+        },
+        {
+          "name": "ai-message-pipeline-ollama-service",
+          "source": "src/services/ollama.service.js",
+          "layer": "30-system-integrations",
+          "lang": "javascript",
+          "description": "Client Ollama /api/chat avec system prompt + historique conversation."
+        },
+        {
+          "name": "ai-message-pipeline-meta-service",
+          "source": "src/services/whatsapp.service.js",
+          "layer": "30-system-integrations",
+          "lang": "javascript",
+          "description": "Envoi message texte via Graph API v20.0 Meta WhatsApp Cloud."
+        },
+        {
+          "name": "ai-message-pipeline-queue-config",
+          "source": "src/config/queue.js",
+          "layer": "20-backend-api",
+          "lang": "javascript",
+          "description": "File BullMQ whatsapp-queue, retries exponentiels, connexion Redis."
+        },
+        {
+          "name": "ai-message-pipeline-auth-middleware",
+          "source": "src/middlewares/auth.middleware.js",
+          "layer": "20-backend-api",
+          "lang": "javascript",
+          "description": "Validation WHATSAPP_WEBHOOK_SECRET sur requetes entrantes."
+        }
+      ]
+    },
+    "golden_snippets_ts": {
+      "enabled": true,
+      "items": [
+        {
+          "output": "20-backend-api/golden-snippets/ai-message-pipeline-pipeline-core.js",
+          "source": "src/workers/whatsapp.worker.js",
+          "line_ranges": [[16, 88]],
+          "header": "/**\n * Golden Snippet — Pipeline WhatsApp + Ollama ({product_name})\n * Source: {source_ref}\n * Flux: upsert user -> MessageLog -> SystemPrompt tier -> Ollama -> Meta send.\n */\n\n"
+        },
+        {
+          "output": "20-backend-api/golden-snippets/ai-message-pipeline-webhook-handler.js",
+          "source": "src/controllers/whatsapp/whatsapp.controller.js",
+          "header": "/**\n * Golden Snippet — Webhook Meta verify + receive ({product_name})\n * Source: {source_ref}\n */\n\n"
+        },
+        {
+          "output": "25-database-storage/ai-message-pipeline-prisma-models.js",
+          "source": "prisma/schema.prisma",
+          "line_ranges": [[9, 124]],
+          "header": "/**\n * Golden Snippet — Modeles Prisma IA message pipeline ({product_name})\n * Source: {source_ref}\n * UserTier, AppState, Session KYC, MessageLog, SystemPrompt, Escalation.\n */\n\n"
+        }
+      ]
+    },
+    "test_specs": {
+      "enabled": true,
+      "test_dir": "test",
+      "extensions": [".js"],
+      "fence_lang": "javascript",
+      "output": "20-backend-api/golden-snippets/ai-message-pipeline-tests.md"
+    }
+  }
+}

@@ -20,7 +20,9 @@ data_engine/_output/
 
 # Configs projet locales (chemins prives)
 data_engine/configs/afriwallet.json
+data_engine/configs/ai-message-pipeline.json
 data_engine/configs/*.local.json
+
 
 # OS / IDEs
 .DS_Store

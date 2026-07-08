@@ -93,6 +93,7 @@
   },
   "source_repos": {
     "afriwallet_codebase": "D:/zeno",
+    "ai_message_codebase": "D:/ai-message-pipeline",
     "corpus_staging": "D:/zeno/fintech-corpus"
   }
 }

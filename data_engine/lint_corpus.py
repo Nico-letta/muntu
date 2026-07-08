@@ -33,13 +33,48 @@ PRISMA_MODELS = {
     "WebhookEvent",
 }
 
-# Enums schema_only — mentions d'implémentation = warning
+# Ghost features schema_only — alerte seulement sur langage d'implementation affirmative
 GHOST_FEATURES = {
-    "CASH_IN_AIRTEL": "AIRTEL_MOMO non implémenté",
+    "CASH_IN_AIRTEL": "AIRTEL_MOMO hors perimetre deploye",
     "CARD_PAYMENT": "CARD_PAYMENT schema_only",
     "CARD_REFUND": "CARD_REFUND schema_only",
-    "PaymentProvider.AIRTEL": "AIRTEL provider non implémenté",
+    "PaymentProvider.AIRTEL": "AIRTEL provider hors perimetre deploye",
 }
+
+# Chemins exemptes de la regle ghost (legacy historique, JSON "implemented": ...)
+GHOST_LINT_SKIP_PREFIXES = (
+    "90-codebase-constraints/",
+    "40-compliance-rules/legacy-knowledge/",
+)
+
+# implementation affirmative — ignore negations et cle JSON "implemented"
+_IMPL_AFFIRMATIVE = re.compile(
+    r"(?<!non[\s-])(?<!pas[\s-])(?<!not[\s-])"
+    r"\bimplement(?:e|é|ation)\b(?!d\b)",
+    re.IGNORECASE,
+)
+
+_AIRTEL_CODE_PATTERNS = [
+    re.compile(r"src/providers/airtel", re.I),
+    re.compile(r"POST\s+/payments/.*airtel", re.I),
+    re.compile(r"service\s+\w*Airtel", re.I),
+]
+
+_GHOST_CONTEXT_RADIUS = 600
+_AIRTEL_GHOSTS = frozenset({"CASH_IN_AIRTEL", "PaymentProvider.AIRTEL"})
+
+_NEGATION_BEFORE_CODE = (
+    "ne pas ",
+    "pas de ",
+    "no ",
+    "not ",
+    "without ",
+    "absence ",
+    "roadmap",
+    "negative knowledge",
+    "hors perimetre",
+    "schema_only",
+)
 
 # Chemins obsolètes post-v4
 DEPRECATED_PATHS = [
@@ -77,6 +112,37 @@ def collect_markdown_files() -> list[Path]:
     return sorted(p for p in files if p.name not in skip)
 
 
+def _has_affirmative_impl_word(text: str) -> bool:
+    return bool(_IMPL_AFFIRMATIVE.search(text))
+
+
+def _has_airtel_code_claim(text: str) -> bool:
+    for pattern in _AIRTEL_CODE_PATTERNS:
+        for match in pattern.finditer(text):
+            before = text[max(0, match.start() - 120) : match.start()].lower()
+            if any(neg in before for neg in _NEGATION_BEFORE_CODE):
+                continue
+            return True
+    return False
+
+
+def _ghost_impl_claim(text: str, ghost: str) -> bool:
+    """Langage d'implementation affirmative proche du token ghost, ou claim code Airtel."""
+    if ghost in _AIRTEL_GHOSTS and _has_airtel_code_claim(text):
+        return True
+    idx = 0
+    while True:
+        pos = text.find(ghost, idx)
+        if pos == -1:
+            break
+        start = max(0, pos - _GHOST_CONTEXT_RADIUS)
+        end = min(len(text), pos + len(ghost) + _GHOST_CONTEXT_RADIUS)
+        if _has_affirmative_impl_word(text[start:end]):
+            return True
+        idx = pos + 1
+    return False
+
+
 def lint_file(path: Path, prisma_models: set[str]) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -95,20 +161,14 @@ def lint_file(path: Path, prisma_models: set[str]) -> tuple[list[str], list[str]
     if unknown:
         errors.append(f"{rel}: modeles Prisma inconnus {unknown}")
 
-    # Ghost features avec langage d'implémentation
-    impl_patterns = [
-        r"implement(?:e|é|ation)",
-        r"service\s+.*Airtel",
-        r"src/providers/airtel",
-        r"POST\s+/payments/.*airtel",
-    ]
-    for ghost, msg in GHOST_FEATURES.items():
-        if ghost in text:
-            for pat in impl_patterns:
-                if re.search(pat, text, re.I):
-                    if "90-codebase-constraints" not in rel and "NON IMPL" not in text.upper():
-                        warnings.append(f"{rel}: {msg} mais langage implementation detecte ({pat})")
-                    break
+    # Ghost features : warning uniquement si langage d'implementation affirmative
+    if not any(rel.startswith(p) for p in GHOST_LINT_SKIP_PREFIXES):
+        for ghost, msg in GHOST_FEATURES.items():
+            if ghost in text and _ghost_impl_claim(text, ghost):
+                warnings.append(
+                    f"{rel}: {msg} mais langage implementation affirmative detecte"
+                )
+                break
 
     # provider-error-codes ne doit pas etre dans 90
     if "fintech-error-codes" in rel and "90-codebase" in rel:

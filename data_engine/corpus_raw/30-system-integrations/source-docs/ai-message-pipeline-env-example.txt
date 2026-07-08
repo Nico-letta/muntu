@@ -1,0 +1,17 @@
+# IA message pipeline — Environment Variables (template)
+
+> Pas de .env.example dans le repo — derive du README.
+
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=mysql://user:password@localhost:3306/ai_message_ai
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_TOKEN=your_whatsapp_token
+WHATSAPP_VERIFY_TOKEN=your_webhook_verify_token
+WHATSAPP_WEBHOOK_SECRET=your_webhook_secret
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:latest
+NOTIFY_API_URL=https://api.notify.cg
+NOTIFY_API_TOKEN=your_notify_token

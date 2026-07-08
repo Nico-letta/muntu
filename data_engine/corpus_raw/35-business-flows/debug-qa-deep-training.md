@@ -362,7 +362,7 @@ C'est la **souverainete contextuelle** que MUNTU doit internaliser.
 
 ---
 
-## Q17. Congo CG — Airtel implemente dans AfriWallet ?
+## Q17. Congo CG — Airtel actif dans AfriWallet ?
 
 **Reponse expert:**
 
@@ -370,7 +370,7 @@ C'est la **souverainete contextuelle** que MUNTU doit internaliser.
 
 ```prisma
 enum PaymentProvider {
-  MTN_MOMO   // implemente — src/providers/mtn.service.ts
+  MTN_MOMO   // deploye — src/providers/mtn.service.ts
   AIRTEL     // schema_only — PAS de service
   ...
 }
@@ -451,7 +451,7 @@ UX: proposer "Renvoyer un code" (respecter cooldown 60s).
 - [ ] `MTN_MOMO_TARGET_ENVIRONMENT=mtncongo`
 - [ ] `MTN_MOMO_CURRENCY=XAF`
 - [ ] IP publique whitelist Disbursement
-- [ ] Polling fallback implemente
+- [ ] Polling fallback deploye
 - [ ] Compensation cash-out testee
 
 **Airtel (preparation):**
