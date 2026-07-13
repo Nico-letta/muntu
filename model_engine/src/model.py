@@ -14,6 +14,8 @@ class MuntuLM(nn.Module):
         """
         super().__init__()
         
+        self.max_seq_len = max_seq_len
+        
         self.embedding = MuntuEmbedding(vocab_size, d_model, max_seq_len)
         
         self.blocks = nn.ModuleList([MuntuTransformerBlock(d_model) for _ in range(n_layers)])
@@ -69,7 +71,7 @@ class MuntuLM(nn.Module):
         self.eval() 
         
         for _ in range(max_new_tokens):
-            input_cond = input_ids[:, -512:]
+            input_cond = input_ids[:, -self.max_seq_len:]
 
             logits, _ = self(input_cond)
             next_token_logits = logits[:, -1, :]

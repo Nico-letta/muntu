@@ -15,42 +15,46 @@ class MuntuExpert(nn.Module):
 
 
 class MuntuMoELayer(nn.Module):
-    def __init__(self, d_model: int, num_experts: int = 4):
+    def __init__(self, d_model: int, num_experts: int = 4, k: int = 2):
         super().__init__()
         self.num_experts = num_experts
+        self.k = k 
         self.experts = nn.ModuleList([MuntuExpert(d_model) for _ in range(num_experts)])
         self.router = nn.Linear(d_model, num_experts, bias=False)
 
     def forward(self, x: torch.Tensor):
         orig_shape = x.shape
         B, T, C = orig_shape
-        x_flat = x.view(-1, C) # Shape: (Total_Tokens, d_model)
+        x_flat = x.view(-1, C)
         
-        router_logits = self.router(x_flat) 
-        routing_weights = F.softmax(router_logits, dim=-1) # Shape: (Total_Tokens, num_experts)
+  
+        router_logits = self.router(x_flat).float() 
+        routing_weights = F.softmax(router_logits, dim=-1) 
         
-        # Top-1 Routing
-        max_weights, selected_experts = torch.max(routing_weights, dim=-1)
+        topk_weights, topk_indices = torch.topk(routing_weights, self.k, dim=-1)
         
-        # --- [ANTI-COLLAPSE] : Calcul de la Load Balancing Loss ---
-        tokens_per_expert = torch.zeros(self.num_experts, device=x.device)
-        for expert_id in range(self.num_experts):
-            tokens_per_expert[expert_id] = (selected_experts == expert_id).sum()
-        
-        fraction_tokens = tokens_per_expert / x_flat.size(0)
+ 
+        denom = topk_weights.sum(dim=-1, keepdim=True)
+        topk_weights = topk_weights / (denom + 1e-20)
         
         mean_routing_weights = routing_weights.mean(dim=0)
-        
+
+        expert_mask = torch.zeros_like(router_logits).scatter_(1, topk_indices, 1.0)
+        fraction_tokens = expert_mask.mean(dim=0)
+
         aux_loss = self.num_experts * torch.sum(fraction_tokens * mean_routing_weights)
 
+        topk_weights = topk_weights.to(x.dtype)
         out_flat = torch.zeros_like(x_flat)
         
         for expert_id in range(self.num_experts):
-            token_mask = (selected_experts == expert_id)
-            if token_mask.any():
-                expert_inputs = x_flat[token_mask]
+            token_indices, expert_pos = torch.where(topk_indices == expert_id)
+            
+            if len(token_indices) > 0:
+                expert_inputs = x_flat[token_indices]
                 expert_outputs = self.experts[expert_id](expert_inputs)
-                padded_weights = max_weights[token_mask].unsqueeze(-1)
-                out_flat[token_mask] = expert_outputs * padded_weights
-                
-        return out_flat.view(orig_shape), aux_loss
+
+                gating_weight = topk_weights[token_indices, expert_pos].unsqueeze(-1)
+                out_flat[token_indices] += expert_outputs * gating_weight
+
+        return out_flat.view(orig_shape), aux_loss.to(x.dtype)

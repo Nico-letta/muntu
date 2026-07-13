@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 class MuntuPretrainDataset(Dataset):
-    def __init__(self, corpus_path, tokenizer_dir, max_seq_len=128):
+    def __init__(self, corpus_path, tokenizer_dir, max_seq_len=4096):
         self.max_seq_len = max_seq_len
 
         vocab_path = os.path.join(tokenizer_dir, "vocab.json")
@@ -20,28 +20,38 @@ class MuntuPretrainDataset(Dataset):
         self.tokenizer = ByteLevelBPETokenizer(vocab_path, merges_path)
         self.vocab_size = self.tokenizer.get_vocab_size()
 
-        print(f"[*] Chargement et tokenisation du corpus : {corpus_path}...")
-        with open(corpus_path, "r", encoding="utf-8") as f:
-            raw_text = f.read()
+        print(f"[*] Chargement et tokenisation progressive du corpus : {corpus_path}...")
 
-        encoded = self.tokenizer.encode(raw_text)
-        self.tokens = encoded.ids
-        
+        self.tokens = []
+        with open(corpus_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:  
+                    self.tokens.extend(self.tokenizer.encode(line).ids)
+
         print(f"[+] Nombre total de tokens réels extraits : {len(self.tokens)} (Taille réelle du Vocabulaire : {self.vocab_size} tokens)")
-        self.chunk_size = self.max_seq_len + 1
-        self.num_samples = len(self.tokens) 
+    
+        self.num_samples = (len(self.tokens) - 1) // self.max_seq_len
         
-        print(f"[+] Dataset finalisé avec {self.num_samples} séquences d'entraînement uniques.")
+        if self.num_samples == 0:
+            raise ValueError("Le corpus est trop petit pour la taille de fenêtre (max_seq_len) demandée.")
+        
+        print(f"[+] Dataset finalisé avec {self.num_samples} séquences d'entraînement uniques (sans chevauchement).")
 
     def __len__(self):
         return self.num_samples
 
     def __getitem__(self, idx):
-        start_idx = idx * self.chunk_size
-        end_idx = start_idx + self.chunk_size
+        start_idx = idx * self.max_seq_len
+        end_idx = start_idx + self.max_seq_len + 1
+        
         chunk = self.tokens[start_idx:end_idx]
         
-    
+        if len(chunk) < self.max_seq_len + 1:
+            end_idx = len(self.tokens)
+            start_idx = end_idx - (self.max_seq_len + 1)
+            chunk = self.tokens[start_idx:end_idx]
+            
         x = torch.tensor(chunk[:-1], dtype=torch.long)
         y = torch.tensor(chunk[1:], dtype=torch.long)
         
