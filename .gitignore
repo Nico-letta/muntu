@@ -10,19 +10,28 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Poids du modèle (Fichiers lourds .pt ou .pth)
-# On ne pousse JAMAIS les gigas de poids sur GitHub, on les garde en local ou sur Hugging Face
+# ==========================================
+# Fichiers Lourds & Poids (CRITIQUE)
+# ==========================================
 *.pt
 *.pth
+*.safetensors
+*.bin
+*.pt.*
+checkpoints/
+model_engine/checkpoints/
 
-# Dossiers de données brutes / Outputs de tokenization si trop volumineux
+# ==========================================
+# Données & Datasets
+# ==========================================
 data_engine/_output/
+_output/
+*.bin
 
-# Configs projet locales (chemins prives)
+# Configs projet locales (chemins privés)
 data_engine/configs/afriwallet.json
 data_engine/configs/ai-message-pipeline.json
 data_engine/configs/*.local.json
-
 
 # OS / IDEs
 .DS_Store
