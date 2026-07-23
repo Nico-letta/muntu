@@ -15,8 +15,11 @@ def generate_text(prompt: str, max_new_tokens: int = 100):
         os.path.join(tokenizer_dir, "vocab.json"),
         os.path.join(tokenizer_dir, "merges.txt")
     )
-    
-    model = MuntuLM(vocab_size=1495, d_model=256, max_seq_len=512, n_layers=4)
+
+    vocab_size = tokenizer.get_vocab_size()
+
+    model = MuntuLM(vocab_size=vocab_size, d_model=768, max_seq_len=4096, n_layers=4)
+
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval() 
     

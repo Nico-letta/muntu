@@ -35,7 +35,7 @@ def fine_tune_fintech():
     print(f"[*] Chargement du cerveau MUNTU MoE initial...")
     model = MuntuLM(
         vocab_size=dataset.vocab_size,
-        d_model=256,
+        d_model=768,
         max_seq_len=512,
         n_layers=4
     )
