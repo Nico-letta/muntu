@@ -4,8 +4,8 @@ import math
 import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import LambdaLR
-from safetensors.torch import save_model
-from tqdm import tqdm  
+from safetensors.torch import save_file
+from tqdm import tqdm 
 
 sys.path.append(os.getcwd())
 from model_engine.src.model import MuntuLM
@@ -44,7 +44,7 @@ def train_muntu():
     GRAD_ACC_STEPS = 32         
     MAX_SEQ_LEN = 4096           
     LEARNING_RATE = 2e-4         
-    EPOCHS = 2             
+    EPOCHS = 1             
     AUX_LOSS_COEF = 5e-3  
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -79,7 +79,10 @@ def train_muntu():
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         if 'scheduler_state_dict' in checkpoint:
             scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        start_epoch = checkpoint['epoch'] + 1
+
+        last_completed_epoch = checkpoint['epoch']
+        start_epoch = last_completed_epoch + 1
+        
         print(f"[+] Reprise validée à partir de l'Époque {start_epoch + 1}")
 
     print(f"Lancement du Pré-entraînement MoE ({EPOCHS - start_epoch} époques restantes)...")
@@ -161,9 +164,13 @@ def train_muntu():
             'scheduler_state_dict': scheduler.state_dict(),
         }, checkpoint_path)
         print(f"Checkpoint d'époque validé et écrit.")
+    state_dict = model.state_dict()
 
-    # Changement ici : On utilise save_model(model, ...) au lieu de save_file(model.state_dict(), ...)
-    save_model(model, output_model_path)
+    state_dict_to_save = {}
+    for k, v in state_dict.items():
+        state_dict_to_save[k] = v.clone()
+
+    save_file(state_dict_to_save, output_model_path)
     
     if os.path.exists(checkpoint_path):
         os.remove(checkpoint_path)
