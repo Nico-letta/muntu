@@ -22,9 +22,13 @@ def build_muntu_tokenizer():
         min_frequency=2,
         special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
     )
-    
+
+    json_output_path = os.path.join(output_dir, "tokenizer.json")
+    tokenizer.save(json_output_path)
+
     tokenizer.save_model(output_dir)
-    print(f" Tokenizer entraîné avec succès ! Vocabulaire de {tokenizer.get_vocab_size()} tokens sauvegardé dans : {output_dir}")
+    
+    print(f"[+] Tokenizer entraîné avec succès ! Vocabulaire de {tokenizer.get_vocab_size()} tokens sauvegardé dans : {json_output_path}")
 
 if __name__ == "__main__":
     build_muntu_tokenizer()

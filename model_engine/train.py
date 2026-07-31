@@ -26,7 +26,11 @@ def train_muntu():
 
     bin_path = "/content/drive/MyDrive/muntu_project/data_engine/_output/corpus_pretrain.bin"
     tokenizer_dir = "/content/drive/MyDrive/muntu_project/data_engine/_output/muntu_tokenizer"
-    
+
+    tokenizer_json_path = os.path.join(tokenizer_dir, "tokenizer.json")
+    if not os.path.exists(tokenizer_json_path):
+        raise FileNotFoundError(f"[!] Erreur: Fichier tokenizer natif introuvable sous : {tokenizer_json_path}")
+
     checkpoint_dir = os.path.join(base_dir, "checkpoints")
     os.makedirs(checkpoint_dir, exist_ok=True)
     checkpoint_path = os.path.join(checkpoint_dir, "muntu_latest_checkpoint.pt")
@@ -73,7 +77,7 @@ def train_muntu():
 
     start_epoch = 0
     if os.path.exists(checkpoint_path):
-        print(f"Checkpoint détecté ! Chargement des états depuis {checkpoint_path}...")
+        print(f"[*] Checkpoint détecté ! Chargement des états depuis {checkpoint_path}...")
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -85,7 +89,7 @@ def train_muntu():
         
         print(f"[+] Reprise validée à partir de l'Époque {start_epoch + 1}")
 
-    print(f"Lancement du Pré-entraînement MoE ({EPOCHS - start_epoch} époques restantes)...")
+    print(f"[*] Lancement du Pré-entraînement MoE ({EPOCHS - start_epoch} époques restantes)...")
     model.train()
     
     for epoch in range(start_epoch, EPOCHS):
@@ -163,19 +167,17 @@ def train_muntu():
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
         }, checkpoint_path)
-        print(f"Checkpoint d'époque validé et écrit.")
-    state_dict = model.state_dict()
+        print(f"[+] Checkpoint d'époque validé et écrit.")
 
-    state_dict_to_save = {}
-    for k, v in state_dict.items():
-        state_dict_to_save[k] = v.clone()
+    state_dict = model.state_dict()
+    state_dict_to_save = {k: v.clone() for k, v in state_dict.items()}
 
     save_file(state_dict_to_save, output_model_path)
     
     if os.path.exists(checkpoint_path):
         os.remove(checkpoint_path)
         
-    print(f"Entraînement massif terminé ! Cerveau MoE final exporté sous : {output_model_path}")
+    print(f"[+] Entraînement terminé ! Cerveau MoE final exporté sous : {output_model_path}")
 
 if __name__ == "__main__":
     train_muntu()

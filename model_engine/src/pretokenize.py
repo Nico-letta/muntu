@@ -1,24 +1,23 @@
 import os
 import numpy as np
-from tokenizers import ByteLevelBPETokenizer
+from tokenizers import Tokenizer
 from tqdm import tqdm
 
 def pretokenize():
     root_dir = os.getcwd()
     corpus_path = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.txt")
     output_bin = os.path.join(root_dir, "data_engine", "_output", "corpus_pretrain.bin")
-    tokenizer_dir = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
- 
-    print("[*] Initialisation du tokenizer...")
-    tokenizer = ByteLevelBPETokenizer(
-        os.path.join(tokenizer_dir, "vocab.json"),
-        os.path.join(tokenizer_dir, "merges.txt")
-    )
+    tokenizer_file = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer", "tokenizer.json")
+
+    if not os.path.exists(tokenizer_file):
+        raise FileNotFoundError(f"[!] Tokenizer introuvable : {tokenizer_file}")
+
+    print("[*] Initialisation du tokenizer natif Rust (tokenizer.json)...")
+    tokenizer = Tokenizer.from_file(tokenizer_file)
 
     print("[*] Début de la tokenisation sécurisée par lignes...")
     
     file_size = os.path.getsize(corpus_path)
-
     MAX_LINE_LENGTH = 50000 
 
     with open(corpus_path, "r", encoding="utf-8", errors="replace") as f_in, open(output_bin, "wb") as f_out:

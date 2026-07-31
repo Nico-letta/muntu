@@ -1,27 +1,26 @@
 import os
-import json
 import torch
 from torch.utils.data import Dataset
 import numpy as np
+from tokenizers import Tokenizer
 
 class MuntuPretrainDataset(Dataset):
     def __init__(self, bin_path, tokenizer_dir, max_seq_len=4096):
         """
         Dataset de pré-entraînement optimisé pour MUNTU.
         - bin_path: Chemin vers le fichier binaire `.bin` (uint16)
-        - tokenizer_dir: Répertoire contenant 'vocab.json' pour extraire la taille du vocabulaire
+        - tokenizer_dir: Répertoire contenant 'tokenizer.json'
         - max_seq_len: Taille de la fenêtre de contexte (block_size)
         """
         self.max_seq_len = max_seq_len
         self.bin_path = bin_path
 
-        vocab_path = os.path.join(tokenizer_dir, "vocab.json")
-        if not os.path.exists(vocab_path):
-            raise FileNotFoundError(f"[-] Fichier 'vocab.json' introuvable dans {tokenizer_dir}")
+        tokenizer_path = os.path.join(tokenizer_dir, "tokenizer.json")
+        if not os.path.exists(tokenizer_path):
+            raise FileNotFoundError(f"[-] Fichier 'tokenizer.json' introuvable dans {tokenizer_dir}")
             
-        with open(vocab_path, "r", encoding="utf-8") as f:
-            vocab = json.load(f)
-        self.vocab_size = len(vocab)
+        tokenizer = Tokenizer.from_file(tokenizer_path)
+        self.vocab_size = tokenizer.get_vocab_size()
         
         if not os.path.exists(bin_path):
             raise FileNotFoundError(f"[-] Fichier binaire introuvable : {bin_path}")
@@ -29,7 +28,6 @@ class MuntuPretrainDataset(Dataset):
         print(f"[*] Cartographie mémoire du corpus binaire : {bin_path}...")
 
         self.data = np.memmap(bin_path, dtype=np.uint16, mode='r')
-
         self.num_samples = (len(self.data) - 1) // self.max_seq_len
         
         if self.num_samples == 0:
@@ -37,7 +35,7 @@ class MuntuPretrainDataset(Dataset):
             
         print(f"[+] Dataset prêt : {len(self.data):,} tokens cartographiés.")
         print(f"[+] {self.num_samples} séquences d'entraînement uniques (sans chevauchement).")
-        print(f"[+] Taille du vocabulaire détectée : {self.vocab_size} tokens.")
+        print(f"[+] Taille du vocabulaire détectée : {self.vocab_size} tokens (Standard Native Rust).")
 
     def __len__(self):
         return self.num_samples

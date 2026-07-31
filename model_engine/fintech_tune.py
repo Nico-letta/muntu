@@ -13,7 +13,7 @@ from tokenizers import Tokenizer
 
 class MuntuSFTDataset(Dataset):
     """Dataset dedicated to parsing ChatML JSONL pairs for SFT instruction tuning."""
-    def __init__(self, jsonl_path, tokenizer_dir, max_seq_len=2048):
+    def __init__(self, jsonl_path, tokenizer_dir, max_seq_len=4096):
         self.max_seq_len = max_seq_len
 
         tokenizer_file = os.path.join(tokenizer_dir, "tokenizer.json")
@@ -53,7 +53,7 @@ class MuntuSFTDataset(Dataset):
 
 
 def fine_tune_fintech():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
     root_dir = os.path.abspath(os.path.join(base_dir, ".."))
 
     sft_jsonl_path = os.path.join(root_dir, "data_engine", "_output", "sft_dataset.jsonl")
@@ -67,7 +67,7 @@ def fine_tune_fintech():
 
     BATCH_SIZE = 2
     GRAD_ACC_STEPS = 4
-    MAX_SEQ_LEN = 2048 
+    MAX_SEQ_LEN = 4096  # Alignement strict sur la taille du pré-entraînement (4096)
     LEARNING_RATE = 2e-5
     EPOCHS = 3
     AUX_LOSS_COEF = 5e-3
@@ -89,7 +89,7 @@ def fine_tune_fintech():
 
     print(f"[*] Loading pretrained Safetensors weights from {pretrained_model_path}...")
     weights = load_file(pretrained_model_path)
-    model.load_state_dict(weights, strict=False)
+    model.load_state_dict(weights, strict=True)
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)

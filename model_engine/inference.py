@@ -1,129 +1,74 @@
 import os
 import sys
 import torch
-from tokenizers import ByteLevelBPETokenizer
 from safetensors.torch import load_file
+from tokenizers import Tokenizer
 
 sys.path.append(os.getcwd())
 from model_engine.src.model import MuntuLM
 
-expert_activations = []
-
-def router_hook(module, input, output):
-    """
-    Espion connecté au routeur MoE.
-    Capture l'expert choisi pour le TOUT DERNIER token en cours de traitement.
-    """
-    global expert_activations
-
-    if isinstance(output, tuple):
-        output = output[0]
-
-    if output.dim() == 3:
-        last_token_logits = output[0, -1, :]
-    elif output.dim() == 2:
-        last_token_logits = output[-1, :]
-    else:
-        last_token_logits = output.flatten()
-
-    selected_expert = torch.argmax(last_token_logits, dim=-1).item()
-    expert_activations.append(selected_expert)
-
-def run_inference(prompt: str, max_tokens: int = 50, top_k: int = 40):
-    global expert_activations
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"[*] Inférence lancée sur : {device}")
-
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+def test_fintech_inference():
+    base_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else os.getcwd()
     root_dir = os.path.abspath(os.path.join(base_dir, ".."))
-    
-    tokenizer_path = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer")
 
-    model_path = os.path.join(base_dir, "muntu_pretrained.safetensors")
+    # Chemins absolus nettoyés
+    model_path = os.path.join(base_dir, "muntu_fintech.safetensors")
+    tokenizer_path = os.path.join(root_dir, "data_engine", "_output", "muntu_tokenizer", "tokenizer.json")
 
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Le fichier de poids du modèle est introuvable : {model_path}")
+        raise FileNotFoundError(f"[!] Fichier de poids introuvable : {model_path}")
+    if not os.path.exists(tokenizer_path):
+        raise FileNotFoundError(f"[!] Tokenizer introuvable : {tokenizer_path}")
 
-    tokenizer = ByteLevelBPETokenizer(
-        os.path.join(tokenizer_path, "vocab.json"),
-        os.path.join(tokenizer_path, "merges.txt")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[*] Appareil d'inférence : {device}")
+    print(f"[*] Chargement du tokenizer depuis : {tokenizer_path}")
+    tokenizer = Tokenizer.from_file(tokenizer_path)
+
+    print(f"[*] Chargement des poids Fintech depuis : {model_path}")
+    model = MuntuLM(
+        vocab_size=tokenizer.get_vocab_size(),
+        d_model=768,
+        max_seq_len=4096,
+        n_layers=4
     )
-
-    vocab_size = tokenizer.get_vocab_size()
-
-    print("[*] Chargement des poids du modèle depuis Safetensors...")
-    state_dict = load_file(model_path)
-    
-    saved_vocab_size = state_dict['embedding.token_embedding.weight'].shape[0]
-
-    if vocab_size != saved_vocab_size:
-        print(f"[!] Warning: Taille vocabulaire Tokenizer ({vocab_size}) != Checkpoint ({saved_vocab_size}). Alignement.")
-        vocab_size = saved_vocab_size
-
-    model = MuntuLM(vocab_size=vocab_size, d_model=768, max_seq_len=4096, n_layers=4)
-
-    random_weights = model.embedding.token_embedding.weight.clone()
-
-    model.load_state_dict(state_dict, strict=False)
-    
-    assert torch.max(torch.abs(random_weights - model.embedding.token_embedding.weight)).item() > 0, \
-        "CRITICAL ERROR: Les poids du modèle sont identiques à l'initialisation aléatoire ! Le checkpoint n'a pas chargé."
-
+    weights = load_file(model_path)
+    model.load_state_dict(weights)
     model.to(device)
     model.eval()
 
-    hook_success = False
-    try:
-        last_block = model.blocks[-1]
-        for name, module in last_block.named_modules():
-            if name.endswith('router'):
-                handle = module.register_forward_hook(router_hook)
-                hook_success = True
-                print("[+] Télémétrie connectée au routeur MoE (Couche 4).")
-                break
-        if not hook_success:
-            print("[!] Attention : Aucun module 'router' trouvé dans le dernier bloc de ton modèle.")
-    except Exception as e:
-        print(f"[!] Impossible de brancher l'espion : {e}")
-
-    encoded = tokenizer.encode(prompt)
-    input_ids = torch.tensor([encoded.ids], dtype=torch.long, device=device)
-
-    temperatures = [0.4, 0.7, 1.0]
-    print(f"\n[Prompt Initial] : '{prompt}'")
+    # Question orientée Fintech avec structure ChatML
+    user_query = "Explique le fonctionnement d'une transaction de paiement mobile."
+    formatted_prompt = f"<|im_start|>user\n{user_query}<|im_end|>\n<|im_start|>assistant\n"
     
-    for temp in temperatures:
-        expert_activations = [] 
-        print(f"\n" + "="*40)
-        print(f" TEST À TEMPÉRATURE : {temp}")
-        print("="*40)
-        
-        with torch.no_grad():
-            generated_ids = model.generate(
-                input_ids, 
-                max_new_tokens=max_tokens, 
-                temperature=temp, 
-                top_k=top_k,
-                top_p=0.9,
-                repetition_penalty=1.25
-            )
-        
-        generated_text = tokenizer.decode(generated_ids[0].tolist(), skip_special_tokens=True)
-        print(f"[MUNTU] :\n{generated_text}\n")
+    input_ids = torch.tensor([tokenizer.encode(formatted_prompt).ids], dtype=torch.long).to(device)
 
-        if hook_success and expert_activations:
-            print("--- RÉPARTITION DES EXPERTS ---")
-            total_tokens = len(expert_activations)
-            for exp_id in range(4):
-                count = expert_activations.count(exp_id)
-                pct = (count / total_tokens) * 100 if total_tokens > 0 else 0
-                print(f"   Expert {exp_id} : {count} tokens ({pct:.1f}%)")
-        elif hook_success:
-            print("[!] Aucun token n'a déclenché le hook. Vérifie la méthode forward de ton modèle.")
+    print("\n" + "="*50)
+    print(f"[PROMPT SFT] : {user_query}")
+    print("="*50 + "\n")
 
-    if hook_success:
-        handle.remove()
+    with torch.no_grad():
+        for _ in range(150):
+            logits = model(input_ids)
+            if isinstance(logits, tuple):
+                logits = logits[0]
+            
+            # Application de la température
+            next_token_logits = logits[:, -1, :] / 0.7
+            probs = torch.softmax(next_token_logits, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1)
+
+            input_ids = torch.cat([input_ids, next_token], dim=-1)
+
+            # Condition d'arrêt sur balise ChatML
+            decoded_word = tokenizer.decode([next_token.item()])
+            if "<|im_end|>" in decoded_word:
+                break
+
+    output_text = tokenizer.decode(input_ids[0].tolist())
+    print("[MUNTU FINTECH] :")
+    response = output_text.split("<|im_start|>assistant\n")[-1].replace("<|im_end|>", "").strip()
+    print(response)
 
 if __name__ == "__main__":
-    run_inference(prompt="Le système de", max_tokens=50)
+    test_fintech_inference()
