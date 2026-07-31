@@ -1,0 +1,28 @@
+{
+  "id_info": {
+    "country": "CG",
+    "id_type": "IDENTITY_CARD",
+    "entered": true
+  },
+  "images": [
+    {
+      "image_type_id": 0,
+      "file_name": "selfie.jpg"
+    },
+    {
+      "image_type_id": 1,
+      "file_name": "id_front.jpg"
+    },
+    {
+      "image_type_id": 5,
+      "file_name": "id_back.jpg"
+    }
+  ],
+  "package_information": {
+    "apiVersion": {
+      "majorVersion": 2,
+      "minorVersion": 0,
+      "buildNumber": 0
+    }
+  }
+}
