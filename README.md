@@ -1,6 +1,6 @@
  ### MUNTU LLM
 
-MUNTU is a Sparse Mixture of Experts Large Language Model built in PyTorch. It utilizes a Transformer (decoder-only) architecture optimized for computational efficiency and the integration of specialized knowledge.
+A Sparse Mixture of Experts Large Language Model built in PyTorch, it utilizes a Transformer (decoder-only) architecture optimized for computational efficiency and the integration of specialized knowledge.
 
 ### Project Status
 - **Current Phase:** Proof of Concept (PoC) / Architectural Validation
