@@ -1,19 +1,19 @@
-# MUNTU LLM
+ ### MUNTU LLM
 
 MUNTU is a Sparse Mixture of Experts Large Language Model built in PyTorch. It utilizes a Transformer (decoder-only) architecture optimized for computational efficiency and the integration of specialized knowledge.
 
-## Project Status
+### Project Status
 - **Current Phase:** Proof of Concept (PoC) / Architectural Validation
 - **Status:** Training pipeline validated, training/inference loops operational on CUDA infrastructure.
 - **Goal:** Enable local execution of LLMs specialized in African fintech and regulatory ecosystems.
 
-## Key Technical Features
+### Key Technical Features
 
 * **Sparse MoE Architecture:** Implementation of a *Top-1 routing* mechanism. This distributes tokens to independent feed-forward experts, decoupling the number of parameters from inference latency.
 * **Contextual Integration:** Designed for domain-specific pre-training, focusing on regional business logic, regulatory frameworks, and financial infrastructures (e.g., Mobile Money ecosystems).
 * **Training Stability:** Features Pre-LN normalization for gradient propagation and an auxiliary *Load Balancing Loss* to prevent expert collapse.
 
-## Technical Specifications
+### Technical Specifications
 
 | Feature | Specification |
 | :--- | :--- |
@@ -24,7 +24,7 @@ MUNTU is a Sparse Mixture of Experts Large Language Model built in PyTorch. It u
 | **Attention** | Multi-head causal attention (causal masking) |
 | **Gating Control** | Auxiliary Load Balancing Loss |
 
-## Roadmap
+### Roadmap
 
 ### Phase 1: Architectural Validation (Completed)
 - [x] Implementation of core Transformer blocks.
